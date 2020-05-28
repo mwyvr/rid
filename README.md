@@ -43,24 +43,25 @@ func main(){
 }
 ```
 
-## Acknowldegments
-
-Much of this package was based on [rs/xid](https://github.com/rs/xid), which
-itself was inspired by
-[MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
-[oklog/ulid](https://github.com/oklog/ulid)'s use of millisecond-resolution
-timestamps was a good fit and independently, after going some swear-word
-searches in test results, also came to choose Crockford's Base36 character set
-(shifting numbers to the end of the alphabet however) over something unsortable
-like Z-Base36.
+## Motivation
 
 So why this? I had an itch to scratch, an interest in looking at how ID
 generation was being tackled for distributed applications, but much less grand
 needs for myself. Mostly I wanted a shorter string representation - sid.IDs are
 13 characters as opposed to 20, or 24, respectively.
 
+## Acknowledgments
+
+Much of this package was based on [rs/xid](https://github.com/rs/xid), which
+itself was inspired by
+[MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
+
+[oklog/ulid](https://github.com/oklog/ulid)'s use of millisecond-resolution
+timestamps was a good fit; independently also came to choose [Crockford's
+Base32 character set](https://en.wikipedia.org/wiki/Base32#Crockford's_Base32)
+over unsortable schemes like [Z-Base32](https://en.wikipedia.org/wiki/Base32#z-base-32) or
+[HashIDs](https://github.com/speps/go-hashids).
+
 Other inspriration was found in [Generating good unique IDs in
 Go](https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html),
-and reading the source of various packages offering more than this one does. I
-also looked at [HashIDs](https://github.com/speps/go-hashids) but opted for the
-sortable nature of Base32 instead of trying to obscure a timestamp and counter.
+and reading the source of various packages offering more than this one does.
