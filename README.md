@@ -6,7 +6,7 @@ enough (65535 per millisecond), URL and human-friendly IDs.
 The 8-byte ID itself is composed of:
 
 - 6-byte timestamp value representing milliseconds since the Unix epoch
-- 2-byte counter 0-65535 that rolls over when it hits maximum.
+- 2-byte concurrency-safe counter
 
 If for some reason your application needs to produce more than 65,535 new IDs
 per _millisecond_ in any situation other than tests and benchmarks, this ID generator
@@ -20,11 +20,7 @@ For readability purposes, the Base32 encoding of ID byte values uses the
 [Crockford character set](https://www.crockford.com/base32.html) rather than
 the standard.
 
-ID generation is concurrency safe.
-
 The package provides implementations of some well-known interfaces for encoding and SQL.
-
-Tests coming; under construction, May 2020, it's pandemic time.
 
 ## Example Use
 
@@ -38,17 +34,19 @@ import (
 
 func main(){
     id := sid.New()
-    fmt.Printf("ID: %s Timestamp (ms): %d Count: %5d Bytes: %3v\n",
+    fmt.Printf("ID: %s Timestamp (ms): %d Count: %5d \nBytes: %3v\n",
         id.String(), id.Milliseconds(), id.Count(), id[:])
 }
+// ID: af3fwdh337xx6 Timestamp (ms): 1590631922127 Count: 26430 
+// Bytes: [  1 114  89  12 249 207 103  62]
 ```
 
 ## Motivation
 
-So why this? I had an itch to scratch, an interest in looking at how ID
-generation was being tackled for distributed applications, but much less grand
-needs for myself. Mostly I wanted a shorter string representation - sid.IDs are
-13 characters as opposed to 20, or 24, respectively.
+So why this? I had an itch to scratch, and an interest in looking at how ID
+generation was being tackled for distributed applications. Having much less grand
+needs, and wanting a shorter string representation (13 chars vs 20 or more), the
+original-sounding "sid" was born. 
 
 ## Acknowledgments
 
