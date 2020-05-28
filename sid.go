@@ -101,6 +101,7 @@ func NewWithTime(tm time.Time) ID {
 	// 2 byte counter - rolls over at uint16 max
 	// [1 114 88 144 14 181 255 255] af3fvear01998 1590623735477 65535  +1 =
 	// [1 114 88 144 14 181   0   0] af3fvear0yaaa 1590623735477 0
+	atomic.CompareAndSwapUint32(&counter, 65535, 0)
 	ct := atomic.AddUint32(&counter, 1)
 	id[6] = byte(ct >> 8)
 	id[7] = byte(ct)
