@@ -115,6 +115,11 @@ func (id ID) String() string {
 	return *(*string)(unsafe.Pointer(&text))
 }
 
+// Bytes returns by value the byte array representation of ID
+func (id ID) Bytes() []byte {
+	return id[:]
+}
+
 // Time returns the timestamp component as a Go time value with millisecond
 // resolution.
 func (id ID) Time() time.Time {
