@@ -22,6 +22,8 @@ the standard.
 
 The package provides implementations of some well-known interfaces for encoding and SQL.
 
+`cmd/sid` provides a simple tool to generate or inspect SIDs.
+
 ## Example Use
 
 ```go
@@ -37,7 +39,7 @@ func main(){
     fmt.Printf("ID: %s Timestamp (ms): %d Count: %5d \nBytes: %3v\n",
         id.String(), id.Milliseconds(), id.Count(), id[:])
 }
-// ID: af3fwdh337xx6 Timestamp (ms): 1590631922127 Count: 26430 
+// ID: af3fwdh337xx6 Timestamp (ms): 1590631922127 Count: 26430
 // Bytes: [  1 114  89  12 249 207 103  62]
 ```
 
@@ -46,7 +48,7 @@ func main(){
 So why this? I had an itch to scratch, and an interest in looking at how ID
 generation was being tackled for distributed applications. Having much less grand
 needs, and wanting a shorter string representation (13 chars vs 20 or more), the
-original-sounding "sid" was born. 
+original-sounding "sid" was born.
 
 ## Acknowledgments
 

@@ -14,6 +14,8 @@ Crockford's alphabet. An example:
 
 Using sid is simple:
 
+	package main
+
 	import (
 		"fmt"
 		"github.com/solutionroute/sid"
@@ -21,9 +23,11 @@ Using sid is simple:
 
 	func main(){
 		id := sid.New()
-		fmt.Printf("ID: %s Timestamp (ms): %d Count: %5d Bytes: %3v\n",
+		fmt.Printf("ID: %s Timestamp (ms): %d Count: %5d \nBytes: %3v\n",
 			id.String(), id.Milliseconds(), id.Count(), id[:])
 	}
+	// ID: af3fwdh337xx6 Timestamp (ms): 1590631922127 Count: 26430
+	// Bytes: [  1 114  89  12 249 207 103  62]
 
 Using FromString("af1zwtepacw38") returns the original ID value:
 
@@ -65,8 +69,8 @@ var (
 
 	// counter is atomically updated and go routine-safe. While the type
 	// is uint32, the value actually packed into ID is uint16 with a maximum
-	// value of 65535 upon which it will loop to zero. This implies a maximum
-	// of 65535 unique IDs per milliscond or 65,535,000 per second.
+	// value of 65535; when hit it will loop to zero. This implies a maximum
+	// of 65536 unique IDs per milliscond or 65,536,000 per second. Enough?
 	counter = randInt()
 
 	// ErrInvalidID is returned when trying to decode an invalid ID character
@@ -95,7 +99,7 @@ func NewWithTime(tm time.Time) ID {
 	id[4] = byte(ms >> 8)
 	id[5] = byte(ms)
 	// 2 byte counter - rolls over at uint16 max
-	// [1 114 88 144 14 181 255 255] af3fvear01998 1590623735477 65535
+	// [1 114 88 144 14 181 255 255] af3fvear01998 1590623735477 65535  +1 =
 	// [1 114 88 144 14 181   0   0] af3fvear0yaaa 1590623735477 0
 	ct := atomic.AddUint32(&counter, 1)
 	id[6] = byte(ct >> 8)
@@ -105,17 +109,16 @@ func NewWithTime(tm time.Time) ID {
 }
 
 // String returns a Base32 representation of ID.
-// Note: this package utilizes a custom character set for the encoding.
 func (id ID) String() string {
 	text := make([]byte, encodedLen)
 	encode(text, id[:])
 	return *(*string)(unsafe.Pointer(&text))
 }
 
-// Time returns the timestamp component as a Go time value with millisecond resolution.
+// Time returns the timestamp component as a Go time value with millisecond
+// resolution.
 func (id ID) Time() time.Time {
 	ms := id.Milliseconds()
-	// 1e3 and 1e6 are runtime float constants
 	s := int64(ms / 1e3)
 	ns := int64((ms % 1e3) * 1e6)
 	return time.Unix(s, ns)
@@ -124,7 +127,8 @@ func (id ID) Time() time.Time {
 // Milliseconds returns the timestamp of the ID as the number of milliseconds
 // from the Unix epoch.
 //
-// Use the value from ID.Time() to access standard Unix() // or UnixNano() timestamps.
+// Use the value from the ID.Time() method to access standard Unix()
+// or UnixNano() timestamps.
 func (id ID) Milliseconds() uint64 {
 	return uint64(id[5]) |
 		uint64(id[4])<<8 |
@@ -140,14 +144,14 @@ func (id ID) Count() uint16 {
 	return uint16(id[6])<<8 | uint16(id[7])
 }
 
-// FromString decodes the Base32 string and returns an ID, if possible,
+// FromString decodes a Base32 representation.
 func FromString(str string) (ID, error) {
 	id := &ID{}
 	err := id.UnmarshalText([]byte(str))
 	return *id, err
 }
 
-// FromBytes convert the byte array representation of `ID` back to `ID`
+// FromBytes copies []bytes into an ID value.
 func FromBytes(b []byte) (ID, error) {
 	var id ID
 	if len(b) != rawLen {
@@ -157,7 +161,7 @@ func FromBytes(b []byte) (ID, error) {
 	return id, nil
 }
 
-// encode id as Base32; see charset for details
+// encode ID as Base32
 func encode(dst, id []byte) {
 	encoding.Encode(dst, id[:])
 }
@@ -167,7 +171,7 @@ func decode(buf []byte, src []byte) (int, error) {
 	return encoding.Decode(buf, src)
 }
 
-// randInt generates a random number to seed counter at package initialization.
+// randInt generates a random number to initialize counter.
 func randInt() uint32 {
 	b := make([]byte, 2)
 	if _, err := rand.Reader.Read(b); err != nil {
