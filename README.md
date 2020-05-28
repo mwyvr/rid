@@ -3,7 +3,7 @@
 Package sid provides a short ID generator producing relatively compact, unique
 enough (65535 per millisecond), URL and human-friendly IDs.
 
-The eight-byte ID itself is composed of:
+The 8-byte ID itself is composed of:
 
 - 6-byte timestamp value representing milliseconds since the Unix epoch
 - 2-byte counter 0-65535 that rolls over when it hits maximum.
@@ -15,7 +15,7 @@ is not the one you are looking for. May the force be with you!
 String representations look like:
 
     af1zwtepacw38 // 13 characters long
-    
+
 For readability purposes, the Base32 encoding of ID byte values uses the
 [Crockford character set](https://www.crockford.com/base32.html) rather than
 the standard.
@@ -24,38 +24,43 @@ ID generation is concurrency safe.
 
 The package provides implementations of some well-known interfaces for encoding and SQL.
 
-Under construction, May 2020, it's pandemic time.
+Tests coming; under construction, May 2020, it's pandemic time.
 
 ## Example Use
 
-    ```go
-    package main
+```go
+package main
 
-	import (
-		"fmt"
-		"github.com/solutionroute/sid"
-	)
+import (
+    "fmt"
+    "github.com/solutionroute/sid"
+)
 
-	func main(){
-		id := sid.New()
-		fmt.Printf("ID: %s Timestamp (ms): %d Count: %5d Bytes: %3v\n",
-			id.String(), id.Milliseconds(), id.Count(), id[:])
-	}
-    ```
+func main(){
+    id := sid.New()
+    fmt.Printf("ID: %s Timestamp (ms): %d Count: %5d Bytes: %3v\n",
+        id.String(), id.Milliseconds(), id.Count(), id[:])
+}
+```
 
-## Acknowldegment
+## Acknowldegments
 
-Much of this package was based on [rs/xid](https://github.com/rs/xid), 
-which itself was inspired by [MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
+Much of this package was based on [rs/xid](https://github.com/rs/xid), which
+itself was inspired by
+[MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
+[oklog/ulid](https://github.com/oklog/ulid)'s use of millisecond-resolution
+timestamps was a good fit and independently, after going some swear-word
+searches in test results, also came to choose Crockford's Base36 character set
+(shifting numbers to the end of the alphabet however) over something unsortable
+like Z-Base36.
 
 So why this? I had an itch to scratch, an interest in looking at how ID
 generation was being tackled for distributed applications, but much less grand
 needs for myself. Mostly I wanted a shorter string representation - sid.IDs are
-13 characters as opposed to 20, or 24, respectively. and was just interested in
-looking at the problem.
+13 characters as opposed to 20, or 24, respectively.
 
 Other inspriration was found in [Generating good unique IDs in
 Go](https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html),
 and reading the source of various packages offering more than this one does. I
 also looked at [HashIDs](https://github.com/speps/go-hashids) but opted for the
-fixed length nature of Base32 instead.
+sortable nature of Base32 instead of trying to obscure a timestamp and counter.
