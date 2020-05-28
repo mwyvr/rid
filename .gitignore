@@ -4,7 +4,10 @@
 *.dll
 *.so
 *.dylib
+# executable
 cmd/sid/sid
+# internal sandbox
+cmd/internal/*
 
 # Test binary, built with `go test -c`
 *.test
