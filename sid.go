@@ -56,11 +56,13 @@ const (
 	rawLen     = 8  // bytes
 	encodedLen = 13 // Base32
 
-	// ID string representations are Base32-encoded using the Crockford
-	// character set: i, o, l, u were removed and w, x, y, z added. To
-	// avoid leading zeros for many years, the digits were moved last.
-	// Standard for comparison: "0123456789abcdefghijklmnopqrstuv".
-	charset = "abcdefghjkmnpqrstvwxyz0123456789" // mod-crockford
+	//  ID string representations are fixed-length, Base32-encoded using the
+	//  Crockford character set (i, o, l, u were removed and w, x, y, z added).
+	//  To avoid leading zeros for many years, the digits were moved last.
+	//
+	// encoding/Base32 standard for comparison:
+	//        "0123456789abcdefghijklmnopqrstuv".
+	charset = "abcdefghjkmnpqrstvwxyz0123456789"
 )
 
 var (
@@ -69,12 +71,11 @@ var (
 
 	// counter is atomically updated and go routine-safe. While the type
 	// is uint32, the value actually packed into ID is uint16 with a maximum
-	// value of 65535; when hit it will loop to zero. This implies a maximum
-	// of 65536 unique IDs per milliscond or 65,536,000 per second. Enough?
+	// min value of 1, max value of 65535; when hit it is reset. This implies
+	// a maximum of 65535 unique IDs per milliscond or 65,535,000 per second.
 	counter = randInt()
 
-	// ErrInvalidID is returned when trying to decode an invalid ID character
-	// representation. See FromString and UnmarshalText.
+	// ErrInvalidID - attempting to decode an invalid ID character representation.
 	ErrInvalidID = errors.New("sid: invalid ID")
 
 	nilID ID
@@ -99,8 +100,6 @@ func NewWithTime(tm time.Time) ID {
 	id[4] = byte(ms >> 8)
 	id[5] = byte(ms)
 	// 2 byte counter - rolls over at uint16 max
-	// [1 114 88 144 14 181 255 255] af3fvear01998 1590623735477 65535  +1 =
-	// [1 114 88 144 14 181   0   0] af3fvear0yaaa 1590623735477 0
 	atomic.CompareAndSwapUint32(&counter, 65535, 0)
 	ct := atomic.AddUint32(&counter, 1)
 	id[6] = byte(ct >> 8)
