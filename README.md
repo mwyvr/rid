@@ -9,21 +9,18 @@ enough (65535 per millisecond), URL and human-friendly IDs.
 The 8-byte ID itself is composed of:
 
 - 6-byte timestamp value representing milliseconds since the Unix epoch
-- 2-byte concurrency-safe counter
+- 2-byte concurrency-safe counter (concurrency test included)
 
 If for some reason your application needs to produce more than 65,535 new IDs
 per _millisecond_ in any situation other than tests and benchmarks, this ID generator
 is not the one you are looking for. May the force be with you!
 
-String representations look like:
+String representations are chronologically [k-sortable](https://en.wikipedia.org/wiki/Partial_sorting), 
+13 characters long and look like: `af1zwtepacw38`.
 
-    af1zwtepacw38 // 13 characters long
-
-For readability purposes, the Base32 encoding of ID byte values uses the
-[Crockford character set](https://www.crockford.com/base32.html) rather than
+For readability purposes, the Base32 encoding of ID byte values uses a variant of the
+[Crockford character set](https://www.crockford.com/base32.html) (omits i, l, o, u) rather than
 the standard.
-
-The package provides implementations of some well-known interfaces for encoding and SQL.
 
 `cmd/sid` provides a simple tool to generate or inspect SIDs.
 
