@@ -1,3 +1,6 @@
+
+[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/solutionroute/sid)[![Build Status](https://travis-ci.org/solutionroute/sid.svg?branch=master)](https://travis-ci.org/solutionroute/sid)[![Go Coverage](http://gocover.io/_badge/github.com/solutionroute/sid)](http://gocover.io/github.com/solutionroute/sid)
+
 # sid
 
 Package sid provides a short ID generator producing relatively compact, unique
