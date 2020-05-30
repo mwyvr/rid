@@ -11,8 +11,6 @@ import (
 )
 
 var (
-	now = time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
-
 	// for testing concurrency safety
 	wg sync.WaitGroup
 )
@@ -159,6 +157,28 @@ func TestID_Components(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFOO(t *testing.T) {
+	id, err := FromString("aaaaaaaaaeaac")
+	date := id.Time().UTC()
+	if err != nil {
+		t.Errorf("Unexpected failure decoding")
+	}
+	y, m, d := date.Date()
+	if (y != 1970) || (m != 1) || (d != 1) {
+		t.Errorf("ID.Time() returned %d, %d, %d; want 1970,1,1", y, m, d)
+	}
+	milli := uint64(date.UnixNano() / 1e6)
+	if (milli != id.Milliseconds()) || (milli != 1) {
+		t.Errorf("ID.Time() millisecond value %d, want 1", milli)
+	}
+	// now
+	id = NewWithTime(time.Now())
+	if uint64(id.Time().UnixNano()/1e6) != id.Milliseconds() {
+		t.Errorf("ID.Time() UnixNano()/1e6 != id.Milliseconds")
+	}
+
 }
 
 func TestID_Time(t *testing.T) {
