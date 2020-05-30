@@ -166,12 +166,12 @@ func FromBytes(b []byte) (ID, error) {
 	return id, nil
 }
 
-// encode ID as Base32
+// encode an id as Base32
 func encode(dst, id []byte) {
 	encoding.Encode(dst, id[:])
 }
 
-// decode Base32 representation
+// decode Base32 representation as a []byte value
 func decode(buf []byte, src []byte) (int, error) {
 	return encoding.Decode(buf, src)
 }
