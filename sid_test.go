@@ -1,6 +1,7 @@
 package sid
 
 import (
+	"bytes"
 	"database/sql/driver"
 	enc "encoding"
 	"reflect"
@@ -20,21 +21,23 @@ type idTest struct {
 	name         string
 	valid        bool
 	id           ID
-	rawbytes     []byte
+	rawBytes     []byte
 	milliseconds uint64
 	counter      uint16
 	b32          string
 }
 
+// TODO add date values in for direct comparison
 var testIDS = []idTest{
 	{
-		"min value 1970-01-01 00:00:00 +0000 UTC", // epoch time
+		// epoch time plus 1 millisecond plus min counter of 1
+		"min value 1970-01-01 00:00:00 +0000 UTC",
 		true,
-		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-		0,
-		0,
-		"aaaaaaaaaaaaa",
+		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01},
+		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01},
+		1,
+		1,
+		"aaaaaaaaaeaac",
 	},
 	{
 		"max value in the year 10889 see you then",
@@ -46,7 +49,7 @@ var testIDS = []idTest{
 		"9999999999998",
 	},
 	{
-		"fail on FromString / FromBytes - value mismatch",
+		"fail on FromString / FromBytes / decode - value mismatch",
 		false,
 		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 		[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xaa},
@@ -133,15 +136,6 @@ func TestNewWithTime(t *testing.T) {
 	}
 }
 
-type sidTest struct {
-	name         string
-	valid        bool
-	id           ID
-	milliseconds uint64
-	counter      uint16
-	b32          string
-}
-
 func TestID_Components(t *testing.T) {
 	for _, tt := range testIDS {
 		t.Run(tt.name, func(t *testing.T) {
@@ -151,7 +145,7 @@ func TestID_Components(t *testing.T) {
 		})
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.id.Milliseconds(); (got != tt.milliseconds) && (tt.valid != false) {
-				t.Errorf("ID.Milliseconds() = %v, want %v", got, tt.milliseconds)
+				t.Errorf("ID.Milliseconds() = %v %v, want %v", got, tt.id[:], tt.milliseconds)
 			}
 		})
 		t.Run(tt.name, func(t *testing.T) {
@@ -164,13 +158,9 @@ func TestID_Components(t *testing.T) {
 				t.Errorf("ID.Bytes() = %#v, want %#v", got, tt.id)
 			}
 		})
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.id.Milliseconds(); got != tt.milliseconds {
-				t.Errorf("ID.Milliseconds() = %v, want %v", got, tt.milliseconds)
-			}
-		})
 	}
 }
+
 func TestID_Time(t *testing.T) {
 	tests := []struct {
 		name string
@@ -207,7 +197,7 @@ func TestFromString(t *testing.T) {
 func TestFromBytes(t *testing.T) {
 	for _, tt := range testIDS {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := FromBytes(tt.rawbytes)
+			got, err := FromBytes(tt.rawBytes)
 			if tt.valid && (err != nil) {
 				t.Errorf("FromBytes() error = %v, wantErr %v", err, tt.valid)
 				return
@@ -236,122 +226,89 @@ func Test_encode(t *testing.T) {
 }
 
 func Test_decode(t *testing.T) {
-	type args struct {
-		buf []byte
-		src []byte
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    int
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
+	for _, tt := range testIDS {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := decode(tt.args.buf, tt.args.src)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("decode() error = %v, wantErr %v", err, tt.wantErr)
+			buf := make([]byte, rawLen)
+			got, err := decode(buf, []byte(tt.b32))
+			if tt.valid && (err != nil) {
+				t.Errorf("decode() error = %v, valid %v", err, tt.valid)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("decode() = %v, want %v", got, tt.want)
+			if tt.valid && got != len(tt.rawBytes) {
+				t.Errorf("decode() = %v, want len %v", got, len(tt.rawBytes))
+			}
+			if tt.valid && bytes.Compare(buf, tt.rawBytes) != 0 {
+				t.Errorf("decode() compare fail, dst = %v, want %v", buf, tt.rawBytes)
 			}
 		})
 	}
 }
 
 func Test_randInt(t *testing.T) {
-	tests := []struct {
-		name string
-		want uint32
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := randInt(); got != tt.want {
-				t.Errorf("randInt() = %v, want %v", got, tt.want)
+	for i := 0; i < 10000; i++ {
+		t.Run("Test_randInt()", func(t *testing.T) {
+			got := randInt()
+			if got < 0 {
+				t.Errorf("randInt() = %v, < 0", got)
+				return
+			}
+			if got > 65535 {
+				t.Errorf("randInt() = %v, > 65535", got)
 			}
 		})
 	}
 }
 
 func TestID_UnmarshalText(t *testing.T) {
-	type args struct {
-		text []byte
-	}
-	tests := []struct {
-		name    string
-		id      *ID
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		// ensure ID implements the interface
-		var _ enc.TextUnmarshaler = &ID{}
+	for _, tt := range testIDS {
 		t.Run(tt.name, func(t *testing.T) {
 			// Ensure that ID fulfills the Interface
 			var _ enc.TextUnmarshaler = &ID{}
-
-			if err := tt.id.UnmarshalText(tt.args.text); (err != nil) != tt.wantErr {
-				t.Errorf("ID.UnmarshalText() error = %v, wantErr %v", err, tt.wantErr)
+			text := []byte(tt.b32[:])
+			if err := tt.id.UnmarshalText(text); err != nil {
+				if tt.valid { // shouldn't be
+					t.Errorf("ID.UnmarshalText() error = %v, want %v", err, tt.id[:])
+				}
 			}
 		})
 	}
 }
 
 func TestID_MarshalText(t *testing.T) {
-	tests := []struct {
-		name    string
-		id      ID
-		want    []byte
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
+	for _, tt := range testIDS {
 		t.Run(tt.name, func(t *testing.T) {
 			// ensure ID implements the interface
 			var _ enc.TextMarshaler = &ID{}
 			got, err := tt.id.MarshalText()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ID.MarshalText() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.valid && (err != nil) {
+				t.Errorf("ID.MarshalText() error = %v, wantErr %v", err, tt.valid)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ID.MarshalText() = %v, want %v", got, tt.want)
+			if tt.valid && string(got) != tt.b32 {
+				t.Errorf("ID.MarshalText() = %v, want %v", got, tt.b32)
 			}
 		})
 	}
 }
 
 func TestID_Value(t *testing.T) {
-	tests := []struct {
-		name    string
-		id      ID
-		want    driver.Value
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
+	for _, tt := range testIDS {
 		t.Run(tt.name, func(t *testing.T) {
+			// ensure ID implements the interface
+			var _ driver.Valuer = &ID{}
 			got, err := tt.id.Value()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ID.Value() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.valid && (err != nil) {
+				t.Errorf("ID.Value() error = %v, is valid %v", err, tt.valid)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ID.Value() = %v, want %v", got, tt.want)
+			if tt.valid && !reflect.DeepEqual(got, tt.b32) {
+				t.Errorf("ID.Value() = %v, want %v test: %v", got, tt.b32, tt)
 			}
 		})
 	}
 }
 
+// TODO write some db tests and a test SQLite instance
 func TestID_Scan(t *testing.T) {
 	type args struct {
 		value interface{}
@@ -373,7 +330,7 @@ func TestID_Scan(t *testing.T) {
 	}
 }
 
-// mutext protected map/counter for checking for uniqueness
+// mutex protected map/counter for checking for uniqueness
 type dupes struct {
 	count map[string]int
 	mu    sync.Mutex
