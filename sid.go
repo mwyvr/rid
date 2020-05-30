@@ -120,8 +120,8 @@ func (id ID) Bytes() []byte {
 	return id[:]
 }
 
-// Time returns the timestamp component as a Go time value with millisecond
-// resolution.
+// Time returns the embedded timestamp value as a time.Time value having
+// millisecond resolution.
 func (id ID) Time() time.Time {
 	ms := id.Milliseconds()
 	s := int64(ms / 1e3)
