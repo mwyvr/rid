@@ -12,7 +12,9 @@ import (
 
 var (
 	// for testing concurrency safety
-	wg sync.WaitGroup
+	wg            sync.WaitGroup
+	numConcurrent = 10    // go routines X
+	numIter       = 50000 // id creation/routine
 )
 
 type idTest struct {
@@ -28,14 +30,16 @@ type idTest struct {
 // TODO add date values in for direct comparison
 var testIDS = []idTest{
 	{
-		// epoch time plus 1 millisecond plus min counter of 1
+		// epoch time plus a counter of one to avoid being
+		// equal to nilID, which is far as counter should never
+		// be 0
 		"min value 1970-01-01 00:00:00 +0000 UTC",
 		true,
-		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01},
-		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01},
+		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+		0,
 		1,
-		1,
-		"aaaaaaaaaeaac",
+		"aaaaaaaaaaaac",
 	},
 	{
 		"max value in the year 10889 see you then",
@@ -98,8 +102,6 @@ func TestNew_Unique(t *testing.T) {
 	var d = &dupes{count: make(map[string]int)}
 	// generate 4,999,990 IDs concurrently
 	// load it up... no failures observed at *much* higher loads
-	numConcurrent := 10 // go routines X
-	numIter := 500000   // id creation
 	for i := 1; i <= numConcurrent; i++ {
 		wg.Add(1)
 		go func() {
@@ -159,7 +161,7 @@ func TestID_Components(t *testing.T) {
 	}
 }
 
-func TestFOO(t *testing.T) {
+func TestID_Time(t *testing.T) {
 	id, err := FromString("aaaaaaaaaeaac")
 	date := id.Time().UTC()
 	if err != nil {
@@ -181,23 +183,6 @@ func TestFOO(t *testing.T) {
 
 }
 
-func TestID_Time(t *testing.T) {
-	tests := []struct {
-		name string
-		id   ID
-		want time.Time
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.id.Time(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ID.Time() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestFromString(t *testing.T) {
 	for _, tt := range testIDS {
 		t.Run(tt.name, func(t *testing.T) {
@@ -211,6 +196,19 @@ func TestFromString(t *testing.T) {
 				t.Errorf("FromString() = %v, want %v", got, tt.id)
 			}
 		})
+	}
+	// callers should lowercase.
+	got, err := FromString("AAAAAAAAAAAAC")
+	if err != nil {
+		if err == ErrInvalidID {
+			return
+		}
+		t.Errorf("FromString() = %v, want err %v got %v", got, err, ErrInvalidID)
+	}
+	// decoding the nilID value is legit
+	got, err = FromString("aaaaaaaaaaaaa")
+	if err != nil {
+		t.Errorf("FromString(\"aaaaaaaaaaaaa\") nilID value failed, got %v, %v", got, err)
 	}
 }
 
@@ -226,6 +224,16 @@ func TestFromBytes(t *testing.T) {
 				t.Errorf("FromBytes() = %v, want %v", got, tt.id)
 			}
 		})
+	}
+	// nilID byte value is unusual but legit
+	got, err := FromBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	if err != nil {
+		t.Errorf("FromBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}) nilID value failed, got %v, %v", got, err)
+	}
+	// invalid len
+	got, err = FromBytes([]byte{0x12, 0x34})
+	if err == nil {
+		t.Errorf("FromBytes([]byte{0x12, 0x34}) got %v, err==nil, %v", got, err)
 	}
 }
 
@@ -289,16 +297,19 @@ func TestID_UnmarshalText(t *testing.T) {
 				if tt.valid { // shouldn't be
 					t.Errorf("ID.UnmarshalText() error = %v, want %v", err, tt.id[:])
 				}
+				if !tt.valid && err != ErrInvalidID {
+					t.Errorf("ID.UnmarshalText() error = %v, want %v", err, ErrInvalidID)
+				}
 			}
 		})
 	}
 }
 
 func TestID_MarshalText(t *testing.T) {
+	// ensure ID implements the interface
+	var _ enc.TextMarshaler = &ID{}
 	for _, tt := range testIDS {
 		t.Run(tt.name, func(t *testing.T) {
-			// ensure ID implements the interface
-			var _ enc.TextMarshaler = &ID{}
 			got, err := tt.id.MarshalText()
 			if tt.valid && (err != nil) {
 				t.Errorf("ID.MarshalText() error = %v, wantErr %v", err, tt.valid)
@@ -312,10 +323,10 @@ func TestID_MarshalText(t *testing.T) {
 }
 
 func TestID_Value(t *testing.T) {
+	// ensure ID implements the interface
+	var _ driver.Valuer = &ID{}
 	for _, tt := range testIDS {
 		t.Run(tt.name, func(t *testing.T) {
-			// ensure ID implements the interface
-			var _ driver.Valuer = &ID{}
 			got, err := tt.id.Value()
 			if tt.valid && (err != nil) {
 				t.Errorf("ID.Value() error = %v, is valid %v", err, tt.valid)
@@ -326,27 +337,39 @@ func TestID_Value(t *testing.T) {
 			}
 		})
 	}
+	// nilID
+	val, err := nilID.Value()
+	if (val != nil) && (err != nil) {
+		t.Errorf("ID.Value(nilID) want nil, nil, got %v, %v", val, err)
+	}
 }
 
-// TODO write some db tests and a test SQLite instance
 func TestID_Scan(t *testing.T) {
-	type args struct {
-		value interface{}
-	}
-	tests := []struct {
-		name    string
-		id      *ID
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
+	for _, tt := range testIDS {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.id.Scan(tt.args.value); (err != nil) != tt.wantErr {
-				t.Errorf("ID.Scan() error = %v, wantErr %v", err, tt.wantErr)
+			// Scan string
+			if err := tt.id.Scan(tt.b32); tt.valid && (err != nil) {
+				t.Errorf("ID.Scan() error = %v, valid? %v", err, tt.valid)
+			}
+			// Scan []byte
+			bs := []byte(tt.b32)
+			if err := tt.id.Scan(bs); tt.valid && (err != nil) {
+				t.Errorf("ID.Scan() error = %v, valid? %v", err, tt.valid)
 			}
 		})
+	}
+	// nil
+	id := New()
+	if err := id.Scan(nil); err != nil {
+		t.Errorf("ID.Scan() error = %v, should return nilID", err)
+	}
+	if bytes.Compare(id[:], nilID[:]) != 0 {
+		t.Errorf("ID.Scan() got %v, should return nilID %v", id, nilID)
+	}
+	// unsupported
+	id = ID{}
+	if err := id.Scan(false); err == nil {
+		t.Errorf("ID.Scan() error = %v, should not convert bool", err)
 	}
 }
 
