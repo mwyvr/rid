@@ -79,6 +79,15 @@ var testIDS = []idTest{
 	},
 }
 
+func TestCounterRollover(t *testing.T) {
+	counter = 65534 // package var
+	id := New()     // 65535, then set to zero
+	id = New()      // counter now at 1
+	if (counter != 1) || (id.Count() != 1) {
+		t.Errorf("counter at %d, should be 0", counter)
+	}
+}
+
 func TestNew(t *testing.T) {
 	counter = 0 // package var
 	for i := 1; i <= 1000; i++ {
@@ -86,15 +95,6 @@ func TestNew(t *testing.T) {
 	}
 	if counter != 1000 {
 		t.Errorf("counter at %d, should be 1000", counter)
-	}
-}
-
-func TestCounterRollover(t *testing.T) {
-	counter = 65534 // package var
-	id := New()     // 65535, then set to zero
-	id = New()      // counter now at 1
-	if (counter != 1) || (id.Count() != 1) {
-		t.Errorf("counter at %d, should be 0", counter)
 	}
 }
 
@@ -117,26 +117,50 @@ func TestNew_Unique(t *testing.T) {
 }
 
 func TestNewWithTime(t *testing.T) {
-	type args struct {
-		tm time.Time
+	// package level var
+	// must match
+	counter = 0
+	id := NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
+	if id.String() != "af1z631jaaaac" {
+		t.Errorf("ID.NewWithTime().String() not matching got %v, want %v", id.String(), "af1z631jaaaac")
 	}
-	tests := []struct {
-		name string
-		args args
-		want ID
-	}{
-		// TODO: Add test cases.
+	// should not match
+	counter = 1
+	id = NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
+	if id.String() == "af1z631jaaaac" {
+		t.Errorf("ID.NewWithTime().String() matched and should not")
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewWithTime(tt.args.tm); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewWithTime() = %v, want %v", got, tt.want)
-			}
-		})
+}
+
+func TestID_Milliseconds(t *testing.T) {
+	id := NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
+	if m := id.Milliseconds(); m != uint64(1577836800000) {
+		t.Errorf("ID.Milliseconds() got %v want %v", m, 1577836800000)
+	}
+}
+func TestID_Count(t *testing.T) {
+	id, err := FromString("af1z631jaa0y4")
+	if err != nil {
+		t.Error(err)
+	}
+	if m := id.Count(); m != uint16(11597) {
+		t.Errorf("ID.Count() got %v want %v", m, 11597)
+	}
+}
+
+func TestID_Bytes(t *testing.T) {
+	id, err := FromString("af1z631jaa0y4")
+	if err != nil {
+		t.Error(err)
+	}
+	want := []byte{1, 111, 94, 102, 232, 0, 45, 77}
+	if b := id.Bytes(); bytes.Compare(b, want) != 0 {
+		t.Errorf("ID.Bytes() got %v want %v", b, want)
 	}
 }
 
 func TestID_Components(t *testing.T) {
+	// for completeness
 	for _, tt := range testIDS {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.id.String(); (got != tt.b32) && (tt.valid != false) {
