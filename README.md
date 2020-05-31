@@ -3,18 +3,17 @@
 
 # sid
 
-Package sid provides a short ID generator producing relatively compact, unique
+Package sid provides a short ID generator producing compact, unique
 enough (65535 per millisecond), URL and human-friendly IDs.
 
-The 8-byte ID itself is composed of a:
+The 8-byte ID binary representation is composed of a:
 
 - 6-byte timestamp value representing _milliseconds_ since the Unix epoch
 - 2-byte concurrency-safe counter (test included)
 
 If for some reason your application needs to produce more than 65,535 new IDs
-per _millisecond_ in any situation other than tests and benchmarks, or has a
-distributed execution need, this ID generator is not the one you are looking
-for. May the force be with you!
+per _millisecond_, or has a distributed execution need, this ID generator is
+not the one you are looking for. May the force be with you!
 
 String representations are 13 characters long, chronologically 
 [k-sortable](https://en.wikipedia.org/wiki/Partial_sorting), and look like: `af1zwtepacw38`.
@@ -39,12 +38,7 @@ func main() {
     Count()        %d   // Count()        38307
     Time()         %v   // Time()         2020-05-30 16:35:48.587 -0700 PDT
     Bytes():       %3v  // Bytes():       [  1 114 103 241   6 107 149 163]
-`,
-    id.String(),
-    id.Milliseconds(),
-    id.Count(),
-    id.Time(),
-    id.Bytes(),)
+`, id.String(), id.Milliseconds(), id.Count(), id.Time(), id.Bytes())
 }
 ```
 
@@ -58,11 +52,11 @@ chars vs 20 or more), "sid" was born.
 ## Acknowledgments
 
 Much of this package was based on [rs/xid](https://github.com/rs/xid), which
-itself was inspired by
+offers a globally-unique ID, which itself was inspired by
 [MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
 
 [oklog/ulid](https://github.com/oklog/ulid)'s use of millisecond-resolution
-timestamps was a good fit; independently also came to choose [Crockford's
+timestamps was a good fit; independently, also came to choose [Crockford's
 Base32 character set](https://en.wikipedia.org/wiki/Base32#Crockford's_Base32)
 over unsortable schemes like [Z-Base32](https://en.wikipedia.org/wiki/Base32#z-base-32) or
 the purposefully random [HashIDs](https://github.com/speps/go-hashids).
