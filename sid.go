@@ -1,40 +1,20 @@
 /*
-Package sid provides a ready-to-use generator of locally-unique IDs allowing
-for more than 65 million IDs per second without collision.
+Package sid provides a short unique ID generator producing compact,
+unique-enough for many use cases (65535 per millisecond), URL and
+human-friendly IDs.
 
-IDs are [8]byte types composed of:
+The 8-byte ID binary representation of ID is composed of a:
 
-- 6-byte timestamp with millisecond resolution
-- 2-byte counter (65536 per millisecond)
+- 6-byte timestamp value representing milliseconds since the Unix epoch
+- 2-byte concurrency-safe counter (test included)
 
-ID character representations are k-sortable Based32 encoded using a variant of
-Crockford's alphabet. An example:
+ID character representations are k-sortable and encoded as Base-32 using a
+variant of Crockford's alphabet. An example:
 
 	af1zwtepacw38
 
-Using sid is simple:
-
-	package main
-
-	import (
-		"fmt"
-		"github.com/solutionroute/sid"
-	)
-
-	func main(){
-		id := sid.New()
-		fmt.Printf("ID: %s Timestamp (ms): %d Count: %5d \nBytes: %3v\n",
-			id.String(), id.Milliseconds(), id.Count(), id[:])
-	}
-	// ID: af3fwdh337xx6 Timestamp (ms): 1590631922127 Count: 26430
-	// Bytes: [  1 114  89  12 249 207 103  62]
-
-Using FromString("af1zwtepacw38") returns the original ID value:
-
-	[  1 111  89  64 140   0 165 159] af1zwtepacw38 1577750400000 2019-12-30 16:00:00 -0800 PST counter: 42399
-
 Acknowledgement: Much of this package was based off of the more capable rs/xid
-package, which itself levers ideas from mongodb. See https://github.com/rs/xid.
+package which itself levers ideas from mongodb. See https://github.com/rs/xid.
 */
 package sid
 
