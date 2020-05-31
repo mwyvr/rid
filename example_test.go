@@ -35,11 +35,6 @@ func ExampleFromString() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf(`ID:
-    String()       %s
-    Milliseconds() %d
-    Count()        %d
-    Time()         %v
-    Bytes():       %3v
-`, id.String(), id.Milliseconds(), id.Count(), id.Time().UTC(), id.Bytes())
+	fmt.Println(id.Milliseconds(), id.Count())
+	// Output: 1577836800000 11597
 }
