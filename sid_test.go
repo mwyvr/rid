@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql/driver"
 	enc "encoding"
+	"fmt"
 	"reflect"
 	"sync"
 	"testing"
@@ -430,4 +431,37 @@ func (d *dupes) report(t *testing.T) {
 		t.Errorf("Duplicate Base36 values (keys) found. Total dupes: %d | Total keys: %d\n",
 			total, len(d.count))
 	}
+}
+
+// examples
+
+func ExampleNew() {
+	id := New()
+	fmt.Printf(`ID:
+    String()       %s   
+    Milliseconds() %d  
+    Count()        %d // random for this one-off run 
+    Time()         %v
+    Bytes():       %3v  
+`, id.String(), id.Milliseconds(), id.Count(), id.Time(), id.Bytes())
+}
+
+func ExampleNewWithTime() {
+	id := NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
+	fmt.Printf(`ID:
+    String()       %s
+    Milliseconds() %d
+    Count()        %d // random for this one-off run 
+    Time()         %v
+    Bytes():       %3v
+`, id.String(), id.Milliseconds(), id.Count(), id.Time().UTC(), id.Bytes())
+}
+
+func ExampleFromString() {
+	id, err := FromString("af1z631jaa0y4")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(id.Milliseconds(), id.Count())
+	// Output: 1577836800000 11597
 }
