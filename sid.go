@@ -1,12 +1,12 @@
 /*
-Package sid provides a no-configuration required ID generator producing compact,
-unique-enough (65535 per millisecond), URL and human-friendly IDs that look
-like: af1zwtepacw38.
+Package sid provides a no-configuration required ID generator producing
+compact, unique-enough (65535 per millisecond), URL and human-friendly IDs that
+look like: af1zwtepacw38.
 
 The 8-byte ID binary representation of ID is comprised of a:
 
-- 6-byte timestamp value representing milliseconds since the Unix epoch
-- 2-byte concurrency-safe counter (test included)
+	- 6-byte timestamp value representing milliseconds since the Unix epoch
+	- 2-byte concurrency-safe counter (test included)
 
 ID character representations (af1zwtepacw38) are 13 characters long,
 chronologically-sortable and Base-32 encoded using a variant of Crockford's
