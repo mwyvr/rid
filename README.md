@@ -1,10 +1,9 @@
-[![godoc](http://img.shields.io/badge/godev-reference-blue.svg?style=flat)](https://pkg.go.dev/github.com/solutionroute/sid?tab=doc)[![Build Status](https://travis-ci.org/solutionroute/sid.svg?branch=master)](https://travis-ci.org/solutionroute/sid)[![Go Coverage](https://img.shields.io/badge/coverage-98.3%25-brightgreen.svg?style=flat)](http://gocover.io/github.com/solutionroute/sid)
+[![godoc](http://img.shields.io/badge/godev-reference-blue.svg?style=flat)](https://pkg.go.dev/github.com/solutionroute/sid?tab=doc)[![Build Status](https://travis-ci.org/solutionroute/sid.svg?branch=master)](https://travis-ci.org/solutionroute/sid)[![Go Coverage](https://img.shields.io/badge/coverage-98.3%25-brightgreen.svg?style=flat)](http://gocover.io/github.com/solutionroute/sid)[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # sid
 
-Package sid provides a short unique ID generator (`New()` or
-`NewWithTime(time.Time)`) producing compact, unique-enough (65535 per
-millisecond), URL and human-friendly IDs.
+Package sid provides a no-confgiuration needed ID generator producing compact, 
+unique-enough (65535 per millisecond), URL and human-friendly IDs that look like `af1zwtepacw38`.
 
 The 8-byte ID binary representation of ID is composed of a:
 
@@ -35,12 +34,16 @@ import (
 func main() {
     id := sid.New()
     fmt.Printf(`ID:
-    String()       %s   // String()       af3gs6jgqrm4g
-    Milliseconds() %d   // Milliseconds() 1590881748587
-    Count()        %d   // Count()        38307
-    Time()         %v   // Time()         2020-05-30 16:35:48.587 -0700 PDT
-    Bytes():       %3v  // Bytes():       [  1 114 103 241   6 107 149 163]
+    String()       %s   // af3gs6jgqrm4g
+    Milliseconds() %d   // 1590881748587
+    Count()        %d   // 38307
+    Time()         %v   // 2020-05-30 16:35:48.587 -0700 PDT
+    Bytes():       %3v  // [  1 114 103 241   6 107 149 163]
 `, id.String(), id.Milliseconds(), id.Count(), id.Time(), id.Bytes())
+
+    if id, err := sid.FromString("af1zwtepacw38"); err == nil {
+        fmt.Printf("ID: %s Timestamp (ms): %d Count: %d\n", id, id.Milliseconds(), id.Count())
+    } // Output: ID: af1zwtepacw38 Timestamp (ms): 1577750400000 Count: 42399
 }
 ```
 
@@ -59,10 +62,9 @@ offers a globally-unique ID inspired by
 
 [oklog/ulid](https://github.com/oklog/ulid)'s use of millisecond-resolution
 timestamps was a good fit; independently, also came to choose [Crockford's
-Base32 character set](https://en.wikipedia.org/wiki/Base32#Crockford's_Base32)
-over unsortable schemes like [Z-Base32](https://en.wikipedia.org/wiki/Base32#z-base-32)
-or the purposefully random [HashIDs](https://github.com/speps/go-hashids).
+Base32 character set](https://en.wikipedia.org/wiki/Base32#Crockford's_Base32) for 
+readability, and concluded sortability was a win over the purposefully random 
+looking [HashIDs](https://github.com/speps/go-hashids).
 
 [Generating good unique IDs in
 Go](https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html) provided additional inspiration.
-
