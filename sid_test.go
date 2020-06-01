@@ -31,6 +31,15 @@ type idTest struct {
 // TODO add date values in for direct comparison
 var testIDS = []idTest{
 	{
+		"nilID",
+		false,
+		nilID,
+		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		0,
+		0,
+		"aaaaaaaaaaaaa",
+	},
+	{
 		// epoch time plus a counter of one to avoid being
 		// equal to nilID, which is far as counter should never
 		// be 0
@@ -464,4 +473,35 @@ func ExampleFromString() {
 	}
 	fmt.Println(id.Milliseconds(), id.Count())
 	// Output: 1577836800000 11597
+}
+
+func TestID_MarshalJSON(t *testing.T) {
+	if got, err := nilID.MarshalJSON(); string(got) != "null" {
+		t.Errorf("ID.MarshalJSON() of nilID error = %v, got %v", err, got)
+	}
+	if got, err := (ID{1, 111, 94, 102, 232, 0, 77, 75}).MarshalJSON(); string(got) != "\"af1z631jabgy0\"" {
+		if err != nil {
+			t.Errorf("ID.MarshalJSON() err %v marshaling %v", err, "\"af1z631jabgy0\"")
+		}
+		t.Errorf("ID.MarshalJSON() got %v want %v", string(got), "\"af1z631jabgy0\"")
+	}
+}
+
+func TestID_UnmarshalJSON(t *testing.T) {
+	var id ID
+	err := id.UnmarshalJSON([]byte("null"))
+	if err != nil {
+		t.Errorf("ID.UnmarshalJSON() of null, error = %v", err)
+	}
+	if id != nilID {
+		t.Errorf("ID.UnmarshalJSON() error = %v", err)
+	}
+	// 2020...
+	text := []byte("\"af1z631jabgy0\"")
+	if err = id.UnmarshalJSON(text); err != nil {
+		t.Errorf("ID.UnmarshalJSON() error = %v", err)
+
+	} else if id != (ID{1, 111, 94, 102, 232, 0, 77, 75}) {
+		t.Errorf("ID.UnmarshalJSON() of %v, got %v", text, id.String())
+	}
 }

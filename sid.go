@@ -1,7 +1,7 @@
 /*
-Package sid provides a short unique ID generator producing compact,
-unique-enough for many use cases (65535 per millisecond), URL and
-human-friendly IDs.
+Package sid provides a no-confgiuration needed ID generator producing compact,
+unique-enough (65535 per millisecond), URL and human-friendly IDs that look
+like af1zwtepacw38.
 
 The 8-byte ID binary representation of ID is composed of a:
 
@@ -166,12 +166,8 @@ func randInt() uint32 {
 	return uint32(uint16(b[0])<<8 | uint16(b[1]))
 }
 
-// Implementing interfaces for Text + SQL
-// https://golang.org/src/encoding/encoding.go
-// https://golang.org/src/database/sql/driver/types.go
-// TODO https://golang.org/src/encoding/json/
-
-// UnmarshalText implements encoding.TextUnmarshaler
+// UnmarshalText implements:
+// https://golang.org/pkg/encoding/#TextUnmarshaler
 func (id *ID) UnmarshalText(text []byte) error {
 	if len(text) != encodedLen {
 		return ErrInvalidID
@@ -185,14 +181,15 @@ func (id *ID) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// MarshalText implements encoding.TextMarshaler
+// MarshalText implements:
+// https://golang.org/pkg/encoding/#TextMarshaler
 func (id ID) MarshalText() ([]byte, error) {
 	text := make([]byte, encodedLen)
 	encode(text, id[:])
 	return text, nil
 }
 
-// Value implements the driver.Valuer interface.
+// Value implements:
 // https://golang.org/pkg/database/sql/driver/#Valuer
 func (id ID) Value() (driver.Value, error) {
 	if id == nilID {
@@ -202,7 +199,7 @@ func (id ID) Value() (driver.Value, error) {
 	return string(b), err
 }
 
-// Scan implements the sql.Scanner interface.
+// Scan implements:
 // https://golang.org/pkg/database/sql/#Scanner
 func (id *ID) Scan(value interface{}) (err error) {
 	switch val := value.(type) {
@@ -216,4 +213,28 @@ func (id *ID) Scan(value interface{}) (err error) {
 	default:
 		return fmt.Errorf("sid: unsupported type: %T, value: %#v", value, value)
 	}
+}
+
+// MarshalJSON implements:
+// https://golang.org/pkg/encoding/json/#Marshaler
+func (id ID) MarshalJSON() ([]byte, error) {
+	// endless loop if merely return json.Marshal(id)
+	if id == nilID {
+		return []byte("null"), nil
+	}
+	text := make([]byte, encodedLen+2)
+	encode(text[1:encodedLen+1], id[:])
+	text[0], text[encodedLen+1] = '"', '"'
+	return text, nil
+}
+
+// UnmarshalJSON implements:
+// https://golang.org/pkg/encoding/json/#Unmarshaler
+func (id *ID) UnmarshalJSON(text []byte) error {
+	str := string(text)
+	if str == "null" {
+		*id = nilID
+		return nil
+	}
+	return id.UnmarshalText(text[1 : len(text)-1])
 }
