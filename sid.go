@@ -89,6 +89,11 @@ func NewWithTime(tm time.Time) ID {
 	return id
 }
 
+// IsNil returns true if ID == nilID
+func (id ID) IsNil() bool {
+	return id == nilID
+}
+
 // String returns the Base32 encoded representation of ID.
 func (id ID) String() string {
 	text := make([]byte, encodedLen)
