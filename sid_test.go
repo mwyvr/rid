@@ -132,13 +132,21 @@ func TestNewWithTime(t *testing.T) {
 	counter = 0
 	id := NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
 	if id.String() != "af1z631jaaaac" {
-		t.Errorf("ID.NewWithTime().String() not matching got %v, want %v", id.String(), "af1z631jaaaac")
+		t.Errorf("ID.NewWithTime().String() not matching got %v, want %v",
+			id.String(), "af1z631jaaaac")
 	}
 	// should not match
 	counter = 1
 	id = NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
 	if id.String() == "af1z631jaaaac" {
 		t.Errorf("ID.NewWithTime().String() matched and should not")
+	}
+}
+
+func TestID_IsNil(t *testing.T) {
+	id := New()
+	if id.IsNil() {
+		t.Errorf("ID.IsNil() returned %v, want %v", id.IsNil(), false)
 	}
 }
 
