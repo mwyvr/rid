@@ -1,12 +1,12 @@
 /*
 Package sid provides a unique ID generator producing URL and human-friendly
 (readability and double-click), compact, IDs. They are unique to a single
-machine/process, with more than 4 billion possibilities per millisecond.
+process, with more than 4 billion possibilities per millisecond.
 
 The String() method produces a custom version of Base32 encoded IDs that look
 like:
 
-    af87cfy46ajbxf40 (16 characters, chronologically sortable)
+	af87cfy46ajbxf40 (16 characters, chronologically sortable)
 
 The base32 encoding utilizes a customized alphabet based upon that popularized
 by Crockford who replaced the more easily misread (by humans) i, o, l, and u
@@ -15,9 +15,9 @@ of the character set to avoid having a leading zero for a great many years.
 
 Each ID's 10-byte binary representation is comprised of a:
 
-    001 125 209 022 154 224 016 025 151 086
-    6-byte timestamp value representing milliseconds since the Unix epoch
-    4-byte concurrency-safe counter (test included); maxCounter = uint32(4294967295)
+	001 125 209 022 154 224 016 025 151 086
+	6-byte timestamp value representing milliseconds since the Unix epoch
+	4-byte concurrency-safe counter (test included); maxCounter = uint32(4294967295)
 
 The counter is initialized at a random value at initialization.
 
@@ -33,14 +33,15 @@ rs/xid package which itself levers ideas from mongodb. See
 https://github.com/rs/xid. I'd use xid if I had a fleet of apps on machines
 spread around the world working in unison on a common datastore.
 
-Comparisons: github.com/solutionroute/sid/v2:    af87cfy46ajbxf40
-    github.com/rs/xid:                  9bsv0s091sd002o20hk0
-    github.com/segmentio/ksuid:         ZJkWubTm3ZsHZNs7FGt6oFvVVnD
-    github.com/kjk/betterguid:          -HIVJnL-rmRZno06mvcV
-    github.com/oklog/ulid:              014KG56DC01GG4TEB01ZEX7WFJ
-    github.com/chilts/sid:              1257894000000000000-4601851300195147788
-    github.com/lithammer/shortuuid:     DWaocVZPEBQB5BRMv6FUsZ
-    github.com/google/uuid:             fa931eb3-cdc7-46a1-ae94-eb1b523203be
+Comparisons:
+	github.com/solutionroute/sid/v3:    af87cfy46ajbxf40
+	github.com/rs/xid:                  9bsv0s091sd002o20hk0
+	github.com/segmentio/ksuid:         ZJkWubTm3ZsHZNs7FGt6oFvVVnD
+	github.com/kjk/betterguid:          -HIVJnL-rmRZno06mvcV
+	github.com/oklog/ulid:              014KG56DC01GG4TEB01ZEX7WFJ
+	github.com/chilts/sid:              1257894000000000000-4601851300195147788
+	github.com/lithammer/shortuuid:     DWaocVZPEBQB5BRMv6FUsZ
+	github.com/google/uuid:             fa931eb3-cdc7-46a1-ae94-eb1b523203be
 
 */
 package sid
