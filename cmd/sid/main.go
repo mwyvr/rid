@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/solutionroute/sid"
+	"oldsid/sid"
 )
 
 func main() {
@@ -28,7 +28,7 @@ func main() {
 			fmt.Printf("[%13s] %s\n", arg, err)
 			continue
 		}
-		fmt.Printf("[%s] ms:%d count:%5d time:%v\n", arg, id.Milliseconds(), id.Count(), id.Time())
+		fmt.Printf("[%s] ms:%d count:%10d time:%v\n", arg, id.Milliseconds(), id.Count(), id.Time())
 	}
 	if errors > 0 {
 		fmt.Printf("%d error(s)\n", errors)

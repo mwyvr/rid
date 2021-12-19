@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	// for testing concurrency safety
+	// testing concurrency safety
 	wg            sync.WaitGroup
-	numConcurrent = 10    // go routines X
-	numIter       = 50000 // id creation/routine
+	numConcurrent = 5     // go routines X
+	numIter       = 65536 // id creation/routine
 )
 
 type idTest struct {
@@ -24,7 +24,7 @@ type idTest struct {
 	id           ID
 	rawBytes     []byte
 	milliseconds uint64
-	counter      uint16
+	counter      uint32
 	b32          string
 }
 
@@ -161,7 +161,7 @@ func TestID_Count(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if m := id.Count(); m != uint16(11597) {
+	if m := id.Count(); m != uint32(11597) {
 		t.Errorf("ID.Count() got %v want %v", m, 11597)
 	}
 }
@@ -172,7 +172,7 @@ func TestID_Bytes(t *testing.T) {
 		t.Error(err)
 	}
 	want := []byte{1, 111, 94, 102, 232, 0, 45, 77}
-	if b := id.Bytes(); bytes.Compare(b, want) != 0 {
+	if b := id.Bytes(); bytes.Equal(b, want) != true {
 		t.Errorf("ID.Bytes() got %v want %v", b, want)
 	}
 }
@@ -307,7 +307,7 @@ func Test_decode(t *testing.T) {
 			if tt.valid && got != len(tt.rawBytes) {
 				t.Errorf("decode() = %v, want len %v", got, len(tt.rawBytes))
 			}
-			if tt.valid && bytes.Compare(buf, tt.rawBytes) != 0 {
+			if tt.valid && bytes.Equal(buf, tt.rawBytes) != true {
 				t.Errorf("decode() compare fail, dst = %v, want %v", buf, tt.rawBytes)
 			}
 		})
@@ -318,10 +318,6 @@ func Test_randInt(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		t.Run("Test_randInt()", func(t *testing.T) {
 			got := randInt()
-			if got < 0 {
-				t.Errorf("randInt() = %v, < 0", got)
-				return
-			}
 			if got > 65535 {
 				t.Errorf("randInt() = %v, > 65535", got)
 			}
@@ -405,7 +401,7 @@ func TestID_Scan(t *testing.T) {
 	if err := id.Scan(nil); err != nil {
 		t.Errorf("ID.Scan() error = %v, should return nilID", err)
 	}
-	if bytes.Compare(id[:], nilID[:]) != 0 {
+	if bytes.Equal(id[:], nilID[:]) != true {
 		t.Errorf("ID.Scan() got %v, should return nilID %v", id, nilID)
 	}
 	// unsupported

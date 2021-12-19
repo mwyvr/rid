@@ -1,16 +1,49 @@
 /*
-Package sid provides a no-configuration required ID generator producing
-compact, unique-enough (65535 per millisecond), URL and human-friendly IDs that
-look like: af1zwtepacw38.
+Package sid provides a no-configuration required ID generator producing compact,
+unique-enough (theoretically up to per millisecond), URL and human-friendly IDs that look
+like: af1zwtepacw38.
 
 The 8-byte ID binary representation of ID is comprised of a:
 
-	- 6-byte timestamp value representing milliseconds since the Unix epoch
-	- 2-byte concurrency-safe counter (test included)
+    - 6-byte timestamp value representing milliseconds since the Unix epoch
+    - 2-byte concurrency-safe counter (test included)
 
-ID character representations (af1zwtepacw38) are 13 characters long,
-chronologically-sortable and Base-32 encoded using a variant of Crockford's
-alphabet.
+ID character representations (e.g. af1zwtepacw38) are 13 characters long,
+chronologically-sortable Base-32 encoded using an alphabet without
+i, o, l, u, replaced instead with more easily identified (by humans)
+w, x, y, z.
+
+Limits:
+Generating the maximum number of IDs per millisecond maxes out at one ID per
+every 15 nanoseconds.
+
+    1 millisecond / 65,535 = 15.2590219 nanoseconds
+
+Encoding the ID []byte values as Base32 on my AMD Ryzen 7 3800X 8-Core Processor
+takes ~55 nanoseconds.
+
+Source of inspiration:
+https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
+
+
+Much of this package is based on the globally-unique capable rs/xid package,
+which itself levers ideas from mongodb.
+
+
+I was bored during the early days of the COVID-19 pandemic is my excuse for
+caring for a shorter unique-enough ID. Use another package if your app is
+scaling beyond one machine.
+Comparisons:
+github.com/solutionroute/sid/v2:	af85984wnnt65cva
+sid - 10 byte 						p5dy4eadsvg11r2e
+github.com/rs/xid: 					9bsv0s091sd002o20hk0
+github.com/segmentio/ksuid: 		ZJkWubTm3ZsHZNs7FGt6oFvVVnD
+github.com/kjk/betterguid: 			-HIVJnL-rmRZno06mvcV
+github.com/oklog/ulid: 				014KG56DC01GG4TEB01ZEX7WFJ
+github.com/chilts/sid: 				1257894000000000000-4601851300195147788
+github.com/lithammer/shortuuid: 	DWaocVZPEBQB5BRMv6FUsZ
+github.com/google/uuid: 			fa931eb3-cdc7-46a1-ae94-eb1b523203be
+
 */
 package sid
 
@@ -32,12 +65,15 @@ import (
 type ID [rawLen]byte
 
 const (
-	rawLen     = 8  // bytes
-	encodedLen = 13 // Base32
+	rawLen     = 10 // bytes
+	encodedLen = 16 // Base32
+	maxCounter = uint32(4294967295)
 
-	//  ID string representations are 13 character long, Base35-encoded using the
-	//  Crockford character set (i, o, l, u were removed and w, x, y, z added).
-	//  To avoid leading zeros for many years, the digits were moved last.
+	//  ID string representations are 13 character long, Base32-encoded using a
+	// character set proposed by *Crockford, but with digits following to avoid
+	// producing IDs with leading zeros for many years.
+	//
+	//  *Crockford character set (i, o, l, u were removed and w, x, y, z added).
 	//
 	// encoding/Base32 standard for comparison:
 	//        "0123456789abcdefghijklmnopqrstuv".
@@ -69,9 +105,8 @@ func New() ID {
 // NewWithTime returns a new ID based upon the supplied Time value.
 func NewWithTime(tm time.Time) ID {
 	var id ID
-	var ms uint64 // timestamp truncated to milliseconds
-
-	ms = uint64(tm.Unix())*1000 + uint64(tm.Nanosecond()/int(time.Millisecond))
+	// timestamp truncated to milliseconds
+	var ms = uint64(tm.Unix())*1000 + uint64(tm.Nanosecond()/int(time.Millisecond))
 	// 6 bytes of time, to millisecond
 	id[0] = byte(ms >> 40)
 	id[1] = byte(ms >> 32)
@@ -79,12 +114,13 @@ func NewWithTime(tm time.Time) ID {
 	id[3] = byte(ms >> 16)
 	id[4] = byte(ms >> 8)
 	id[5] = byte(ms)
-	// 2 byte counter - rolls over at uint16 max
-	// count is always in the range 1 - 65535
-	atomic.CompareAndSwapUint32(&counter, 65535, 0)
+	// 4 byte counter - rolls over at uint32 max 4294967295
+	atomic.CompareAndSwapUint32(&counter, maxCounter, 0)
 	ct := atomic.AddUint32(&counter, 1)
-	id[6] = byte(ct >> 8)
-	id[7] = byte(ct)
+	id[6] = byte(ct >> 24)
+	id[7] = byte(ct >> 16)
+	id[8] = byte(ct >> 8)
+	id[9] = byte(ct)
 
 	return id
 }
@@ -106,15 +142,6 @@ func (id ID) Bytes() []byte {
 	return id[:]
 }
 
-// Time returns the embedded timestamp value as a time.Time value having
-// millisecond resolution.
-func (id ID) Time() time.Time {
-	ms := id.Milliseconds()
-	s := int64(ms / 1e3)
-	ns := int64((ms % 1e3) * 1e6)
-	return time.Unix(s, ns)
-}
-
 // Milliseconds returns the internal ID timestamp as the number of
 // milliseconds from the Unix epoch.
 //
@@ -128,10 +155,18 @@ func (id ID) Milliseconds() uint64 {
 		uint64(id[0])<<40
 }
 
+// Time returns the embedded timestamp value (milliseconds from the Unix epoch) as a
+// time.Time value with millisecond resolution.
+func (id ID) Time() time.Time {
+	ms := id.Milliseconds()
+	s := int64(ms / 1e3)
+	ns := int64((ms % 1e3) * 1e6)
+	return time.Unix(s, ns)
+}
+
 // Count returns the count component of the ID.
-func (id ID) Count() uint16 {
-	// Big-endian 2-byte value 0-65535
-	return uint16(id[6])<<8 | uint16(id[7])
+func (id ID) Count() uint32 {
+	return uint32(id[6])<<24 | uint32(id[7])<<16 | uint32(id[8])<<8 | uint32(id[9])
 }
 
 // FromString decodes a Base32 representation to produce an ID.
@@ -163,14 +198,16 @@ func decode(buf []byte, src []byte) (int, error) {
 
 // randInt generates a random number to initialize the counter.
 // Despite the return value in the function signature, the actual value is
-// deliberately constrained to uint16 min/max values.
+// deliberately constrained to uint16 values.
 func randInt() uint32 {
-	b := make([]byte, 2)
-	if _, err := rand.Reader.Read(b); err != nil {
+	buf := make([]byte, 4)
+	if _, err := rand.Reader.Read(buf); err != nil {
 		panic(fmt.Errorf("sid: cannot generate random number: %v;", err))
 	}
 	// casting to uint32 so we can utilize atomic.AddUint32 in NewWithTime
-	return uint32(uint16(b[0])<<8 | uint16(b[1]))
+	// return uint32(uint16(b[0])<<8 | uint16(b[1])<<24| uint16(b[0])<<8 | uint16(b[1]))
+
+	return uint32(buf[0])<<24 | uint32(buf[1])<<16 | uint32(buf[2])<<8 | uint32(buf[3])
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
