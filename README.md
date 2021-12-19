@@ -73,6 +73,8 @@ spread around the world working in unison on a common datastore.
 
 ## Example Use
 
+This on Go Playground: [https://go.dev/play/p/cc93AWg-NCw](https://go.dev/play/p/cc93AWg-NCw).
+
 ```go
 package main
 
