@@ -1,5 +1,5 @@
 /*
-Package sid provides a no-configuration required ID generator producing compact,
+Package sid provides ID generator producing compact,
 unique-enough (theoretically up to per millisecond), URL and human-friendly IDs that look
 like: af1zwtepacw38.
 
@@ -196,17 +196,13 @@ func decode(buf []byte, src []byte) (int, error) {
 	return encoding.Decode(buf, src)
 }
 
-// randInt generates a random number to initialize the counter.
-// Despite the return value in the function signature, the actual value is
-// deliberately constrained to uint16 values.
+// randInt generates a random number used to initialize the counter to avoid
+// starting at '1'.
 func randInt() uint32 {
 	buf := make([]byte, 4)
 	if _, err := rand.Reader.Read(buf); err != nil {
 		panic(fmt.Errorf("sid: cannot generate random number: %v;", err))
 	}
-	// casting to uint32 so we can utilize atomic.AddUint32 in NewWithTime
-	// return uint32(uint16(b[0])<<8 | uint16(b[1])<<24| uint16(b[0])<<8 | uint16(b[1]))
-
 	return uint32(buf[0])<<24 | uint32(buf[1])<<16 | uint32(buf[2])<<8 | uint32(buf[3])
 }
 
