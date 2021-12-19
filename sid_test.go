@@ -440,6 +440,25 @@ func (d *dupes) report(t *testing.T) {
 	}
 }
 
+// Benchmarks
+
+func BenchmarkIDNew(b *testing.B) {
+	var id ID
+	// run the function b.N times
+	for n := 0; n < b.N; n++ {
+		id = New()
+	}
+	_ = id
+}
+func BenchmarkIDEncoded(b *testing.B) {
+	var id string
+	// run the function b.N times
+	for n := 0; n < b.N; n++ {
+		id = New().String()
+	}
+	_ = id
+}
+
 // examples
 
 func ExampleNew() {
