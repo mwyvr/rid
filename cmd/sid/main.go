@@ -1,4 +1,4 @@
-// Package main - the `sid` command - provides a very simple facility to generate or inspect sids.
+// Package main - the `sid` command - generate or inspect sids.
 package main
 
 import (
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"oldsid/sid"
+	"github.com/solutionroute/sid"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 		id, err := sid.FromString(arg)
 		if err != nil {
 			errors++
-			fmt.Printf("[%13s] %s\n", arg, err)
+			fmt.Printf("[%s] %s\n", arg, err)
 			continue
 		}
 		fmt.Printf("[%s] ms:%d count:%10d time:%v\n", arg, id.Milliseconds(), id.Count(), id.Time())
@@ -46,9 +46,4 @@ var usage = `Usage:
     sid                     - generates a single short ID
     sid <1 or more SIDs>    - shows details of each SID
     -h                      - this help text
-
-eg:
-
-    sid af3fwszmg7dkp
-    [af3fwszmg7dkp] ms:1590635178551 count:18070 time:2020-05-27 20:06:18.551 -0700 PDT
 `
