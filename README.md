@@ -60,6 +60,7 @@ spread around the world working in unison on a common datastore.
 ## Batteries included
 
 `cmd/sid` provides a simple tool to generate or inspect SIDs.
+
     # generate an ID
     $ sid
     af87av3z734qnx8y
