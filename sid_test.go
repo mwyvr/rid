@@ -15,7 +15,7 @@ var (
 	// testing concurrency safety
 	wg            sync.WaitGroup
 	numConcurrent = 5     // go routines X
-	numIter       = 65536 // id creation/routine
+	numIter       = 50000 // id creation/routine
 )
 
 type idTest struct {
@@ -34,10 +34,10 @@ var testIDS = []idTest{
 		"nilID",
 		false,
 		nilID,
-		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		0,
 		0,
-		"aaaaaaaaaaaaa",
+		"aaaaaaaaaaaaaaaa",
 	},
 	{
 		// epoch time plus a counter of one to avoid being
@@ -45,61 +45,53 @@ var testIDS = []idTest{
 		// be 0
 		"min value 1970-01-01 00:00:00 +0000 UTC",
 		true,
-		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
-		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
 		0,
 		1,
-		"aaaaaaaaaaaac",
+		"aaaaaaaaaaaaaaab",
 	},
 	{
 		"max value in the year 10889 see you then",
 		true,
-		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-		[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 		281474976710655,
-		65535,
-		"9999999999998",
+		4294967295,
+		"9999999999999999",
 	},
 	{
 		"fail on FromString / FromBytes / decode - value mismatch",
 		false,
-		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-		[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xaa},
+		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xaa},
 		281474976710655,
 		65535,
-		"abbadabba9998",
+		"9999999999999999",
 	},
 	{
 		"fail on FromString, FromBytes len mismatch",
 		false,
-		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-		[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xaa},
 		281474976710655,
 		65535,
 		"abbadabba",
 	},
-	{
-		"Jan 1 2020, year of the pandemic",
-		true,
-		ID{1, 111, 94, 102, 232, 0, 77, 75},
-		[]byte{1, 111, 94, 102, 232, 0, 77, 75},
-		1577836800000,
-		19787,
-		"af1z631jabgy0",
-	},
 }
 
 func TestCounterRollover(t *testing.T) {
-	counter = 65534 // package var
-	id := New()     // 65535, then set to zero
-	id = New()      // counter now at 1
+	counter = 4294967295 - 2 // set package var
+	New()                    // +1
+	New()                    // +1 now at max uint32
+	id := New()              // next invocation should roll over to 1
 	if (counter != 1) || (id.Count() != 1) {
 		t.Errorf("counter at %d, should be 0", counter)
 	}
 }
 
 func TestNew(t *testing.T) {
-	counter = 0 // package var
+	counter = 0 // set package var
 	for i := 1; i <= 1000; i++ {
 		_ = New()
 	}
@@ -110,8 +102,7 @@ func TestNew(t *testing.T) {
 
 func TestNew_Unique(t *testing.T) {
 	var d = &dupes{count: make(map[string]int)}
-	// generate 4,999,990 IDs concurrently
-	// load it up... no failures observed at *much* higher loads
+	// generate many IDs concurrently to test for collisions
 	for i := 1; i <= numConcurrent; i++ {
 		wg.Add(1)
 		go func() {
@@ -131,9 +122,9 @@ func TestNewWithTime(t *testing.T) {
 	// must match
 	counter = 0
 	id := NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
-	if id.String() != "af1z631jaaaac" {
+	if id.String() != "af1z631jaaaaaaab" {
 		t.Errorf("ID.NewWithTime().String() not matching got %v, want %v",
-			id.String(), "af1z631jaaaac")
+			id.String(), "af1z631jaaaaaaab")
 	}
 	// should not match
 	counter = 1
@@ -157,21 +148,28 @@ func TestID_Milliseconds(t *testing.T) {
 	}
 }
 func TestID_Count(t *testing.T) {
-	id, err := FromString("af1z631jaa0y4")
+	id, err := FromString("af87av3z734qnx8y")
 	if err != nil {
 		t.Error(err)
 	}
-	if m := id.Count(); m != uint32(11597) {
-		t.Errorf("ID.Count() got %v want %v", m, 11597)
+	if m := id.Count(); m != uint32(1960169428) {
+		t.Errorf("ID.Count() got %v want %v", m, 1960169428)
+	}
+	id, err = FromString("af87av3zaaaaaaab")
+	if err != nil {
+		t.Error(err)
+	}
+	if m := id.Count(); m != uint32(1) {
+		t.Errorf("ID.Count() got %v want %v", m, 1)
 	}
 }
 
 func TestID_Bytes(t *testing.T) {
-	id, err := FromString("af1z631jaa0y4")
+	id, err := FromString("af87av3z734qnx8y")
 	if err != nil {
 		t.Error(err)
 	}
-	want := []byte{1, 111, 94, 102, 232, 0, 45, 77}
+	want := []byte{1, 125, 208, 71, 53, 238, 116, 213, 207, 212}
 	if b := id.Bytes(); bytes.Equal(b, want) != true {
 		t.Errorf("ID.Bytes() got %v want %v", b, want)
 	}
@@ -204,7 +202,7 @@ func TestID_Components(t *testing.T) {
 }
 
 func TestID_Time(t *testing.T) {
-	id, err := FromString("aaaaaaaaaeaac")
+	id, err := FromString("aaaaaaaaaaaaaaaa")
 	date := id.Time().UTC()
 	if err != nil {
 		t.Errorf("Unexpected failure decoding")
@@ -212,10 +210,6 @@ func TestID_Time(t *testing.T) {
 	y, m, d := date.Date()
 	if (y != 1970) || (m != 1) || (d != 1) {
 		t.Errorf("ID.Time() returned %d, %d, %d; want 1970,1,1", y, m, d)
-	}
-	milli := uint64(date.UnixNano() / 1e6)
-	if (milli != id.Milliseconds()) || (milli != 1) {
-		t.Errorf("ID.Time() millisecond value %d, want 1", milli)
 	}
 	// now
 	id = NewWithTime(time.Now())
@@ -268,9 +262,9 @@ func TestFromBytes(t *testing.T) {
 		})
 	}
 	// nilID byte value is unusual but legit
-	got, err := FromBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	got, err := FromBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 	if err != nil {
-		t.Errorf("FromBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}) nilID value failed, got %v, %v", got, err)
+		t.Errorf("FromBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}) nilID value failed, got %v, %v", got, err)
 	}
 	// invalid len
 	got, err = FromBytes([]byte{0x12, 0x34})
@@ -318,8 +312,8 @@ func Test_randInt(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		t.Run("Test_randInt()", func(t *testing.T) {
 			got := randInt()
-			if got > 65535 {
-				t.Errorf("randInt() = %v, > 65535", got)
+			if got > 4294967295 {
+				t.Errorf("randInt() = %v, > 4294967295", got)
 			}
 		})
 	}
@@ -471,23 +465,23 @@ func ExampleNewWithTime() {
 }
 
 func ExampleFromString() {
-	id, err := FromString("af1z631jaa0y4")
+	id, err := FromString("af87bdvwkx1evxht")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(id.Milliseconds(), id.Count())
-	// Output: 1577836800000 11597
+	//  1639881519692 3997748464
 }
 
 func TestID_MarshalJSON(t *testing.T) {
 	if got, err := nilID.MarshalJSON(); string(got) != "null" {
 		t.Errorf("ID.MarshalJSON() of nilID error = %v, got %v", err, got)
 	}
-	if got, err := (ID{1, 111, 94, 102, 232, 0, 77, 75}).MarshalJSON(); string(got) != "\"af1z631jabgy0\"" {
+	if got, err := (ID{1, 125, 208, 142, 50, 76, 238, 72, 204, 240}).MarshalJSON(); string(got) != "\"af87bdvwkx1evxht\"" {
 		if err != nil {
-			t.Errorf("ID.MarshalJSON() err %v marshaling %v", err, "\"af1z631jabgy0\"")
+			t.Errorf("ID.MarshalJSON() err %v marshaling %v", err, "\"af87bdvwkx1evxht\"")
 		}
-		t.Errorf("ID.MarshalJSON() got %v want %v", string(got), "\"af1z631jabgy0\"")
+		t.Errorf("ID.MarshalJSON() got %v want %v", string(got), "\"af87bdvwkx1evxht\"")
 	}
 }
 
@@ -501,11 +495,11 @@ func TestID_UnmarshalJSON(t *testing.T) {
 		t.Errorf("ID.UnmarshalJSON() error = %v", err)
 	}
 	// 2020...
-	text := []byte("\"af1z631jabgy0\"")
+	text := []byte("\"af87bdvwkx1evxht\"")
 	if err = id.UnmarshalJSON(text); err != nil {
 		t.Errorf("ID.UnmarshalJSON() error = %v", err)
 
-	} else if id != (ID{1, 111, 94, 102, 232, 0, 77, 75}) {
+	} else if id != (ID{1, 125, 208, 142, 50, 76, 238, 72, 204, 240}) {
 		t.Errorf("ID.UnmarshalJSON() of %v, got %v", text, id.String())
 	}
 }
