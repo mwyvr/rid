@@ -28,7 +28,7 @@ func main() {
 			fmt.Printf("[%s] %s\n", arg, err)
 			continue
 		}
-		fmt.Printf("[%s] ms:%d count:%10d time:%v\n", arg, id.Milliseconds(), id.Count(), id.Time())
+		fmt.Printf("%s > ms:%d count:%10d time:%-33v id:%03d\n", arg, id.Milliseconds(), id.Count(), id.Time().UTC(), id)
 	}
 	if errors > 0 {
 		fmt.Printf("%d error(s)\n", errors)
