@@ -6,19 +6,21 @@ Package sid provides a unique ID generator producing URL and human-friendly
 (readability and double-click), compact, IDs. They are unique to a single
 process, with more than 4 billion possibilities per millisecond.
 
-The String() method produces a custom version of Base32 encoded IDs that look
-like:
+The String() method produces chronologically
+[k-sortable](https://en.wikipedia.org/wiki/Partial_sorting)) encoded IDs that
+look like:
 
-    af87cfy46ajbxf40 (16 characters, chronologically [k-sortable](https://en.wikipedia.org/wiki/Partial_sorting))
+    af87cfy46ajbxf40 - 16 characters, and is equivalent to:
+    []byte{001, 125, 209, 022, 154, 224, 016, 025, 151, 086}
 
-The base32 encoding utilizes a customized alphabet based upon that popularized
-by Crockford who replaced the more easily misread (by humans) i, o, l, and u
-with the more easily read w, x, y, z. In sid, digits have been moved to the tail
-of the character set to avoid having a leading zero for a great many years.
+`sid` base32 encoding utilizes a customized alphabet, popularized by
+[Crockford](http://www.crockford.com/base32.html), who replaced the more easily
+misread (by humans) i, o, l, and u with the more easily read w, x, y, z.
+Additionally, `sid` encoding has digits moved to the tail of the character set
+to avoid having a leading zero for a great many years.
 
 Each ID's 10-byte binary representation is comprised of a:
 
-    001 125 209 022 154 224 016 025 151 086
     6-byte timestamp value representing milliseconds since the Unix epoch
     4-byte concurrency-safe counter (test included); maxCounter = uint32(4294967295)
 
@@ -67,7 +69,7 @@ provided additional inspiration.
     # inspect an ID
     $ sid af87av3z734qnx8y
 
-    # while away your COVID-19 days
+    # while away your COVID-19 days looking at milliseconds pass by...
     $ sid `sid`
 
 ## Example Use
