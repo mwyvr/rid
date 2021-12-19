@@ -14,7 +14,7 @@ import (
 var (
 	// testing concurrency safety
 	wg            sync.WaitGroup
-	numConcurrent = 5     // go routines X
+	numConcurrent = 10    // go routines X
 	numIter       = 50000 // id creation/routine
 )
 
@@ -77,6 +77,15 @@ var testIDS = []idTest{
 		281474976710655,
 		65535,
 		"abbadabba",
+	},
+	{
+		"must fail MarshalText (decode test - invalid base32 chars)",
+		false,
+		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF},
+		0,
+		1,
+		"aaaaaaaaaaaaaaaU",
 	},
 }
 
@@ -290,33 +299,10 @@ func Test_encode(t *testing.T) {
 }
 
 func Test_decode(t *testing.T) {
-	for _, tt := range testIDS {
-		t.Run(tt.name, func(t *testing.T) {
-			buf := make([]byte, rawLen)
-			got, err := decode(buf, []byte(tt.b32))
-			if tt.valid && (err != nil) {
-				t.Errorf("decode() error = %v, valid %v", err, tt.valid)
-				return
-			}
-			if tt.valid && got != len(tt.rawBytes) {
-				t.Errorf("decode() = %v, want len %v", got, len(tt.rawBytes))
-			}
-			if tt.valid && bytes.Equal(buf, tt.rawBytes) != true {
-				t.Errorf("decode() compare fail, dst = %v, want %v", buf, tt.rawBytes)
-			}
-		})
-	}
-}
-
-func Test_randInt(t *testing.T) {
-	for i := 0; i < 10000; i++ {
-		t.Run("Test_randInt()", func(t *testing.T) {
-			got := randInt()
-			if got > 4294967295 {
-				t.Errorf("randInt() = %v, > 4294967295", got)
-			}
-		})
-	}
+	var id ID
+	// there really are no checks in decode; they happen in UnmarshalText,
+	// the only caller of decode(). For code coverage:
+	decode(&id, []byte("af87jaybtrj457wq"[:]))
 }
 
 func TestID_UnmarshalText(t *testing.T) {
@@ -441,7 +427,6 @@ func (d *dupes) report(t *testing.T) {
 }
 
 // Benchmarks
-
 func BenchmarkIDNew(b *testing.B) {
 	var id ID
 	// run the function b.N times
@@ -450,6 +435,16 @@ func BenchmarkIDNew(b *testing.B) {
 	}
 	_ = id
 }
+func BenchmarkEncoder(b *testing.B) {
+	var text string
+	id := New()
+	// run the function b.N times
+	for n := 0; n < b.N; n++ {
+		text = id.String()
+	}
+	_ = text
+}
+
 func BenchmarkIDEncoded(b *testing.B) {
 	var id string
 	// run the function b.N times
@@ -460,7 +455,6 @@ func BenchmarkIDEncoded(b *testing.B) {
 }
 
 // examples
-
 func ExampleNew() {
 	id := New()
 	fmt.Printf(`ID:
