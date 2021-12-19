@@ -6,6 +6,7 @@
 *.dylib
 # executable
 cmd/sid/sid
+cmd/sid/main
 # internal sandbox
 cmd/internal/*
 
