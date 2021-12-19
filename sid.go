@@ -1,73 +1,67 @@
 /*
-Package sid provides ID generator producing compact,
-unique-enough (theoretically up to per millisecond), URL and human-friendly IDs that look
-like: af1zwtepacw38.
+Package sid provides a unique ID generator producing URL and human-friendly
+(readability and double-click), compact, IDs. They are unique to a single
+machine/process, with more than 4 billion possibilities per millisecond.
 
-The 8-byte ID binary representation of ID is comprised of a:
+The String() method produces a custom version of Base32 encoded IDs that look
+like:
 
-    - 6-byte timestamp value representing milliseconds since the Unix epoch
-    - 2-byte concurrency-safe counter (test included)
+    af87cfy46ajbxf40 (16 characters, chronologically sortable)
 
-ID character representations (e.g. af1zwtepacw38) are 13 characters long,
-chronologically-sortable Base-32 encoded using an alphabet without
-i, o, l, u, replaced instead with more easily identified (by humans)
-w, x, y, z.
+The base32 encoding utilizes a customized alphabet based upon that popularized
+by Crockford who replaced the more easily misread (by humans) i, o, l, and u
+with the more easily read w, x, y, z. In sid, digits have been moved to the tail
+of the character set to avoid having a leading zero for a great many years.
 
-Limits:
-Generating the maximum number of IDs per millisecond maxes out at one ID per
-every 15 nanoseconds.
+Each ID's 10-byte binary representation is comprised of a:
 
-    1 millisecond / 65,535 = 15.2590219 nanoseconds
+    001 125 209 022 154 224 016 025 151 086
+    6-byte timestamp value representing milliseconds since the Unix epoch
+    4-byte concurrency-safe counter (test included); maxCounter = uint32(4294967295)
 
-Encoding the ID []byte values as Base32 on my AMD Ryzen 7 3800X 8-Core Processor
-takes ~55 nanoseconds.
+The counter is initialized at a random value at initialization.
 
-Source of inspiration:
+ID implements a number of common interfaces including package sql's
+driver.Valuer, sql.Scanner, TextMarshaler, TextUnmarshaler, json.Marshaler,
+json.Unmarshaler, and  Stringer.
+
+Original source of inspiration:
 https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
 
+Acknowledgement: Much of this package is based on the globally-unique capable
+rs/xid package which itself levers ideas from mongodb. See
+https://github.com/rs/xid. I'd use xid if I had a fleet of apps on machines
+spread around the world working in unison on a common datastore.
 
-Much of this package is based on the globally-unique capable rs/xid package,
-which itself levers ideas from mongodb.
-
-
-I was bored during the early days of the COVID-19 pandemic is my excuse for
-caring for a shorter unique-enough ID. Use another package if your app is
-scaling beyond one machine.
-Comparisons:
-github.com/solutionroute/sid/v2:	af85984wnnt65cva
-sid - 10 byte 						p5dy4eadsvg11r2e
-github.com/rs/xid: 					9bsv0s091sd002o20hk0
-github.com/segmentio/ksuid: 		ZJkWubTm3ZsHZNs7FGt6oFvVVnD
-github.com/kjk/betterguid: 			-HIVJnL-rmRZno06mvcV
-github.com/oklog/ulid: 				014KG56DC01GG4TEB01ZEX7WFJ
-github.com/chilts/sid: 				1257894000000000000-4601851300195147788
-github.com/lithammer/shortuuid: 	DWaocVZPEBQB5BRMv6FUsZ
-github.com/google/uuid: 			fa931eb3-cdc7-46a1-ae94-eb1b523203be
+Comparisons: github.com/solutionroute/sid/v2:    af87cfy46ajbxf40
+    github.com/rs/xid:                  9bsv0s091sd002o20hk0
+    github.com/segmentio/ksuid:         ZJkWubTm3ZsHZNs7FGt6oFvVVnD
+    github.com/kjk/betterguid:          -HIVJnL-rmRZno06mvcV
+    github.com/oklog/ulid:              014KG56DC01GG4TEB01ZEX7WFJ
+    github.com/chilts/sid:              1257894000000000000-4601851300195147788
+    github.com/lithammer/shortuuid:     DWaocVZPEBQB5BRMv6FUsZ
+    github.com/google/uuid:             fa931eb3-cdc7-46a1-ae94-eb1b523203be
 
 */
 package sid
 
 import (
-	"crypto/rand"
 	"database/sql/driver"
-	"encoding/base32"
 	"errors"
 	"fmt"
+	"math/rand"
 	"sync/atomic"
 	"time"
 	"unsafe"
 )
 
-// Acknowledgement: Much of this package is based on the globally-unique capable
-// rs/xid package which itself levers ideas from mongodb. See https://github.com/rs/xid.
-
-// ID represents a locally unique identifier having a compact string representation.
+// ID represents a locally unique identifier
 type ID [rawLen]byte
 
 const (
-	rawLen     = 10 // bytes
-	encodedLen = 16 // Base32
-	maxCounter = uint32(4294967295)
+	rawLen     = 10                 // bytes
+	encodedLen = 16                 // of base32 representation
+	maxCounter = uint32(4294967295) // 4.29 billion IDs per millisecond
 
 	//  ID string representations are 13 character long, Base32-encoded using a
 	// character set proposed by *Crockford, but with digits following to avoid
@@ -76,28 +70,44 @@ const (
 	//  *Crockford character set (i, o, l, u were removed and w, x, y, z added).
 	//
 	// encoding/Base32 standard for comparison:
-	//        "0123456789abcdefghijklmnopqrstuv".
+	//        "0123456789abcdefghijklmnopqrstuv"
 	charset = "abcdefghjkmnpqrstvwxyz0123456789"
 )
 
 var (
-	encoding = base32.NewEncoding(charset).WithPadding(-1)
+	// counter is go routine safe and atomically updated. Initialized at a
+	// random value between 0 and maxCounter (uint32 max: 4294967295), it's
+	// protected from rollover back to 0, too.
+	counter uint32
 
-	// counter is atomically updated and go-routine safe. While the type
-	// is uint32, the value actually packed into ID is uint16 with a minimum
-	// value of 1, maximum value of 65535; when max is hit, counter is reset.
-	// This implies a maximum of 65535 unique IDs per millisecond or 65,535,000
-	// per second.
-	counter = randInt()
+	// ErrInvalidID returned on attempt to decode an invalid ID character
+	// representation (length or character set).
+	ErrInvalidID = errors.New("sid: invalid id")
 
-	// ErrInvalidID returned on attempt to decode an invalid ID character representation.
-	ErrInvalidID = errors.New("sid: invalid ID")
-
-	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
+
+	// dec is the decoding map for base32 encoding
+	dec [256]byte
 )
 
-// New returns a new ID using the current time.
+func init() {
+	// We don't need crypto/rand
+	rand.Seed(time.Now().UnixNano())
+	counter = rand.Uint32()
+
+	// create the base32 decoding table from the package charset
+	for i := 0; i < len(dec); i++ {
+		dec[i] = 0xFF
+	}
+	for i := 0; i < len(charset); i++ {
+		dec[charset[i]] = byte(i)
+	}
+}
+
+// New returns a new ID using the current time. ID's stored as []byte or as an
+// encoded string have the same time resolution: milliseconds from the Unix
+// epoch.
 func New() ID {
 	return NewWithTime(time.Now())
 }
@@ -107,6 +117,7 @@ func NewWithTime(tm time.Time) ID {
 	var id ID
 	// timestamp truncated to milliseconds
 	var ms = uint64(tm.Unix())*1000 + uint64(tm.Nanosecond()/int(time.Millisecond))
+	// id is 10 bytes:
 	// 6 bytes of time, to millisecond
 	id[0] = byte(ms >> 40)
 	id[1] = byte(ms >> 32)
@@ -114,7 +125,13 @@ func NewWithTime(tm time.Time) ID {
 	id[3] = byte(ms >> 16)
 	id[4] = byte(ms >> 8)
 	id[5] = byte(ms)
-	// 4 byte counter - rolls over at uint32 max 4294967295
+	// 4 byte counter, initialized at a random value.
+	// Note: This implies max uint32 (4294967295) rollover is a possibility;
+	// this is anticipated and is not an issue due to 4+ billion possibilities
+	// per millisecond. Generating an ID is ~45ns on my current hardware;
+	// therefore that limitation will never be reached.
+	//
+	// These operations are concurrency safe.
 	atomic.CompareAndSwapUint32(&counter, maxCounter, 0)
 	ct := atomic.AddUint32(&counter, 1)
 	id[6] = byte(ct >> 24)
@@ -130,11 +147,36 @@ func (id ID) IsNil() bool {
 	return id == nilID
 }
 
-// String returns the Base32 encoded representation of ID.
+// String returns the custom base32 encoded representation of ID.
 func (id ID) String() string {
 	text := make([]byte, encodedLen)
 	encode(text, id[:])
+	// avoids an allocation
 	return *(*string)(unsafe.Pointer(&text))
+}
+
+// encode by unrolling the stdlib base32 algorithm + removing all safe checks
+// code adapted from github.com/rs/xid
+func encode(dst, id []byte) {
+	_ = dst[15]
+	_ = id[9]
+
+	dst[15] = charset[id[9]&0x1F]
+	dst[14] = charset[(id[9]>>5)|(id[8]<<3)&0x1F]
+	dst[13] = charset[(id[8]>>2)&0x1F]
+	dst[12] = charset[id[8]>>7|(id[7]<<1)&0x1F]
+	dst[11] = charset[(id[7]>>4)&0x1F|(id[6]<<4)&0x1F]
+	dst[10] = charset[(id[6]>>1)&0x1F]
+	dst[9] = charset[(id[6]>>6)&0x1F|(id[5]<<2)&0x1F]
+	dst[8] = charset[id[5]>>3]
+	dst[7] = charset[id[4]&0x1F]
+	dst[6] = charset[id[4]>>5|(id[3]<<3)&0x1F]
+	dst[5] = charset[(id[3]>>2)&0x1F]
+	dst[4] = charset[id[3]>>7|(id[2]<<1)&0x1F]
+	dst[3] = charset[(id[2]>>4)&0x1F|(id[1]<<4)&0x1F]
+	dst[2] = charset[(id[1]>>1)&0x1F]
+	dst[1] = charset[(id[1]>>6)&0x1F|(id[0]<<2)&0x1F]
+	dst[0] = charset[id[0]>>3]
 }
 
 // Bytes returns by value the byte array representation of ID.
@@ -144,8 +186,6 @@ func (id ID) Bytes() []byte {
 
 // Milliseconds returns the internal ID timestamp as the number of
 // milliseconds from the Unix epoch.
-//
-// Use ID.Time() method to access standard Unix or UnixNano timestamps.
 func (id ID) Milliseconds() uint64 {
 	return uint64(id[5]) |
 		uint64(id[4])<<8 |
@@ -164,12 +204,12 @@ func (id ID) Time() time.Time {
 	return time.Unix(s, ns)
 }
 
-// Count returns the count component of the ID.
+// Count returns the counter value contained in the 4-byte count component of the ID.
 func (id ID) Count() uint32 {
 	return uint32(id[6])<<24 | uint32(id[7])<<16 | uint32(id[8])<<8 | uint32(id[9])
 }
 
-// FromString decodes a Base32 representation to produce an ID.
+// FromString decodes a Base32 representation of an ID
 func FromString(str string) (ID, error) {
 	id := &ID{}
 	err := id.UnmarshalText([]byte(str))
@@ -186,39 +226,42 @@ func FromBytes(b []byte) (ID, error) {
 	return id, nil
 }
 
-// encode an ID as unpadded Base32 using the package encoding character set.
-func encode(dst, id []byte) {
-	encoding.Encode(dst, id[:])
-}
-
-// decode a Base32 representation of an ID as a []byte value.
-func decode(buf []byte, src []byte) (int, error) {
-	return encoding.Decode(buf, src)
-}
-
-// randInt generates a random number used to initialize the counter to avoid
-// starting at '1'.
-func randInt() uint32 {
-	buf := make([]byte, 4)
-	if _, err := rand.Reader.Read(buf); err != nil {
-		panic(fmt.Errorf("sid: cannot generate random number: %v;", err))
-	}
-	return uint32(buf[0])<<24 | uint32(buf[1])<<16 | uint32(buf[2])<<8 | uint32(buf[3])
-}
-
 // UnmarshalText implements encoding.TextUnmarshaler.
 // https://golang.org/pkg/encoding/#TextUnmarshaler
+// All decoding is called from here.
 func (id *ID) UnmarshalText(text []byte) error {
 	if len(text) != encodedLen {
 		return ErrInvalidID
 	}
-	buf := make([]byte, rawLen)
-	count, err := decode(buf, text)
-	if (count != rawLen) || (err != nil) {
+	// check for invalid characters in encoded id supplied
+	if len(text) != encodedLen {
 		return ErrInvalidID
 	}
-	copy(id[:], buf)
+	for _, c := range text {
+		if dec[c] == 0xFF {
+			return ErrInvalidID
+		}
+	}
+	decode(id, text)
 	return nil
+}
+
+// decode by unrolling the stdlib base32 algorithm + removing all safe checks
+// code adapted from github.com/rs/xid
+func decode(id *ID, src []byte) {
+	_ = src[15]
+	_ = id[9]
+
+	id[9] = dec[src[14]]<<5 | dec[src[15]]
+	id[8] = dec[src[12]]<<7 | dec[src[13]]<<2 | dec[src[14]]>>3
+	id[7] = dec[src[11]]<<4 | dec[src[12]]>>1
+	id[6] = dec[src[9]]<<6 | dec[src[10]]<<1 | dec[src[11]]>>4
+	id[5] = dec[src[8]]<<3 | dec[src[9]]>>2
+	id[4] = dec[src[6]]<<5 | dec[src[7]]
+	id[3] = dec[src[4]]<<7 | dec[src[5]]<<2 | dec[src[6]]>>3
+	id[2] = dec[src[3]]<<4 | dec[src[4]]>>1
+	id[1] = dec[src[1]]<<6 | dec[src[2]]<<1 | dec[src[3]]>>4
+	id[0] = dec[src[0]]<<3 | dec[src[1]]>>2
 }
 
 // MarshalText implements encoding.TextMarshaler.
@@ -255,7 +298,7 @@ func (id *ID) Scan(value interface{}) (err error) {
 	}
 }
 
-// MarshalJSON implements json.Masrshaler.
+// MarshalJSON implements json.Marshaler.
 // https://golang.org/pkg/encoding/json/#Marshaler
 func (id ID) MarshalJSON() ([]byte, error) {
 	// endless loop if merely return json.Marshal(id)
