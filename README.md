@@ -7,7 +7,7 @@ Package sid provides a unique ID generator producing URL and human-friendly
 process, with more than 4 billion possibilities per millisecond.
 
 The String() method produces chronologically
-[k-sortable](https://en.wikipedia.org/wiki/Partial_sorting)) encoded IDs that
+[k-sortable](https://en.wikipedia.org/wiki/Partial_sorting) encoded IDs that
 look like:
 
     af87cfy46ajbxf40 - 16 characters, and is equivalent to:
@@ -15,9 +15,9 @@ look like:
 
 `sid` base32 encoding utilizes a customized alphabet, popularized by
 [Crockford](http://www.crockford.com/base32.html), who replaced the more easily
-misread (by humans) i, o, l, and u with the more easily read w, x, y, z.
-Additionally, `sid` encoding has digits moved to the tail of the character set
-to avoid having a leading zero for a great many years.
+misread (by humans) i, o, l and u with the more easily read w, x, y and z.
+Additionally, `sid` customized encoding has digits moved to the tail of the
+character set to avoid having a leading zero for a great many years.
 
 Each ID's 10-byte binary representation is comprised of a:
 
@@ -32,8 +32,10 @@ json.Unmarshaler, and Stringer.
 
 ## Inspiration
 
-COVID-19 bordom in 2020. Original source of inspiration:
-https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
+COVID-19 bordom in 2020 and a desire for a shorter, sortable, unique-enough for
+many apps, ID. [Generating good unique IDs in
+Go](https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html)
+provided additional inspiration.
 
 ## Acknowledgement
 
@@ -41,12 +43,8 @@ Much of this package was based on the globally-unique capable
 [rs/xid](https://github.com/rs/xid) package which itself levers ideas from
 [MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
 
-I'd likely use xid if I had apps on machines spread around the world working in
-unison on a common datastore.
-
-[Generating good unique IDs in
-Go](https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html)
-provided additional inspiration.
+Having borrowed heavily from it, I'd likely use `xid` if I had apps on machines
+spread around the world working in unison on a common datastore.
 
 ## Encoded ID comparisons with other packages
 
