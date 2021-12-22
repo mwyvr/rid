@@ -156,10 +156,11 @@ func (id ID) String() string {
 	return *(*string)(unsafe.Pointer(&text))
 }
 
-// encode by unrolling the stdlib base32 algorithm + removing all safe checks
+// encode the fixed length id by unrolling the stdlib base32 algorithm +
+// removing all safe checks; provides ~ 2x speed up over encoding/base32
 // code adapted from github.com/rs/xid
 func encode(dst, id []byte) {
-	_ = dst[15]
+	_ = dst[15] // eliminate compiler bounds checking
 	_ = id[9]
 
 	dst[15] = charset[id[9]&0x1F]
@@ -250,7 +251,7 @@ func (id *ID) UnmarshalText(text []byte) error {
 // decode by unrolling the stdlib base32 algorithm + removing all safe checks
 // code adapted from github.com/rs/xid
 func decode(id *ID, src []byte) {
-	_ = src[15]
+	_ = src[15] // eliminate compiler bounds checking
 	_ = id[9]
 
 	id[9] = dec[src[14]]<<5 | dec[src[15]]
