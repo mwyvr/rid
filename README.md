@@ -25,13 +25,6 @@ drivers will do just that - if that's not your preference, use id.String().
     nid == id           // true
 ```
 
-## Motivation: modest needs
-
-sid was intended for single process, single machine apps such as might use Go
-friendly datastores like BoltDB, Badger or abstractions on top of either like
-Genji | bolthold | badgerhold or other single-connection-only document or
-key-value datastores.
-
 ## Under the covers
 
 Each ID's 8-byte binary representation: id{1, 111, 89, 64, 140, 0, 165, 159} is
@@ -46,7 +39,8 @@ sortability made for improved randomness in the trailing counter value.
 ## Collisions: not through intended use
 
 The 2-byte concurrency-safe counter means up to 65,535 unique IDs can
-theoretically be produced per millisecond - that's 1 ID every 16 nanoseconds.
+**theoretically** be produced per millisecond - that would be 1 ID every 16
+nanoseconds.
 
 We say theoretically because on the author's hardware it takes ~50ns to produce
 an ID, another 50-90ns to encode it depending on the encoder, and longer yet to
@@ -59,8 +53,9 @@ The counter is **randomish** as it is initialized with a random value and
 thereafter at any new millisecond an ID is requested. This is intended to
 dissuade URL parameter hackers... but it's random-ish, so don't use sid.ID for a
 secure token (**that's not an intended use**)! Still, that's 65 million
-*potential* IDs per second, but more likely **only** up to several million randomish
-IDs per second in the real world.
+*potential* IDs per second, but more likely no more than a couple million
+randomish IDs per second in the real world depending on the hardware and
+application.
 
     af88je3v03f7p
     af88je3v03f7r
@@ -72,7 +67,7 @@ IDs per second in the real world.
 
 ## Benchmark
 
-As expected, about 2M IDs generated per second:
+As expected, about 2M IDs are generated per second in the simplest of use cases:
 
     $ go test -benchmem -benchtime 1s  -run=^$ -bench ^BenchmarkIDNew$ github.com/solutionroute/sid
     goos: linux
@@ -80,8 +75,6 @@ As expected, about 2M IDs generated per second:
     pkg: github.com/solutionroute/sid
     cpu: AMD Ryzen 7 3800X 8-Core Processor
     BenchmarkIDNew-16       20454786                59.28 ns/op            0 B/op          0 allocs/op
-    PASS
-    ok      github.com/solutionroute/sid    1.275s
 
 ## Batteries included
 
@@ -135,24 +128,11 @@ Borrowing data from that article, here's a comparison with some other ID schemes
     github.com/lithammer/shortuuid:     DWaocVZPEBQB5BRMv6FUsZ
     github.com/google/uuid:             fa931eb3-cdc7-46a1-ae94-eb1b523203be
 
-`sid` base32 encoding utilizes a customized alphabet, popularized by
-[Crockford](http://www.crockford.com/base32.html), who replaced the more easily
-misread (by humans) i, o, l and u with the more easily read w, x, y and z.
-Additionally, `sid` customized encoding has digits moved to the tail of the
-character set to avoid having a leading zero for a great many years.
-
-Each ID's 10-byte binary representation is comprised of a:
-
-    6-byte timestamp value representing milliseconds since the Unix epoch
-    4-byte concurrency-safe counter (test included); maxCounter = uint32(4294967295)
-
-The counter is initialized at a random value at initialization.
-
 ## Acknowledgement
 
 Much of this package was based on the globally-unique capable
 [rs/xid](https://github.com/rs/xid) package which itself levers ideas from
 [MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
 
-Having borrowed heavily from it, I'd likely use `xid` if I had apps on machines
-spread around the world working in unison on a common datastore.
+Having borrowed heavily from it, I'd will use `xid` if I ever have apps on machines
+spread around the world working without central coordinated ID generation.
