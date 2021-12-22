@@ -1,25 +1,43 @@
 /*
-Package sid provides a unique ID generator producing URL and human-friendly
-(readability and double-click), compact, IDs. They are unique to a single
-process, with more than 4 billion possibilities per millisecond.
+Package sid provides a no-configuration required unique ID generator for
+applications with modest needs.
 
-The String() method produces a custom version of Base32 encoded IDs that look
-like:
+sid's 8-byte value can be stored directly as a 64 bit integer;both the byte
+value and string representation are k-sortable.
 
-	af87cfy46ajbxf40 (16 characters, chronologically sortable)
+sid produces URL and human-friendly (readability and double-click), compact IDs
+(64 bit integer) with base32 encoded string (13 character) representations that
+look like:
+
+    af1zwtepacw38
+
+Each ID's 8-byte binary representation:
+
+    001 125 209 022 154 224 151 086
+
+is comprised of a:
+
+    6-byte timestamp value representing milliseconds since the Unix epoch
+    2-byte concurrency-safe counter (test included); maxCounter = uint16(65535)
+
+The counter is initialized at a random value at initialization.
+
+*Modest Needs*
+
+sid is intended for single process, single machine apps - perhaps using Go
+friendly datastores like BoltDB, Badger or abstractions on top of either like
+Genji.
+
+The 2-byte concurrency-safe counter is a uint16, meaning 65,535 unique IDs can
+be produced per millisecond or 1 ID every 16 nanoseconds. On the author's
+hardware it takes more than 50ns to produce an ID, another 50ns to encode it,
+longer yet to shove data into a datastore, so there's little chance of collision
+- concurrency tests show this.
 
 The base32 encoding utilizes a customized alphabet based upon that popularized
 by Crockford who replaced the more easily misread (by humans) i, o, l, and u
 with the more easily read w, x, y, z. In sid, digits have been moved to the tail
 of the character set to avoid having a leading zero for a great many years.
-
-Each ID's 10-byte binary representation is comprised of a:
-
-	001 125 209 022 154 224 016 025 151 086
-	6-byte timestamp value representing milliseconds since the Unix epoch
-	4-byte concurrency-safe counter (test included); maxCounter = uint32(4294967295)
-
-The counter is initialized at a random value at initialization.
 
 ID implements a number of common interfaces including package sql's
 driver.Valuer, sql.Scanner, TextMarshaler, TextUnmarshaler, json.Marshaler,
@@ -33,21 +51,21 @@ rs/xid package which itself levers ideas from mongodb. See
 https://github.com/rs/xid. I'd use xid if I had a fleet of apps on machines
 spread around the world working in unison on a common datastore.
 
-Comparisons:
-	github.com/solutionroute/sid/v3:    af87cfy46ajbxf40
-	github.com/rs/xid:                  9bsv0s091sd002o20hk0
-	github.com/segmentio/ksuid:         ZJkWubTm3ZsHZNs7FGt6oFvVVnD
-	github.com/kjk/betterguid:          -HIVJnL-rmRZno06mvcV
-	github.com/oklog/ulid:              014KG56DC01GG4TEB01ZEX7WFJ
-	github.com/chilts/sid:              1257894000000000000-4601851300195147788
-	github.com/lithammer/shortuuid:     DWaocVZPEBQB5BRMv6FUsZ
-	github.com/google/uuid:             fa931eb3-cdc7-46a1-ae94-eb1b523203be
+Comparisons: github.com/solutionroute/sid/v3:    af87cfy46ajbxf40
+    github.com/rs/xid:                  9bsv0s091sd002o20hk0
+    github.com/segmentio/ksuid:         ZJkWubTm3ZsHZNs7FGt6oFvVVnD
+    github.com/kjk/betterguid:          -HIVJnL-rmRZno06mvcV
+    github.com/oklog/ulid:              014KG56DC01GG4TEB01ZEX7WFJ
+    github.com/chilts/sid:              1257894000000000000-4601851300195147788
+    github.com/lithammer/shortuuid:     DWaocVZPEBQB5BRMv6FUsZ
+    github.com/google/uuid:             fa931eb3-cdc7-46a1-ae94-eb1b523203be
 
 */
 package sid
 
 import (
 	"database/sql/driver"
+	"encoding/base32"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -60,11 +78,11 @@ import (
 type ID [rawLen]byte
 
 const (
-	rawLen     = 10                 // bytes
-	encodedLen = 16                 // of base32 representation
-	maxCounter = uint32(4294967295) // 4.29 billion IDs per millisecond
+	rawLen     = 8             // bytes
+	encodedLen = 13            // of base32 representation
+	maxCounter = uint32(65535) // IDs per millisecond
 
-	//  ID string representations are 13 character long, Base32-encoded using a
+	//  ID string representations are Base32-encoded using a
 	// character set proposed by *Crockford, but with digits following to avoid
 	// producing IDs with leading zeros for many years.
 	//
@@ -76,28 +94,29 @@ const (
 )
 
 var (
-	// counter is go routine safe and atomically updated. Initialized at a
-	// random value between 0 and maxCounter (uint32 max: 4294967295), it's
-	// protected from rollover back to 0, too.
-	counter uint32
+	// counter is atomically updated. Initialized at a random value between 0
+	// and maxCounter, and is designed to rollover back to 0 (1, actually), too.
+
+	counter uint32 // uint32 to take advantage of atomic pkg
 
 	// ErrInvalidID returned on attempt to decode an invalid ID character
 	// representation (length or character set).
 	ErrInvalidID = errors.New("sid: invalid id")
 
-	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
 	// dec is the decoding map for base32 encoding
-	dec [256]byte
+	dec      [256]byte
+	encoding = base32.NewEncoding(charset).WithPadding(-1)
 )
 
 func init() {
 	// We don't need crypto/rand
 	rand.Seed(time.Now().UnixNano())
-	counter = rand.Uint32()
+	counter = randInt()
 
-	// create the base32 decoding table from the package charset
+	// create the base32 decoding table (used for error checking) from the charset
 	for i := 0; i < len(dec); i++ {
 		dec[i] = 0xFF
 	}
@@ -126,19 +145,12 @@ func NewWithTime(tm time.Time) ID {
 	id[3] = byte(ms >> 16)
 	id[4] = byte(ms >> 8)
 	id[5] = byte(ms)
-	// 4 byte counter, initialized at a random value.
-	// Note: This implies max uint32 (4294967295) rollover is a possibility;
-	// this is anticipated and is not an issue due to 4+ billion possibilities
-	// per millisecond. Generating an ID is ~45ns on my current hardware;
-	// therefore that limitation will never be reached.
-	//
+	// 2 byte counter, initialized at a random value.
 	// These operations are concurrency safe.
 	atomic.CompareAndSwapUint32(&counter, maxCounter, 0)
 	ct := atomic.AddUint32(&counter, 1)
-	id[6] = byte(ct >> 24)
-	id[7] = byte(ct >> 16)
-	id[8] = byte(ct >> 8)
-	id[9] = byte(ct)
+	id[6] = byte(ct >> 8)
+	id[7] = byte(ct)
 
 	return id
 }
@@ -156,29 +168,9 @@ func (id ID) String() string {
 	return *(*string)(unsafe.Pointer(&text))
 }
 
-// encode the fixed length id by unrolling the stdlib base32 algorithm +
-// removing all safe checks; provides ~ 2x speed up over encoding/base32
-// code adapted from github.com/rs/xid
+// encode as Base32 using our custom character set
 func encode(dst, id []byte) {
-	_ = dst[15] // eliminate compiler bounds checking
-	_ = id[9]
-
-	dst[15] = charset[id[9]&0x1F]
-	dst[14] = charset[(id[9]>>5)|(id[8]<<3)&0x1F]
-	dst[13] = charset[(id[8]>>2)&0x1F]
-	dst[12] = charset[id[8]>>7|(id[7]<<1)&0x1F]
-	dst[11] = charset[(id[7]>>4)&0x1F|(id[6]<<4)&0x1F]
-	dst[10] = charset[(id[6]>>1)&0x1F]
-	dst[9] = charset[(id[6]>>6)&0x1F|(id[5]<<2)&0x1F]
-	dst[8] = charset[id[5]>>3]
-	dst[7] = charset[id[4]&0x1F]
-	dst[6] = charset[id[4]>>5|(id[3]<<3)&0x1F]
-	dst[5] = charset[(id[3]>>2)&0x1F]
-	dst[4] = charset[id[3]>>7|(id[2]<<1)&0x1F]
-	dst[3] = charset[(id[2]>>4)&0x1F|(id[1]<<4)&0x1F]
-	dst[2] = charset[(id[1]>>1)&0x1F]
-	dst[1] = charset[(id[1]>>6)&0x1F|(id[0]<<2)&0x1F]
-	dst[0] = charset[id[0]>>3]
+	encoding.Encode(dst, id[:])
 }
 
 // Bytes returns by value the byte array representation of ID.
@@ -206,12 +198,12 @@ func (id ID) Time() time.Time {
 	return time.Unix(s, ns)
 }
 
-// Count returns the counter value contained in the 4-byte count component of the ID.
+// Count returns the counter component of the ID.
 func (id ID) Count() uint32 {
-	return uint32(id[6])<<24 | uint32(id[7])<<16 | uint32(id[8])<<8 | uint32(id[9])
+	return uint32(id[6])<<8 | uint32(id[7])
 }
 
-// FromString decodes a Base32 representation of an ID
+// FromString returns an ID by decoding a base32 representation of an ID
 func FromString(str string) (ID, error) {
 	id := &ID{}
 	err := id.UnmarshalText([]byte(str))
@@ -232,10 +224,7 @@ func FromBytes(b []byte) (ID, error) {
 // https://golang.org/pkg/encoding/#TextUnmarshaler
 // All decoding is called from here.
 func (id *ID) UnmarshalText(text []byte) error {
-	if len(text) != encodedLen {
-		return ErrInvalidID
-	}
-	// check for invalid characters in encoded id supplied
+	// check for invalid length or characters in encoded id
 	if len(text) != encodedLen {
 		return ErrInvalidID
 	}
@@ -244,26 +233,19 @@ func (id *ID) UnmarshalText(text []byte) error {
 			return ErrInvalidID
 		}
 	}
-	decode(id, text)
+	// buf := make([]byte, rawLen)
+	// count, err := decode(buf, text)
+	count, err := decode(id, text)
+	if (count != rawLen) || (err != nil) {
+		return ErrInvalidID
+	}
+	// copy(id[:], buf)
 	return nil
 }
 
-// decode by unrolling the stdlib base32 algorithm + removing all safe checks
-// code adapted from github.com/rs/xid
-func decode(id *ID, src []byte) {
-	_ = src[15] // eliminate compiler bounds checking
-	_ = id[9]
-
-	id[9] = dec[src[14]]<<5 | dec[src[15]]
-	id[8] = dec[src[12]]<<7 | dec[src[13]]<<2 | dec[src[14]]>>3
-	id[7] = dec[src[11]]<<4 | dec[src[12]]>>1
-	id[6] = dec[src[9]]<<6 | dec[src[10]]<<1 | dec[src[11]]>>4
-	id[5] = dec[src[8]]<<3 | dec[src[9]]>>2
-	id[4] = dec[src[6]]<<5 | dec[src[7]]
-	id[3] = dec[src[4]]<<7 | dec[src[5]]<<2 | dec[src[6]]>>3
-	id[2] = dec[src[3]]<<4 | dec[src[4]]>>1
-	id[1] = dec[src[1]]<<6 | dec[src[2]]<<1 | dec[src[3]]>>4
-	id[0] = dec[src[0]]<<3 | dec[src[1]]>>2
+// decode a Base32 representation of an ID as a []byte value.
+func decode(id *ID, src []byte) (int, error) {
+	return encoding.Decode(id[:], src)
 }
 
 // MarshalText implements encoding.TextMarshaler.
@@ -322,4 +304,17 @@ func (id *ID) UnmarshalJSON(text []byte) error {
 		return nil
 	}
 	return id.UnmarshalText(text[1 : len(text)-1])
+}
+
+// randInt generates a random number to initialize the counter.
+// Despite the return value in the function signature, the actual value is
+// deliberately constrained to uint16 min/max values.
+func randInt() uint32 {
+	b := make([]byte, 2)
+	if _, err := rand.Read(b); err != nil {
+		panic(fmt.Errorf("sid: cannot generate random number: %v;", err))
+	}
+	// casting to uint32 so we can utilize atomic.AddUint32 in NewWithTime().
+	// Alternative to binary.BigEndian.Uint16(b)
+	return uint32(uint16(b[0])<<8 | uint16(b[1]))
 }
