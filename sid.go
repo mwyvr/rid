@@ -98,6 +98,7 @@ var (
 	// and maxCounter, and is designed to rollover back to 0 (1, actually), too.
 
 	counter uint32 // uint32 to take advantage of atomic pkg
+	last    uint64 // last millisecond an id was generated within
 
 	// ErrInvalidID returned on attempt to decode an invalid ID character
 	// representation (length or character set).
@@ -137,6 +138,12 @@ func NewWithTime(tm time.Time) ID {
 	var id ID
 	// timestamp truncated to milliseconds
 	var ms = uint64(tm.Unix())*1000 + uint64(tm.Nanosecond()/int(time.Millisecond))
+	// if the current millisecond is not the same as the `last` value,
+	// assign a new random value to counter
+	if ms != atomic.LoadUint64(&last) {
+		atomic.StoreUint64(&last, ms)
+		atomic.StoreUint32(&counter, randInt())
+	}
 	// id is 10 bytes:
 	// 6 bytes of time, to millisecond
 	id[0] = byte(ms >> 40)
@@ -145,9 +152,11 @@ func NewWithTime(tm time.Time) ID {
 	id[3] = byte(ms >> 16)
 	id[4] = byte(ms >> 8)
 	id[5] = byte(ms)
-	// 2 byte counter, initialized at a random value.
+
 	// These operations are concurrency safe.
+	// if counter hits max uint16 value, roll over
 	atomic.CompareAndSwapUint32(&counter, maxCounter, 0)
+	// increment by 1
 	ct := atomic.AddUint32(&counter, 1)
 	id[6] = byte(ct >> 8)
 	id[7] = byte(ct)
