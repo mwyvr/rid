@@ -53,9 +53,7 @@ The counter is **randomish** as it is initialized with a random value and
 thereafter at any new millisecond an ID is requested. This is intended to
 dissuade URL parameter hackers... but it's random-ish, so don't use sid.ID for a
 secure token (**that's not an intended use**)! Still, that's 65 million
-*potential* IDs per second, but more likely no more than a couple million
-randomish IDs per second in the real world depending on the hardware and
-application.
+*potential* IDs per second. 
 
     af88je3v03f7p
     af88je3v03f7r
@@ -67,7 +65,8 @@ application.
 
 ## Benchmark
 
-As expected, about 2M IDs are generated per second in the simplest of use cases:
+As expected, about 20 million IDs are generated *per second* in the simplest of
+use cases, a for loop benchmark generating nothing but new IDs:
 
     $ go test -benchmem -benchtime 1s  -run=^$ -bench ^BenchmarkIDNew$ github.com/solutionroute/sid
     goos: linux
