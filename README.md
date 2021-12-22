@@ -3,12 +3,11 @@
 # sid
 
 Package sid provides a unique-enough, random-ish ID generator for applications
-with modest (read: non-distributed), needs. String representations of the ID are
-compact (13 characters), human-friendly (no i,l,o or u characters),
-double-clickable (no '-' or other punctuation) and URL-safe.
+with modest (read: non-distributed), needs.
 
-IDs are mostly chronologically sortable with a minor tradeoff made for improved
-randomness in the trailing counter value.
+String representations of the 8-byte ID, e.g. `af1zwtepacw38`, are compact (13
+characters), human-friendly (no i, l, o or u characters), double-clickable (no
+'-' or other punctuation) and URL-safe.
 
 ```go
     id := sid.New()
@@ -41,6 +40,9 @@ comprised of a:
 - 6-byte timestamp value representing milliseconds since the Unix epoch
 - 2-byte concurrency-safe counter (test included); maxCounter = uint16(65535)
 
+IDs are chronologically sortable with a minor tradeoff in millisecond-level
+sortability made for improved randomness in the trailing counter value.
+
 ## Collisions: not through intended use
 
 The 2-byte concurrency-safe counter means up to 65,535 unique IDs can
@@ -57,7 +59,7 @@ The counter is **randomish** as it is initialized with a random value and
 thereafter at any new millisecond an ID is requested. This is intended to
 dissuade URL parameter hackers... but it's random-ish, so don't use sid.ID for a
 secure token (**that's not an intended use**)! Still, that's 65 million
-*potential* IDs per second, but more likely **only** several million randomish
+*potential* IDs per second, but more likely **only** up to several million randomish
 IDs per second in the real world.
 
     af88je3v03f7p
@@ -67,6 +69,19 @@ IDs per second in the real world.
     af88je3v08n1t
     af88je3v08n1w
     af88je3v08n1y
+
+## Benchmark
+
+As expected, about 2M IDs generated per second:
+
+    $ go test -benchmem -benchtime 1s  -run=^$ -bench ^BenchmarkIDNew$ github.com/solutionroute/sid
+    goos: linux
+    goarch: amd64
+    pkg: github.com/solutionroute/sid
+    cpu: AMD Ryzen 7 3800X 8-Core Processor
+    BenchmarkIDNew-16       20454786                59.28 ns/op            0 B/op          0 allocs/op
+    PASS
+    ok      github.com/solutionroute/sid    1.275s
 
 ## Batteries included
 
