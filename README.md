@@ -107,11 +107,6 @@ Package sid also provides a command line tool `sid` allowing for id generation o
 
 ## Source of inspiration
 
-Acknowledgement: Much of this package is based on the globally-unique capable
-[rs/xid](https://github.com/rs/xid) package which itself levers ideas from mongodb. See
-https://github.com/rs/xid. I'd use xid if I had a fleet of apps on machines
-spread around the world working in unison on a common datastore.
-
 Thanks to the author of this article for giving me inspiration:
 
 https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
@@ -133,5 +128,5 @@ Much of this package was based on the globally-unique capable
 [rs/xid](https://github.com/rs/xid) package which itself levers ideas from
 [MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
 
-Having borrowed heavily from it, I'd will use `xid` if I ever have apps on machines
+Having borrowed heavily from it, I will use `xid` if I ever have apps on machines
 spread around the world working without central coordinated ID generation.
