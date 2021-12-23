@@ -1,37 +1,33 @@
 [![godoc](http://img.shields.io/badge/godev-reference-blue.svg?style=flat)](https://pkg.go.dev/github.com/solutionroute/sid?tab=doc)[![Build Status](https://travis-ci.org/solutionroute/sid.svg?branch=master)](https://travis-ci.org/solutionroute/sid)[![Go Coverage](https://img.shields.io/badge/coverage-98.3%25-brightgreen.svg?style=flat)](http://gocover.io/github.com/solutionroute/sid)[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # sid
-o
-$ sid 05yygjxjehg7y
-[05yygjxjehg7y] ms:1640279814772 count:24703 time:2021-12-23 09:16:54.772 -0800 PST id:{1, 125, 232, 75, 178, 116, 96, 127}
 
 Package sid provides a unique-enough, random-ish ID generator for applications
 with modest (read: non-distributed), needs.
 
-String representations of the 8-byte ID, e.g. `af1zwtepacw38`, are compact (13
+String representations of the 8-byte ID, e.g. `05yygjxjehg7y` are compact (13
 characters), human-friendly (no i, l, o or u characters), double-clickable (no
 '-' or other punctuation) and URL-safe.
 
 ```go
     id := sid.New()
-    fmt.Printf("%s", id) // af1zwtepacw38
+    fmt.Printf("%s", id) // 05yygjxjehg7y
 ```
 
 A sid ID is 8-byte value that can be stored directly as a 64 bit integer; some database
 drivers will do just that - if that's not your preference, use id.String().
 
 ```go
-    id := sid.New()     // af1zwtepacw38
-    fmt.Println(id[:])  // [1 125 227 253 59 110 47 62]
+    id := sid.New()     // 05yygjxjehg7y
+    fmt.Println(id[:])  // [1 125 232 75 178 116 96 127]
     // reconstruct an ID from the encoded value
-    nid, err := sid.FromString("af1zwtepacw38") 
+    nid, err := sid.FromString("05yygjxjehg7y") 
     nid == id           // true
 ```
 
 ## Under the covers
 
-Each ID's 8-byte binary representation: id{1, 111, 89, 64, 140, 0, 165, 159} is
-comprised of a:
+Each ID's 8-byte binary representation is comprised of a:
 
 - 6-byte timestamp value representing milliseconds since the Unix epoch
 - 2-byte concurrency-safe counter (test included); maxCounter = uint16(65535)
@@ -50,26 +46,25 @@ an ID, another 50-90ns to encode it depending on the encoder, and longer yet to
 shove the associated data into a datastore. This means there's zero chance of
 collision in real world, intended, use.
 
-## IDs are randomish
+## IDs are kinda randomish
 
 The counter is **randomish** as it is initialized with a random value and
 thereafter at any new millisecond an ID is requested. This is intended to
 dissuade URL parameter hackers... but it's random-ish, so don't use sid.ID for a
-secure token (**that's not an intended use**)! Still, that's 65 million
-*potential* IDs per second. 
+secure token (**that's not an intended use**)! Still, 1000 * 65535 = 65 million
+*potential* IDs per second.
 
-    af88je3v03f7p
-    af88je3v03f7r
-    af88je3v03f7t
-    af88je3v08n1r <- new millisecond, counter re-initialized with a random number
-    af88je3v08n1t
-    af88je3v08n1w
-    af88je3v08n1y
+    [05yyjeynmjppy] ms:1640295552420 count:44399
+    [05yyjeynmjpq0] ms:1640295552420 count:44400
+    [05yyjeynmjpq2] ms:1640295552420 count:44401
+    [05yyjeynmm7vm] ms:1640295552421 count: 4026 <- new millisecond, counter re-initialized with a random value
+    [05yyjeynmm7vp] ms:1640295552421 count: 4027
+    [05yyjeynmm7vr] ms:1640295552421 count: 4028
 
 ## Benchmark
 
-As expected, about 20 million IDs are generated *per second* in the simplest of
-use cases, a for loop benchmark generating nothing but new IDs:
+As expected, reality means about 20 million IDs are generated *per second* in
+the simplest of use cases, a for loop benchmark generating nothing but new IDs:
 
     $ go test -benchmem -benchtime 1s  -run=^$ -bench ^BenchmarkIDNew$ github.com/solutionroute/sid
     goos: linux
@@ -87,26 +82,26 @@ json.Unmarshaler, and Stringer.
 Package sid also provides a command line tool `sid` allowing for id generation or inspection:
 
     $ sid
-    af88jfz84bx5j
+    05yygjxjehg7y
 
-    $ sid af1zwtepacw38
-    [af1zwtepacw38] ms:1577750400000 count:42399 time:2019-12-30 16:00:00 -0800 PST id:{1, 111, 89, 64, 140, 0, 165, 159}
+    $ sid 05yygjxjehg7y
+    [05yygjxjehg7y] ms:1640279814772 count:24703 time:2021-12-23 09:16:54.772 -0800 PST id:{1, 125, 232, 75, 178, 116, 96, 127}
 
     # generate more than 1
     $ sid -c 3
-    af88jgn52y7c0 af88jgn52y7c2 af88jgn52y7c4
+    05yyjfzbmf71p 05yyjfzbmf71r 05yyjfzbmf71t
 
     # generate and inspect a bunch
     $ sid `sid -c 3`
-    [af88jgpv71728] ms:1640209420781 count:64399 time:2021-12-22 13:43:40.781 -0800 PST id:{1, 125, 228, 25, 145, 237, 251, 143}
-    [af88jgpv7173a] ms:1640209420781 count:64400 time:2021-12-22 13:43:40.781 -0800 PST id:{1, 125, 228, 25, 145, 237, 251, 144}
-    [af88jgpv7173c] ms:1640209420781 count:64401 time:2021-12-22 13:43:40.781 -0800 PST id:{1, 125, 228, 25, 145, 237, 251, 145}
+    [05yyjfzbmf71p] ms:1640295820195 count:52763 time:2021-12-23 13:43:40.195 -0800 PST id:{1, 125, 233, 63, 235, 163, 206, 27}
+    [05yyjfzbmf71r] ms:1640295820195 count:52764 time:2021-12-23 13:43:40.195 -0800 PST id:{1, 125, 233, 63, 235, 163, 206, 28}
+    [05yyjfzbmf71t] ms:1640295820195 count:52765 time:2021-12-23 13:43:40.195 -0800 PST id:{1, 125, 233, 63, 235, 163, 206, 29}
 
     # with newlines
     $ sid -c 3 -n
-    af88jgqnp4nkp
-    af88jgqnp4nkr
-    af88jgqnp4nkt
+    05yyjga5cra1a
+    05yyjga5cra1c
+    05yyjga5cra1e
 
 ## Source of inspiration
 
@@ -114,9 +109,9 @@ Thanks to the author of this article for giving me inspiration:
 
 https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
 
-Borrowing data from that article, here's a comparison with some other ID schemes:
+Borrowing from that article, here's a comparison with some other ID schemes:
 
-    github.com/solutionroute/sid        af1zwtepacw38
+    github.com/solutionroute/sid        05yygjxjehg7y
     github.com/rs/xid:                  9bsv0s091sd002o20hk0
     github.com/segmentio/ksuid:         ZJkWubTm3ZsHZNs7FGt6oFvVVnD
     github.com/kjk/betterguid:          -HIVJnL-rmRZno06mvcV
@@ -127,9 +122,9 @@ Borrowing data from that article, here's a comparison with some other ID schemes
 
 ## Acknowledgement
 
-Much of this package was based on the globally-unique capable
+This package is largely based on the globally-unique capable
 [rs/xid](https://github.com/rs/xid) package which itself levers ideas from
 [MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
 
-Having borrowed heavily from it, I will use `xid` if I ever have apps on machines
-spread around the world working without central coordinated ID generation.
+I'll use `xid` if I ever have apps on machines spread around the world working
+without central coordinated ID generation.
