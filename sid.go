@@ -233,7 +233,7 @@ func (id ID) Value() (driver.Value, error) {
 	return string(b), err
 }
 
-// Scan implements sql.Scanner.
+// Scan implements the sql.Scanner interface.
 // https://golang.org/pkg/database/sql/#Scanner
 func (id *ID) Scan(value interface{}) (err error) {
 	switch val := value.(type) {
@@ -249,7 +249,7 @@ func (id *ID) Scan(value interface{}) (err error) {
 	}
 }
 
-// MarshalJSON implements json.Marshaler.
+// MarshalJSON implements the json.Marshaler interface.
 // https://golang.org/pkg/encoding/json/#Marshaler
 func (id ID) MarshalJSON() ([]byte, error) {
 	// endless loop if merely return json.Marshal(id)
@@ -262,7 +262,7 @@ func (id ID) MarshalJSON() ([]byte, error) {
 	return text, nil
 }
 
-// UnmarshalJSON implements json.Unmarshaler.
+// UnmarshalJSON implements the json.Unmarshaler interface.
 // https://golang.org/pkg/encoding/json/#Unmarshaler
 func (id *ID) UnmarshalJSON(text []byte) error {
 	str := string(text)
@@ -273,9 +273,10 @@ func (id *ID) UnmarshalJSON(text []byte) error {
 	return id.UnmarshalText(text[1 : len(text)-1])
 }
 
-// randInt generates a random number to initialize the counter.
-// Despite the return value in the function signature, the actual value is
-// deliberately constrained to uint16 min/max values.
+// randInt generates a random number to initialize the counter. Despite the
+// return value in the function signature, done for compatibility with package
+// atomic functions, the actual value is deliberately constrained to uint16
+// min/max values.
 func randInt() uint32 {
 	b := make([]byte, 2)
 	if _, err := rand.Read(b); err != nil {
