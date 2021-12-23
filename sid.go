@@ -3,27 +3,30 @@ Package sid provides a unique-enough ID generator for applications with modest
 (read: non-distributed), needs.
 
     id := sid.New()
-    fmt.Printf("%s", id) // af1zwtepacw38
+    fmt.Printf("%s", id) // 05yygjxjehg7y
 
 A sid ID is 8-byte value; it could optionally be stored as a 64 bit integer.
 
-    // af1zwtepacw38
-    sid.FromString("af1zwtepacw38") == id   // true
-    fmt.Println(id[:])                      // [1 125 227 253 59 110 47 62]
+    // 05yygjxjehg7y
+    sid.FromString("05yygjxjehg7y") == id   // true
+    fmt.Println(id[:])                      // [1 125 232 75 178 116 96 127]
 
-Each ID's 8-byte binary representation: id{1, 111, 89, 64, 140, 0, 165, 159} is
-comprised of a:
+Each ID's 8-byte binary representation: id:{1, 125, 232, 75, 178, 116, 96, 127}
+is comprised of a:
 
 - 6-byte timestamp value representing milliseconds since the Unix epoch
 - 2-byte concurrency-safe counter (test included); maxCounter = uint16(65535)
 
-IDs are chronologically sortable with a minor tradeoff in millisecond-level
-sortability made for improved randomness in the trailing counter value.
+IDs are chronologically sortable with a minor and only occasional tradeoff in
+millisecond-level sortability made for improved randomness in the trailing
+counter value.
 
-The String() representation us base32 encoded using a modified Crockford inspired alphabet.
+The String() representation us base32 encoded using a modified Crockford
+inspired alphabet.
 
 Acknowledgement: Much of this package is based on the globally-unique capable
-rs/xid package which itself levers ideas from mongodb. See https://github.com/rs/xid.
+rs/xid package which itself levers ideas from mongodb. See
+https://github.com/rs/xid.
 */
 package sid
 
@@ -48,14 +51,12 @@ const (
 
 	/*
 		ID string representations are base32-encoded using a character set
-		inspired by Crockford's (i, o, l, u removed and w, x, y, z added). sid's
-		character set has digits moved to the end  to avoid producing IDs with
-		leading zeros for many years.
+		inspired by Crockford: i, l, o, u removed and w, x, y, z added.
 
-		encoding/Base32 for comparison:
-		          "0123456789abcdefghijklmnopqrstuv"
 	*/
-	charset = "abcdefghjkmnpqrstvwxyz0123456789"
+	//	encoding/Base32 charset for comparison:
+	//        "0123456789abcdefghijklmnopqrstuv"
+	charset = "0123456789abcdefghjkmnpqrstvwxyz"
 )
 
 var (
@@ -226,7 +227,7 @@ func (id ID) MarshalText() ([]byte, error) {
 // Value implements package sql's driver.Valuer.
 // https://golang.org/pkg/database/sql/driver/#Valuer
 func (id ID) Value() (driver.Value, error) {
-	if id == nilID {
+	if id.IsNil() {
 		return nil, nil
 	}
 	b, err := id.MarshalText()
@@ -274,9 +275,9 @@ func (id *ID) UnmarshalJSON(text []byte) error {
 }
 
 // randInt generates a random number to initialize the counter. Despite the
-// return value in the function signature, done for compatibility with package
-// atomic functions, the actual value is deliberately constrained to uint16
-// min/max values.
+// return value in the function signature--done for compatibility with package
+// atomic functions--the actual value is deliberately constrained to uint16
+// max values.
 func randInt() uint32 {
 	b := make([]byte, 2)
 	if _, err := rand.Read(b); err != nil {
