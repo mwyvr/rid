@@ -1,6 +1,9 @@
 [![godoc](http://img.shields.io/badge/godev-reference-blue.svg?style=flat)](https://pkg.go.dev/github.com/solutionroute/sid?tab=doc)[![Build Status](https://travis-ci.org/solutionroute/sid.svg?branch=master)](https://travis-ci.org/solutionroute/sid)[![Go Coverage](https://img.shields.io/badge/coverage-98.3%25-brightgreen.svg?style=flat)](http://gocover.io/github.com/solutionroute/sid)[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # sid
+o
+$ sid 05yygjxjehg7y
+[05yygjxjehg7y] ms:1640279814772 count:24703 time:2021-12-23 09:16:54.772 -0800 PST id:{1, 125, 232, 75, 178, 116, 96, 127}
 
 Package sid provides a unique-enough, random-ish ID generator for applications
 with modest (read: non-distributed), needs.
