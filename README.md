@@ -2,53 +2,123 @@
 
 # sid
 
-Package sid provides a unique ID generator producing URL and human-friendly
-(readability and double-click), compact, IDs. They are unique to a single
-process, with more than 4 billion possibilities per millisecond.
+Package sid provides a unique-enough, random-ish ID generator for applications
+with modest (read: non-distributed), needs.
 
-The String() method produces chronologically
-[k-sortable](https://en.wikipedia.org/wiki/Partial_sorting) encoded IDs that
-look like:
+String representations of the 8-byte ID, e.g. `af1zwtepacw38`, are compact (13
+characters), human-friendly (no i, l, o or u characters), double-clickable (no
+'-' or other punctuation) and URL-safe.
 
-    af87cfy46ajbxf40 - 16 characters, and is equivalent to:
-    []byte{001, 125, 209, 022, 154, 224, 016, 025, 151, 086}
+```go
+    id := sid.New()
+    fmt.Printf("%s", id) // af1zwtepacw38
+```
 
-`sid` base32 encoding utilizes a customized alphabet, popularized by
-[Crockford](http://www.crockford.com/base32.html), who replaced the more easily
-misread (by humans) i, o, l and u with the more easily read w, x, y and z.
-Additionally, `sid` customized encoding has digits moved to the tail of the
-character set to avoid having a leading zero for a great many years.
+A sid ID is 8-byte value that can be stored directly as a 64 bit integer; some database
+drivers will do just that - if that's not your preference, use id.String().
 
-Each ID's 10-byte binary representation is comprised of a:
+```go
+    id := sid.New()     // af1zwtepacw38
+    fmt.Println(id[:])  // [1 125 227 253 59 110 47 62]
+    // reconstruct an ID from the encoded value
+    nid, err := sid.FromString("af1zwtepacw38") 
+    nid == id           // true
+```
 
-    6-byte timestamp value representing milliseconds since the Unix epoch
-    4-byte concurrency-safe counter (test included); maxCounter = uint32(4294967295)
+## Under the covers
 
-The counter is initialized at a random value at initialization.
+Each ID's 8-byte binary representation: id{1, 111, 89, 64, 140, 0, 165, 159} is
+comprised of a:
+
+- 6-byte timestamp value representing milliseconds since the Unix epoch
+- 2-byte concurrency-safe counter (test included); maxCounter = uint16(65535)
+
+IDs are chronologically sortable with a minor tradeoff in millisecond-level
+sortability made for improved randomness in the trailing counter value.
+
+## Collisions: not through intended use
+
+The 2-byte concurrency-safe counter means up to 65,535 unique IDs can
+**theoretically** be produced per millisecond - that would be 1 ID every 16
+nanoseconds.
+
+We say theoretically because on the author's hardware it takes ~50ns to produce
+an ID, another 50-90ns to encode it depending on the encoder, and longer yet to
+shove the associated data into a datastore. This means there's zero chance of
+collision in real world, intended, use.
+
+## IDs are randomish
+
+The counter is **randomish** as it is initialized with a random value and
+thereafter at any new millisecond an ID is requested. This is intended to
+dissuade URL parameter hackers... but it's random-ish, so don't use sid.ID for a
+secure token (**that's not an intended use**)! Still, that's 65 million
+*potential* IDs per second. 
+
+    af88je3v03f7p
+    af88je3v03f7r
+    af88je3v03f7t
+    af88je3v08n1r <- new millisecond, counter re-initialized with a random number
+    af88je3v08n1t
+    af88je3v08n1w
+    af88je3v08n1y
+
+## Benchmark
+
+As expected, about 20 million IDs are generated *per second* in the simplest of
+use cases, a for loop benchmark generating nothing but new IDs:
+
+    $ go test -benchmem -benchtime 1s  -run=^$ -bench ^BenchmarkIDNew$ github.com/solutionroute/sid
+    goos: linux
+    goarch: amd64
+    pkg: github.com/solutionroute/sid
+    cpu: AMD Ryzen 7 3800X 8-Core Processor
+    BenchmarkIDNew-16       20454786                59.28 ns/op            0 B/op          0 allocs/op
+
+## Batteries included
 
 ID implements a number of common interfaces including package sql's
 driver.Valuer, sql.Scanner, TextMarshaler, TextUnmarshaler, json.Marshaler,
 json.Unmarshaler, and Stringer.
 
-## Inspiration
+Package sid also provides a command line tool `sid` allowing for id generation or inspection:
 
-COVID-19 bordom in 2020 and a desire for a shorter, sortable, unique-enough for
-many apps, ID. [Generating good unique IDs in
-Go](https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html)
-provided additional inspiration.
+    $ sid
+    af88jfz84bx5j
 
-## Acknowledgement
+    $ sid af1zwtepacw38
+    [af1zwtepacw38] ms:1577750400000 count:42399 time:2019-12-30 16:00:00 -0800 PST id:{1, 111, 89, 64, 140, 0, 165, 159}
 
-Much of this package was based on the globally-unique capable
-[rs/xid](https://github.com/rs/xid) package which itself levers ideas from
-[MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
+    # generate more than 1
+    $ sid -c 3
+    af88jgn52y7c0 af88jgn52y7c2 af88jgn52y7c4
 
-Having borrowed heavily from it, I'd likely use `xid` if I had apps on machines
+    # generate and inspect a bunch
+    $ sid `sid -c 3`
+    [af88jgpv71728] ms:1640209420781 count:64399 time:2021-12-22 13:43:40.781 -0800 PST id:{1, 125, 228, 25, 145, 237, 251, 143}
+    [af88jgpv7173a] ms:1640209420781 count:64400 time:2021-12-22 13:43:40.781 -0800 PST id:{1, 125, 228, 25, 145, 237, 251, 144}
+    [af88jgpv7173c] ms:1640209420781 count:64401 time:2021-12-22 13:43:40.781 -0800 PST id:{1, 125, 228, 25, 145, 237, 251, 145}
+
+    # with newlines
+    $ sid -c 3 -n
+    af88jgqnp4nkp
+    af88jgqnp4nkr
+    af88jgqnp4nkt
+
+## Source of inspiration
+
+Acknowledgement: Much of this package is based on the globally-unique capable
+[rs/xid](https://github.com/rs/xid) package which itself levers ideas from mongodb. See
+https://github.com/rs/xid. I'd use xid if I had a fleet of apps on machines
 spread around the world working in unison on a common datastore.
 
-## Encoded ID comparisons with other packages
+Thanks to the author of this article for giving me inspiration:
 
-    github.com/solutionroute/sid/v3:    af87cfy46ajbxf40
+https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
+
+Borrowing data from that article, here's a comparison with some other ID schemes:
+
+    github.com/solutionroute/sid        af1zwtepacw38
     github.com/rs/xid:                  9bsv0s091sd002o20hk0
     github.com/segmentio/ksuid:         ZJkWubTm3ZsHZNs7FGt6oFvVVnD
     github.com/kjk/betterguid:          -HIVJnL-rmRZno06mvcV
@@ -57,44 +127,11 @@ spread around the world working in unison on a common datastore.
     github.com/lithammer/shortuuid:     DWaocVZPEBQB5BRMv6FUsZ
     github.com/google/uuid:             fa931eb3-cdc7-46a1-ae94-eb1b523203be
 
-## Batteries included
+## Acknowledgement
 
-`cmd/sid` provides a simple tool to generate or inspect SIDs.
+Much of this package was based on the globally-unique capable
+[rs/xid](https://github.com/rs/xid) package which itself levers ideas from
+[MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
 
-    # generate an ID
-    $ sid
-    af87av3z734qnx8y
-
-    # inspect an ID
-    $ sid af87av3z734qnx8y
-
-    # while away your COVID-19 days looking at milliseconds pass by...
-    $ sid `sid`
-
-## Example Use
-
-This on Go Playground: [https://go.dev/play/p/cc93AWg-NCw](https://go.dev/play/p/cc93AWg-NCw).
-
-```go
-package main
-
-import (
-   "fmt"
-    "github.com/solutionroute/sid"
-)
-
-func main() {
-    id := sid.New() // ids are []byte values 6 bytes time, 4 bytes counter
-    fmt.Printf(`ID:
-        String()       %s   // af87av3z734qnx8y 
-        Milliseconds() %d   // 1639876867566
-        Count()        %d   // 38307
-        Time()         %v   // 2021-12-18 17:21:07.566 -0800 PST
-        Bytes():       %3v  // [1 125 208 71 53 238 116 213 207 212]`, 
-        id.String(), id.Milliseconds(), id.Count(), id.Time(), id.Bytes())
-
-    if id, err := sid.FromString("af87av3z734qnx8y"); err == nil {
-        fmt.Printf("ID: %s Timestamp (ms): %d Count: %d\n", id, id.Milliseconds(), id.Count())
-    } 
-}
-```
+Having borrowed heavily from it, I'd will use `xid` if I ever have apps on machines
+spread around the world working without central coordinated ID generation.

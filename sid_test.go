@@ -34,10 +34,10 @@ var testIDS = []idTest{
 		"nilID",
 		false,
 		nilID,
-		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		0,
 		0,
-		"aaaaaaaaaaaaaaaa",
+		"aaaaaaaaaaaaa",
 	},
 	{
 		// epoch time plus a counter of one to avoid being
@@ -45,17 +45,17 @@ var testIDS = []idTest{
 		// be 0
 		"min value 1970-01-01 00:00:00 +0000 UTC",
 		true,
-		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
-		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
 		0,
 		1,
-		"aaaaaaaaaaaaaaab",
+		"aaaaaaaaaaaab",
 	},
 	{
 		"max value in the year 10889 see you then",
 		true,
-		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-		[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 		281474976710655,
 		4294967295,
 		"9999999999999999",
@@ -63,8 +63,8 @@ var testIDS = []idTest{
 	{
 		"fail on FromString / FromBytes / decode - value mismatch",
 		false,
-		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-		[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xaa},
+		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xaa},
 		281474976710655,
 		65535,
 		"9999999999999999",
@@ -72,7 +72,7 @@ var testIDS = []idTest{
 	{
 		"fail on FromString, FromBytes len mismatch",
 		false,
-		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 		[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xaa},
 		281474976710655,
 		65535,
@@ -81,7 +81,7 @@ var testIDS = []idTest{
 	{
 		"must fail MarshalText (decode test - invalid base32 chars)",
 		false,
-		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF},
 		0,
 		1,
@@ -90,10 +90,10 @@ var testIDS = []idTest{
 }
 
 func TestCounterRollover(t *testing.T) {
-	counter = 4294967295 - 2 // set package var
-	New()                    // +1
-	New()                    // +1 now at max uint32
-	id := New()              // next invocation should roll over to 1
+	counter = 65535 - 2 // set package var
+	New()               // +1
+	New()               // +1 now at max uint16
+	id := New()         // next invocation should roll over to 1
 	if (counter != 1) || (id.Count() != 1) {
 		t.Errorf("counter at %d, should be 0", counter)
 	}
@@ -157,14 +157,14 @@ func TestID_Milliseconds(t *testing.T) {
 	}
 }
 func TestID_Count(t *testing.T) {
-	id, err := FromString("af87av3z734qnx8y")
+	id, err := FromString("af88hcbe0x8hm")
 	if err != nil {
 		t.Error(err)
 	}
-	if m := id.Count(); m != uint32(1960169428) {
-		t.Errorf("ID.Count() got %v want %v", m, 1960169428)
+	if m := id.Count(); m != uint32(64629) {
+		t.Errorf("ID.Count() got %v want %v", m, 64629)
 	}
-	id, err = FromString("af87av3zaaaaaaab")
+	id, err = FromString("af88hcbe0aaac")
 	if err != nil {
 		t.Error(err)
 	}
@@ -299,10 +299,11 @@ func Test_encode(t *testing.T) {
 }
 
 func Test_decode(t *testing.T) {
-	var id ID
+	id := &ID{}
 	// there really are no checks in decode; they happen in UnmarshalText,
 	// the only caller of decode(). For code coverage:
-	decode(&id, []byte("af87jaybtrj457wq"[:]))
+	decode(id, []byte("af87jaybt457wq"[:]))
+	t.Errorf("%#v", id)
 }
 
 func TestID_UnmarshalText(t *testing.T) {
@@ -490,7 +491,7 @@ func TestID_MarshalJSON(t *testing.T) {
 	if got, err := nilID.MarshalJSON(); string(got) != "null" {
 		t.Errorf("ID.MarshalJSON() of nilID error = %v, got %v", err, got)
 	}
-	if got, err := (ID{1, 125, 208, 142, 50, 76, 238, 72, 204, 240}).MarshalJSON(); string(got) != "\"af87bdvwkx1evxht\"" {
+	if got, err := (ID{1, 125, 208, 142, 50, 76, 238, 72}).MarshalJSON(); string(got) != "\"af87bdvwkx1evxht\"" {
 		if err != nil {
 			t.Errorf("ID.MarshalJSON() err %v marshaling %v", err, "\"af87bdvwkx1evxht\"")
 		}
@@ -512,7 +513,7 @@ func TestID_UnmarshalJSON(t *testing.T) {
 	if err = id.UnmarshalJSON(text); err != nil {
 		t.Errorf("ID.UnmarshalJSON() error = %v", err)
 
-	} else if id != (ID{1, 125, 208, 142, 50, 76, 238, 72, 204, 240}) {
+	} else if id != (ID{1, 125, 208, 142, 50, 76, 238, 72}) {
 		t.Errorf("ID.UnmarshalJSON() of %v, got %v", text, id.String())
 	}
 }
