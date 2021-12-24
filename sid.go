@@ -47,7 +47,7 @@ type ID [rawLen]byte
 const (
 	rawLen     = 8             // bytes
 	encodedLen = 13            // base32 representation
-	maxCounter = uint32(65535) // max IDs per millisecond, not achievable and safe
+	maxCounter = uint32(65535) // max IDs per millisecond, a safe limit
 
 	/*
 		ID string representations are base32-encoded using a character set
@@ -64,7 +64,6 @@ var (
 	nilID ID
 
 	counter uint32 // this is uint32 to take advantage of atomic.CompareAndSwap...
-	last    uint64 // the last millisecond since Unix epoch when an id was generated
 
 	ErrInvalidID = errors.New("sid: invalid id")
 
@@ -95,16 +94,11 @@ func New() ID {
 // NewWithTime returns a new ID based upon the supplied Time value.
 func NewWithTime(tm time.Time) ID {
 	var id ID
-	// timestamp truncated to milliseconds
-	var ms = uint64(tm.Unix())*1000 + uint64(tm.Nanosecond()/int(time.Millisecond))
 
-	// Package atomic's operations are concurrency safe.
-	if ms != atomic.LoadUint64(&last) {
-		atomic.StoreUint64(&last, ms)           // we're in a new ms, save it
-		atomic.StoreUint32(&counter, randInt()) // randomly initialize the counter
-	}
+	// timestamp truncated to milliseconds
+	ms := uint64(tm.Unix())*1000 + uint64(tm.Nanosecond()/int(time.Millisecond))
 	// Assemble the 8 byte ID
-	// 6 bytes of time, to millisecond
+	// 6 bytes of time, millisecond precision
 	id[0] = byte(ms >> 40)
 	id[1] = byte(ms >> 32)
 	id[2] = byte(ms >> 24)
@@ -112,14 +106,15 @@ func NewWithTime(tm time.Time) ID {
 	id[4] = byte(ms >> 8)
 	id[5] = byte(ms)
 
-	// If counter hits max uint16 value, roll over
+	// Note: package atomic's operations are concurrency safe.
+	// If counter hits max uint16 value, roll over At ~50ns per ID, 20,000 IDs
+	// per millisecond are produced which means there is no chance of collision
 	atomic.CompareAndSwapUint32(&counter, maxCounter, 0)
 	// increment by 1
 	ct := atomic.AddUint32(&counter, 1)
 	// 2 bytes for the counter
 	id[6] = byte(ct >> 8)
 	id[7] = byte(ct)
-
 	return id
 }
 
