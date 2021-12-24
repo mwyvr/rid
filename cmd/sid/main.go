@@ -41,7 +41,7 @@ func main() {
 			s = s + strconv.Itoa(int(b))
 		}
 		s = s + "}"
-		fmt.Printf("[%s] ms:%d count:%5d time:%v id:%s\n", arg, id.Milliseconds(), id.Count(), id.Time(), s)
+		fmt.Printf("[%s] ms:%d count:%5d time:%v ID%s\n", arg, id.Milliseconds(), id.Count(), id.Time(), s)
 	}
 	if errors > 0 {
 		fmt.Printf("%d error(s)\n", errors)
