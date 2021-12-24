@@ -32,34 +32,34 @@ Each ID's 8-byte binary representation is comprised of a:
 - 6-byte timestamp value representing milliseconds since the Unix epoch
 - 2-byte concurrency-safe counter (test included); maxCounter = uint16(65535)
 
-IDs are chronologically sortable with a minor tradeoff in millisecond-level
-sortability made for improved randomness in the trailing counter value.
+IDs are chronologically sortable to the millisecond.
+
 
 ## Collisions: not through intended use
 
-The 2-byte concurrency-safe counter means up to 65,535 unique IDs can
-**theoretically** be produced per millisecond - that would be 1 ID every 16
-nanoseconds.
+The 2-byte concurrency-safe counter means a limit of 65,535 unique IDs per
+millisecond (65 million a second), which translates to 1 ID every 16
+nanoseconds, a limitation unlikely to be problematic in real life as ID
+generation alone takes ~55ns on the author's hardware.
 
-We say theoretically because on the author's hardware it takes ~50ns to produce
-an ID, another 50-90ns to encode it depending on the encoder, and longer yet to
-shove the associated data into a datastore. This means there's zero chance of
-collision in real world, intended, use.
+There's zero chance of collision in real world, intended, use.
 
 ## IDs are kinda randomish
 
-The counter is **randomish** as it is initialized with a random value and
-thereafter at any new millisecond an ID is requested. This is intended to
-dissuade URL parameter hackers... but it's random-ish, so don't use sid.ID for a
-secure token (**that's not an intended use**)! Still, 1000 * 65535 = 65 million
-*potential* IDs per second.
+The counter is **randomish** as it is initialized with a random value; where the
+counter lands on any given millisecond can't be easily predicted. This allows for
+a somewhat faster and definitely more concurrency safe solution, with no dupes being
+produced by even 200 go routines.
 
-    [05yyjeynmjppy] ms:1640295552420 count:44399
-    [05yyjeynmjpq0] ms:1640295552420 count:44400
-    [05yyjeynmjpq2] ms:1640295552420 count:44401
-    [05yyjeynmm7vm] ms:1640295552421 count: 4026 <- new millisecond, counter re-initialized with a random value
-    [05yyjeynmm7vp] ms:1640295552421 count: 4027
-    [05yyjeynmm7vr] ms:1640295552421 count: 4028
+    [05yyk5b963xka] ms:1640301422896 count:64309 <- counter at previous millisecond
+    [05yyk5b967xkc] ms:1640301422897 count:64310
+    .
+    .
+    .
+    [05yyk5b967zzy] ms:1640301422897 count:65535
+    [05yyk5b964002] ms:1640301422897 count:    1 <- same millisecond, counter safely rolls over
+    [05yyk5b964004] ms:1640301422897 count:    2
+    [05yyk5b964006] ms:1640301422897 count:    3
 
 ## Benchmark
 
