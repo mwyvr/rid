@@ -5,24 +5,13 @@
 Package sid provides a unique-enough, random-ish ID generator for applications
 with modest (read: non-distributed), needs.
 
-String representations of the 8-byte ID, e.g. `05yygjxjehg7y` are compact (13
-characters), human-friendly (no i, l, o or u characters), double-clickable (no
-'-' or other punctuation) and URL-safe.
+String representations of an ID e.g. `05yygjxjehg7y` are compact (13
+characters), human-friendly (all lowercase, with no i, l, o or u characters),
+double-clickable (no '-' or other punctuation) and URL-safe.
 
 ```go
     id := sid.New()
     fmt.Printf("%s", id) // 05yygjxjehg7y
-```
-
-A sid ID is 8-byte value that can be stored directly as a 64 bit integer; some database
-drivers will do just that - if that's not your preference, use id.String().
-
-```go
-    id := sid.New()     // 05yygjxjehg7y
-    fmt.Println(id[:])  // [1 125 232 75 178 116 96 127]
-    // reconstruct an ID from the encoded value
-    nid, err := sid.FromString("05yygjxjehg7y") 
-    nid == id           // true
 ```
 
 ## Under the covers
@@ -30,10 +19,19 @@ drivers will do just that - if that's not your preference, use id.String().
 Each ID's 8-byte binary representation is comprised of a:
 
 - 6-byte timestamp value representing milliseconds since the Unix epoch
-- 2-byte concurrency-safe counter (test included); maxCounter = uint16(65535)
+- 2-byte concurrency-safe counter (test included)
+
+```go
+    id := sid.New()                 // 05yygjxjehg7y
+    fmt.Println(id[:])              // [1 125 232 75 178 116 96 127]
+    fmt.Println(id.Millisecond())   //  1640279814772 
+    fmt.Println(id.Count())         // 24703
+    // construct an ID from the encoded value
+    nid, err := sid.FromString("05yygjxjehg7y") 
+    nid == id                       // true
+```
 
 IDs are chronologically sortable to the millisecond.
-
 
 ## Collisions: not through intended use
 
