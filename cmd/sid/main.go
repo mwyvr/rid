@@ -12,19 +12,30 @@ import (
 
 var (
 	count   int  = 1
-	newline bool = false
 )
 
 func init() {
 	flag.IntVar(&count, "c", count, "Generate n * IDs")
-	flag.BoolVar(&newline, "n", newline, "Print count > 1 IDs each on a new line (default false)")
 }
 
 func main() {
+    flag.Usage = func() {
+        pgm := os.Args[0]
+        fmt.Fprintf(flag.CommandLine.Output(), "usage: %s -c N          # print N sid(s)\n", pgm)
+        fmt.Fprintf(flag.CommandLine.Output(), "       %s 0629p0rqdrw8p # decode one or more sid(s)\n", pgm)
+        // flag.PrintDefaults()
+    }
 	flag.Parse()
 	args := flag.Args()
+    
+    if count > 1 && len(args) > 0 {
+        fmt.Fprintf(flag.CommandLine.Output(), "error: -c (output) and args (input) both specified; perform only one at a time.\n")
+        flag.Usage()
+        os.Exit(1)
+    }
 
 	errors := 0
+    // If no valid flag, Either attempt to decode string as a sid
 	for _, arg := range args {
 		id, err := sid.FromString(arg)
 		if err != nil {
@@ -47,14 +58,12 @@ func main() {
 		fmt.Printf("%d error(s)\n", errors)
 		os.Exit(1)
 	}
-	// generate one (or -c value) sid
-	if len(args) == 0 {
-		for c := 0; c < count; c++ {
-			fmt.Printf("%s ", sid.New())
-			if newline {
-				fmt.Println()
-			}
-		}
-	}
-	fmt.Println()
+
+	// OR... generate one (or -c value) sid
+    for c := 0; c < count; c++ {
+        fmt.Printf("%s", sid.New())
+        if count > 1 {
+            fmt.Println()
+        }
+    }
 }
