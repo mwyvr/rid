@@ -440,30 +440,19 @@ func (d *dupes) report(t *testing.T) {
 
 // Benchmarks
 func BenchmarkIDNew(b *testing.B) {
-	var id ID
-	// run the function b.N times
-	for n := 0; n < b.N; n++ {
-		id = New()
-	}
-	_ = id
-}
-func BenchmarkEncoder(b *testing.B) {
-	var text string
-	id := New()
-	// run the function b.N times
-	for n := 0; n < b.N; n++ {
-		text = id.String()
-	}
-	_ = text
+    b.RunParallel(func(pb *testing.PB) {
+        for pb.Next(){
+            _ = New()
+        }
+    })
 }
 
-func BenchmarkIDEncoded(b *testing.B) {
-	var id string
-	// run the function b.N times
-	for n := 0; n < b.N; n++ {
-		id = New().String()
-	}
-	_ = id
+func BenchmarkIDNewEncoded(b *testing.B) {
+    b.RunParallel(func(pb *testing.PB) {
+        for pb.Next(){
+            _ = New().String()
+        }
+    })
 }
 
 // examples

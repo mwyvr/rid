@@ -64,12 +64,27 @@ produced by even 200 go routines.
 As expected, reality means about 20 million IDs are generated *per second* in
 the simplest of use cases, a for loop benchmark generating nothing but new IDs:
 
-    $ go test -benchmem -benchtime 1s  -run=^$ -bench ^BenchmarkIDNew$ github.com/solutionroute/sid
+    # use all CPUs
+    $ go test -benchmem  -run=^$   -bench  ^.*$ github.com/solutionroute/sid
     goos: linux
     goarch: amd64
     pkg: github.com/solutionroute/sid
-    cpu: AMD Ryzen 7 3800X 8-Core Processor
-    BenchmarkIDNew-16       20454786                59.28 ns/op            0 B/op          0 allocs/op
+    cpu: AMD Ryzen 7 3800X 8-Core Processor             
+    BenchmarkIDNew-16           	65287621	        17.93 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded-16    	60398396	        19.44 ns/op	       0 B/op	       0 allocs/op
+    PASS
+    ok  	github.com/solutionroute/sid	2.389s
+
+    # use a single CPU
+    $ go test -benchmem  -run=^$  -cpu 1 -bench  ^.*$ github.com/solutionroute/sid
+    goos: linux
+    goarch: amd64
+    pkg: github.com/solutionroute/sid
+    cpu: AMD Ryzen 7 3800X 8-Core Processor             
+    BenchmarkIDNew        	21589606	        55.01 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded 	16778342	        71.54 ns/op	       0 B/op	       0 allocs/op
+    PASS
+    ok  	github.com/solutionroute/sid	2.520s
 
 ## Batteries included
 
