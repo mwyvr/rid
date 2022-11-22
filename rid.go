@@ -5,7 +5,7 @@ applications with modest (meaning non-distributed) needs.
 rid can generate more than 4 billion possible random IDs per second, per
 process, per machine. Duplication in practical use is unlikely. Ymmv.
 
-    id := sid.New()
+    id := rid.New()
     fmt.Printf("%s", id) 
 // TODO replace all the examples once fully tested
 
@@ -64,8 +64,8 @@ var (
 	// pid stores the current process id
 	pid = os.Getpid()
 
-	ErrInvalidID = errors.New("sid: invalid id")
-	ErrInvalidLength = errors.New("sid: invalid encoded length")
+	ErrInvalidID = errors.New("rid: invalid id")
+	ErrInvalidLength = errors.New("rid: invalid encoded length")
 
 	// dec is the decoding map for base32 encoding
 	dec      [256]byte
@@ -76,8 +76,8 @@ func init() {
 	for i := 0; i < len(dec); i++ {
 		dec[i] = 0xFF
 	}
-	for i := 0; i < len(charset); i++ {
-		dec[charset[i]] = byte(i)
+	for i := 0; i < len(encoding); i++ {
+		dec[encoding[i]] = byte(i)
 	}
 }
 
@@ -296,7 +296,7 @@ func (id *ID) Scan(value interface{}) (err error) {
 		*id = nilID
 		return nil
 	default:
-		return fmt.Errorf("sid: unsupported type: %T, value: %#v", value, value)
+		return fmt.Errorf("rid: unsupported type: %T, value: %#v", value, value)
 	}
 }
 
@@ -328,7 +328,7 @@ func (id *ID) UnmarshalJSON(text []byte) error {
 func randUint32() uint32 {
 	b := make([]byte, 4)
 	if _, err := rand.Read(b); err != nil {
-		panic(fmt.Errorf("sid: cannot generate random number: %v;", err))
+		panic(fmt.Errorf("rid: cannot generate random number: %v;", err))
 	}
     return uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[3])
 }
