@@ -1,3 +1,3 @@
-module github.com/solutionroute/sid
+module github.com/solutionroute/rid
 
 go 1.14

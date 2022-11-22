@@ -35,7 +35,6 @@ func main() {
     }
 
 	errors := 0
-    fmt.Fprintf(os.Stdout, "args: %s %d", args, len(args))
 
     // If no valid flag, Either attempt to decode string as a rid
 	for _, arg := range args {
@@ -64,10 +63,7 @@ func main() {
 	// OR... generate one (or -c value) rid
     if len(args) == 0 {
         for c := 0; c < count; c++ {
-            fmt.Fprintf(os.Stdout, "%s", rid.New())
-            if count > 1 {
-                fmt.Println()
-            }
+            fmt.Fprintf(os.Stdout, "%s\n", rid.New())
         }
 
     }
