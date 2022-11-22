@@ -25,8 +25,8 @@ type idTest struct {
 	valid        bool
 	id           ID
 	rawBytes     []byte
-	milliseconds uint64
-	counter      uint32
+	seconds      int64
+	entropy      uint32
 	b32          string
 }
 
@@ -36,10 +36,10 @@ var testIDS = []idTest{
 		"nilID",
 		false,
 		nilID,
-		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		0,
 		0,
-		"0000000000000",
+		"0000000000000000",
 	},
 	{
 		// epoch time plus a counter of one to avoid being
@@ -91,27 +91,6 @@ var testIDS = []idTest{
 	},
 }
 
-// TestCounterRollover ensures the counter is rolling over when maxCounter is hit
-func TestCounterRollover(t *testing.T) {
-	New()       // ensure package initialized
-	counter = 1 // set package var
-	id := New()
-	if counter != 2 {
-		t.Errorf("id.Count() %d, counter at %d, should be 2", id.Count(), counter)
-	}
-	// sleep more than 1ms, counter should still be 2
-	time.Sleep(2 * time.Millisecond)
-	id = New()
-	if counter != 3 {
-		t.Errorf("id.Count() %d, counter at %d, should be 3", id.Count(), counter)
-	}
-	counter = 65534
-	New()      // 65535
-	id = New() // should be 1
-	if counter != 1 {
-		t.Errorf("id.Count() %d, counter at %d, should be 3", id.Count(), counter)
-	}
-}
 
 func TestNew(t *testing.T) {
 	id := New()
@@ -121,8 +100,6 @@ func TestNew(t *testing.T) {
 }
 
 func TestNewWithTime(t *testing.T) {
-	// package level var
-	counter = 0
 	// must match
 	id := NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
 	if id.String() != "05qnwsq800002" {
@@ -142,26 +119,10 @@ func TestID_IsNil(t *testing.T) {
 	}
 }
 
-func TestID_Milliseconds(t *testing.T) {
+func TestID_Seconds(t *testing.T) {
 	id := NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
-	if m := id.Milliseconds(); m != uint64(1577836800000) {
-		t.Errorf("ID.Milliseconds() got %v want %v", m, 1577836800000)
-	}
-}
-func TestID_Count(t *testing.T) {
-	id, err := FromString("05yykgvzqfzzy")
-	if err != nil {
-		t.Error(err)
-	}
-	if m := id.Count(); m != uint32(maxCounter) {
-		t.Errorf("ID.Count() got %v want %v", m, maxCounter)
-	}
-	id, err = FromString("05yykgvzqc002")
-	if err != nil {
-		t.Error(err)
-	}
-	if m := id.Count(); m != uint32(1) {
-		t.Errorf("ID.Count() got %v want %v", m, 1)
+	if m := id.Seconds(); m != int64(1577836800000) {
+		t.Errorf("ID.Seconds() got %v want %v", m, 1577836800000)
 	}
 }
 
@@ -185,13 +146,13 @@ func TestID_Components(t *testing.T) {
 			}
 		})
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.id.Milliseconds(); (got != tt.milliseconds) && (tt.valid != false) {
-				t.Errorf("ID.Milliseconds() = %v %v, want %v", got, tt.id[:], tt.milliseconds)
+			if got := tt.id.Seconds(); (got != tt.seconds) && (tt.valid != false) {
+				t.Errorf("ID.Seconds() = %v %v, want %v", got, tt.id[:], tt.seconds)
 			}
 		})
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.id.Count(); (got != tt.counter) && (tt.valid != false) {
-				t.Errorf("ID.Count() = %v, want %v", got, tt.counter)
+			if got := tt.id.Entropy(); (got != tt.entropy) && (tt.valid != false) {
+				t.Errorf("ID.Entropy() = %v, want %v", got, tt.entropy)
 			}
 		})
 		t.Run(tt.name, func(t *testing.T) {
@@ -214,8 +175,8 @@ func TestID_Time(t *testing.T) {
 	}
 	// now
 	id = NewWithTime(time.Now())
-	if uint64(id.Time().UnixNano()/1e6) != id.Milliseconds() {
-		t.Errorf("ID.Time() UnixNano()/1e6 != id.Milliseconds")
+	if int64(id.Time().UnixNano()/1e6) != id.Seconds() {
+		t.Errorf("ID.Time() UnixNano()/1e6 != id.Seconds")
 	}
 }
 
@@ -293,7 +254,7 @@ func Test_decode(t *testing.T) {
 	// there really are no checks in decode; they happen in UnmarshalText,
 	// the only caller of decode(). For code coverage:
 	decode(id, []byte("05yykgvzqc002"[:]))
-	if id.Count() != 1 {
+	if id.Entropy() != 1 {
 		t.Errorf("decode produced an anomoly: %#v", id)
 	}
 }
@@ -384,59 +345,6 @@ func TestID_Scan(t *testing.T) {
 	}
 }
 
-// -- concurrency testing ----------------
-func TestNew_Unique(t *testing.T) {
-	var d = &dupes{count: make(map[string]int)}
-	// generate many IDs concurrently to test for collisions
-	for i := 1; i <= numConcurrent; i++ {
-		wg.Add(1)
-		go func() {
-			for i := 1; i < numIter; i++ {
-				id := New()
-				d.add(id.String())
-			}
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-	d.report(t)
-}
-
-// mutex protected map/counter for checking for uniqueness
-type dupes struct {
-	count map[string]int
-	mu    sync.Mutex
-}
-
-func (d *dupes) add(str string) {
-	d.mu.Lock()
-	d.count[str]++
-	d.mu.Unlock()
-}
-
-func (d *dupes) report(t *testing.T) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	var total = 0
-	for v, num := range d.count {
-		if num > 1 {
-			total++
-			id, err := FromString(v)
-			if err != nil {
-				t.Errorf("id.FromString: %s, %s", v, err)
-			}
-			if id == nilID {
-				t.Errorf("id.FromString produced nilID: %s, %s", v, err)
-			}
-			t.Errorf("duplicate key found: %v\n", id)
-		}
-	}
-	if total != 0 {
-		// there should be zero
-		t.Errorf("Duplicate base32 values (keys) found. Total dupes: %d | Total keys: %d\n",
-			total, len(d.count))
-	}
-}
 
 // Benchmarks
 func BenchmarkIDNew(b *testing.B) {
@@ -460,22 +368,22 @@ func ExampleNew() {
 	id := New()
 	fmt.Printf(`ID:
     String()       %s   
-    Milliseconds() %d  
-    Count()        %d // random for this one-off run 
+    Seconds() %d  
+    Entropy()        %d // random for this one-off run 
     Time()         %v
     Bytes():       %3v  
-`, id.String(), id.Milliseconds(), id.Count(), id.Time(), id.Bytes())
+`, id.String(), id.Seconds(), id.Entropy(), id.Time(), id.Bytes())
 }
 
 func ExampleNewWithTime() {
 	id := NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
 	fmt.Printf(`ID:
     String()       %s
-    Milliseconds() %d
-    Count()        %d // random for this one-off run 
+    Seconds() %d
+    Entropy()        %d // random for this one-off run 
     Time()         %v
     Bytes():       %3v
-`, id.String(), id.Milliseconds(), id.Count(), id.Time().UTC(), id.Bytes())
+`, id.String(), id.Seconds(), id.Entropy(), id.Time().UTC(), id.Bytes())
 }
 
 func ExampleFromString() {
@@ -483,7 +391,7 @@ func ExampleFromString() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(id.Milliseconds(), id.Count())
+	fmt.Println(id.Seconds(), id.Entropy())
 	// [05yx13hj9kq4g] ms:1639881519692 count:61000 time:2021-12-18 18:38:39.692 -0800 PST id:{1, 125, 208, 142, 50, 76, 238, 72}
 }
 

@@ -35,6 +35,8 @@ func main() {
     }
 
 	errors := 0
+    fmt.Fprintf(os.Stdout, "args: %s %d", args, len(args))
+
     // If no valid flag, Either attempt to decode string as a sid
 	for _, arg := range args {
 		id, err := sid.FromString(arg)
@@ -52,7 +54,7 @@ func main() {
 			s = s + strconv.Itoa(int(b))
 		}
 		s = s + "}"
-		fmt.Printf("[%s] ms:%d count:%5d time:%v ID%s\n", arg, id.Milliseconds(), id.Count(), id.Time(), s)
+        fmt.Printf("[%s] seconds:%d entropy:%d machine:%v pid:%v time:%v ID%s\n", arg, id.Seconds(), id.Entropy(), id.Machine(), id.Pid(), id.Time(), s)
 	}
 	if errors > 0 {
 		fmt.Printf("%d error(s)\n", errors)
@@ -60,10 +62,13 @@ func main() {
 	}
 
 	// OR... generate one (or -c value) sid
-    for c := 0; c < count; c++ {
-        fmt.Printf("%s", sid.New())
-        if count > 1 {
-            fmt.Println()
+    if len(args) == 0 {
+        for c := 0; c < count; c++ {
+            fmt.Fprintf(os.Stdout, "%s", sid.New())
+            if count > 1 {
+                fmt.Println()
+            }
         }
+
     }
 }

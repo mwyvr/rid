@@ -1,75 +1,90 @@
 /*
-Package sid provides a unique-enough ID generator for applications with modest
-(read: non-distributed), needs.
+Package sid (simple, short-ish, id) provides a unique-enough ID generator for
+applications with modest (meaning non-distributed) needs. 
+
+xid: cdufojgp26gen4t3rprg | 20 characters
+sid: cdyfm3xpcf9hp07z     | 16 characters
+
+sid can generate more than 4 billion IDs per second, or approximately 1 every
+0.3 nanosecond (unachievable on hardware available to most of us) before facing
+duplication.
 
     id := sid.New()
-    fmt.Printf("%s", id) // 05yygjxjehg7y
+    fmt.Printf("%s", id) 
+// TODO replace all the examples once fully tested
+// 0629q04t4c001vvq
 
-A sid ID is 8-byte value; it could optionally be stored as a 64 bit integer.
+A sid ID is a 10-byte value.
 
-    // 05yygjxjehg7y
-    sid.FromString("05yygjxjehg7y") == id   // true
+    // 0629q04t4c001vvq
+    sid.FromString("0629q04t4c001vvq") == id   // true
     fmt.Println(id[:])                      // [1 125 232 75 178 116 96 127]
 
 Each ID's 8-byte binary representation: id:{1, 125, 232, 75, 178, 116, 96, 127}
 is comprised of a:
 
-- 6-byte timestamp value representing milliseconds since the Unix epoch
-- 2-byte concurrency-safe counter (test included); maxCounter = uint16(65535)
+- 4-byte timestamp value representing seconds since the Unix epoch
+- 2-byte machine ID
+- 2-byte process ID
+- 4-byte random value
 
 IDs are chronologically sortable with a minor and only occasional tradeoff in
-millisecond-level sortability made for improved randomness in the trailing
-counter value.
+second-level sortability due to the trailing counter value.
 
 The String() representation us base32 encoded using a modified Crockford
 inspired alphabet.
 
 Acknowledgement: Much of this package is based on the globally-unique capable
-rs/xid package which itself levers ideas from mongodb. See
-https://github.com/rs/xid.
+rs/xid package which itself levers ideas from mongodb. See https://github.com/rs/xid.
 */
 package sid
 
 import (
 	"database/sql/driver"
-	"encoding/base32"
+	// "encoding/base32"
+	"encoding/binary"
 	"errors"
 	"fmt"
-	"math/rand"
-	"sync/atomic"
+    "io/ioutil"
+	"crypto/md5"
+	"crypto/rand"
+    "os"
 	"time"
 	"unsafe"
 )
 
-// ID represents a locally unique and random-enough yet sortable identifier
+// ID represents a locally unique, random-enough yet chronologically sortable identifier
 type ID [rawLen]byte
 
 const (
-	rawLen     = 8             // bytes
-	encodedLen = 13            // base32 representation
-	maxCounter = uint32(65535) // max IDs per millisecond, a safe limit
-
-	/*
-		ID string representations are base32-encoded using a character set
-		inspired by Crockford: i, l, o, u removed and w, x, y, z added.
-
-	*/
-	//	encoding/Base32 charset for comparison:
-	//        "0123456789abcdefghijklmnopqrstuv"
+	rawLen     = 12                  // binary representation
+	encodedLen = 20                 // base32 representation
+    // ID string representations are base32-encoded using a character set
+    // inspired by Crockford: i, l, o, u removed and w, x, y, z added.
+    // 
+    // encoding/Base32 charset for comparison:
+    //        "0123456789abcdefghijklmnopqrstuv"
 	charset = "0123456789abcdefghjkmnpqrstvwxyz"
+	encoding = "0123456789abcdefghjkmnpqrstvwxyz"
 )
 
 var (
-	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
-	counter uint32 // this is uint32 to take advantage of atomic.CompareAndSwap...
+	// machineId stores machine id generated once and used in subsequent calls
+	// to NewObjectId function.
+	machineID = readMachineID()
+
+	// pid stores the current process id
+	pid = os.Getpid()
 
 	ErrInvalidID = errors.New("sid: invalid id")
+	ErrInvalidLength = errors.New("sid: invalid encoded length")
 
-	// dec is the decoding map for base32 encoding; currently only used for error checking
+	// dec is the decoding map for base32 encoding
 	dec      [256]byte
-	encoding = base32.NewEncoding(charset).WithPadding(-1)
+	// encoding = base32.NewEncoding(charset).WithPadding(-1)
 )
 
 func init() {
@@ -80,10 +95,6 @@ func init() {
 	for i := 0; i < len(charset); i++ {
 		dec[charset[i]] = byte(i)
 	}
-
-	// We don't need crypto/rand for a random-ish solution
-	rand.Seed(time.Now().UnixNano())
-	counter = randInt()
 }
 
 // New returns a new ID using the current time; IDs represent millisecond time resolution.
@@ -95,26 +106,24 @@ func New() ID {
 func NewWithTime(tm time.Time) ID {
 	var id ID
 
-	// timestamp truncated to milliseconds
-	ms := uint64(tm.Unix())*1000 + uint64(tm.Nanosecond()/int(time.Millisecond))
-	// Assemble the 8 byte ID
-	// 6 bytes of time, millisecond precision
-	id[0] = byte(ms >> 40)
-	id[1] = byte(ms >> 32)
-	id[2] = byte(ms >> 24)
-	id[3] = byte(ms >> 16)
-	id[4] = byte(ms >> 8)
-	id[5] = byte(ms)
 
-	// Note: package atomic's operations are concurrency safe.
-	// If counter hits max uint16 value, roll over At ~50ns per ID, 20,000 IDs
-	// per millisecond are produced which means there is no chance of collision
-	atomic.CompareAndSwapUint32(&counter, maxCounter, 0)
-	// increment by 1
-	ct := atomic.AddUint32(&counter, 1)
-	// 2 bytes for the counter
-	id[6] = byte(ct >> 8)
-	id[7] = byte(ct)
+	// Timestamp, 4 bytes, big endian
+	binary.BigEndian.PutUint32(id[:], uint32(tm.Unix()))
+	// Machine, first 2 bytes of md5(hostname)
+	id[4] = machineID[0]
+	id[5] = machineID[1]
+	// Pid, 2 bytes, specs don't specify endianness, but we use big endian.
+	id[6] = byte(pid >> 8)
+	id[7] = byte(pid)
+	// 4 bytes for the random value, big endian
+    rv := randUint32()
+	id[8] = byte(rv >> 24)
+	id[9] = byte(rv >> 16)
+	id[10] = byte(rv >> 8)
+	id[11] = byte(rv)
+
+    fmt.Println(id.Seconds(), id.Entropy(), len(id)) 
+
 	return id
 }
 
@@ -132,8 +141,36 @@ func (id ID) String() string {
 }
 
 // encode as Base32 using our custom character set
+// func encode(dst, id []byte) {
+// 	encoding.Encode(dst, id[:])
+// }
+
+
+// encode by unrolling the stdlib base32 algorithm + removing all safe checks
 func encode(dst, id []byte) {
-	encoding.Encode(dst, id[:])
+	_ = dst[19]
+	_ = id[11]
+
+	dst[19] = encoding[(id[11]<<4)&0x1F]
+	dst[18] = encoding[(id[11]>>1)&0x1F]
+	dst[17] = encoding[(id[11]>>6)&0x1F|(id[10]<<2)&0x1F]
+	dst[16] = encoding[id[10]>>3]
+	dst[15] = encoding[id[9]&0x1F]
+	dst[14] = encoding[(id[9]>>5)|(id[8]<<3)&0x1F]
+	dst[13] = encoding[(id[8]>>2)&0x1F]
+	dst[12] = encoding[id[8]>>7|(id[7]<<1)&0x1F]
+	dst[11] = encoding[(id[7]>>4)&0x1F|(id[6]<<4)&0x1F]
+	dst[10] = encoding[(id[6]>>1)&0x1F]
+	dst[9] = encoding[(id[6]>>6)&0x1F|(id[5]<<2)&0x1F]
+	dst[8] = encoding[id[5]>>3]
+	dst[7] = encoding[id[4]&0x1F]
+	dst[6] = encoding[id[4]>>5|(id[3]<<3)&0x1F]
+	dst[5] = encoding[(id[3]>>2)&0x1F]
+	dst[4] = encoding[id[3]>>7|(id[2]<<1)&0x1F]
+	dst[3] = encoding[(id[2]>>4)&0x1F|(id[1]<<4)&0x1F]
+	dst[2] = encoding[(id[1]>>1)&0x1F]
+	dst[1] = encoding[(id[1]>>6)&0x1F|(id[0]<<2)&0x1F]
+	dst[0] = encoding[id[0]>>3]
 }
 
 // Bytes returns by value the byte array representation of ID.
@@ -141,29 +178,35 @@ func (id ID) Bytes() []byte {
 	return id[:]
 }
 
-// Milliseconds returns the internal ID timestamp as the number of
-// milliseconds from the Unix epoch.
-func (id ID) Milliseconds() uint64 {
-	return uint64(id[5]) |
-		uint64(id[4])<<8 |
-		uint64(id[3])<<16 |
-		uint64(id[2])<<24 |
-		uint64(id[1])<<32 |
-		uint64(id[0])<<40
+// Seconds returns the timestamp component of the id in seconds since the Unix
+// epoc.
+func (id ID) Seconds() int64 {
+	// First 4 bytes of ID is 32-bit big-endian seconds from epoch.
+	return int64(binary.BigEndian.Uint32(id[0:4]))
 }
 
-// Time returns the embedded timestamp value (milliseconds from the Unix epoch) as a
-// time.Time value with millisecond resolution.
+// Machine returns the 3-byte machine id part of the id.
+// It's a runtime error to call this method with an invalid id.
+func (id ID) Machine() []byte {
+	return id[4:5]
+}
+
+// Pid returns the process id part of the id.
+// It's a runtime error to call this method with an invalid id.
+func (id ID) Pid() uint16 {
+	return binary.BigEndian.Uint16(id[5:7])
+}
+
+// Time returns the ID's timestamp compoent, with resolution in seconds from
+// the Unix epoc.
 func (id ID) Time() time.Time {
-	ms := id.Milliseconds()
-	s := int64(ms / 1e3)
-	ns := int64((ms % 1e3) * 1e6)
-	return time.Unix(s, ns)
+	return time.Unix(id.Seconds(), 0)
 }
 
-// Count returns the counter component of the ID.
-func (id ID) Count() uint32 {
-	return uint32(id[6])<<8 | uint32(id[7])
+// Entropy returns the random component of the ID.
+func (id ID) Entropy() uint32 {
+    b := id[8:11]
+	return uint32(uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[0]))
 }
 
 // FromString returns an ID by decoding a base32 representation of an ID
@@ -187,28 +230,56 @@ func FromBytes(b []byte) (ID, error) {
 // https://golang.org/pkg/encoding/#TextUnmarshaler
 // All decoding is called from here.
 func (id *ID) UnmarshalText(text []byte) error {
-	// check for invalid length or characters in encoded id
 	if len(text) != encodedLen {
-		return ErrInvalidID
+		return ErrInvalidLength
 	}
 	for _, c := range text {
+        // invalid characters (not in encoding)
 		if dec[c] == 0xFF {
 			return ErrInvalidID
 		}
 	}
-	// buf := make([]byte, rawLen)
-	// count, err := decode(buf, text)
-	count, err := decode(id, text)
-	if (count != rawLen) || (err != nil) {
+    // mw's spin
+	// count, err := decode(id, text)
+	// if (count != rawLen) || (err != nil) {
+ //        fmt.Println("here", count, rawLen)
+	// 	return ErrInvalidID
+	// }
+    // rs/xid:
+    if !decode(id, text) {
+		*id = nilID
 		return ErrInvalidID
 	}
-	// copy(id[:], buf)
 	return nil
 }
 
 // decode a Base32 representation of an ID as a []byte value.
-func decode(id *ID, src []byte) (int, error) {
-	return encoding.Decode(id[:], src)
+// func decode(id *ID, src []byte) (int, error) {
+// 	return encoding.Decode(id[:], src)
+// }
+
+// decode by unrolling the stdlib base32 algorithm + customized safe check.
+func decode(id *ID, src []byte) bool {
+	_ = src[19]
+	_ = id[11]
+
+	id[11] = dec[src[17]]<<6 | dec[src[18]]<<1 | dec[src[19]]>>4
+	// check the last byte
+	if encoding[(id[11]<<4)&0x1F] != src[19] {
+		return false
+	}
+	id[10] = dec[src[16]]<<3 | dec[src[17]]>>2
+	id[9] = dec[src[14]]<<5 | dec[src[15]]
+	id[8] = dec[src[12]]<<7 | dec[src[13]]<<2 | dec[src[14]]>>3
+	id[7] = dec[src[11]]<<4 | dec[src[12]]>>1
+	id[6] = dec[src[9]]<<6 | dec[src[10]]<<1 | dec[src[11]]>>4
+	id[5] = dec[src[8]]<<3 | dec[src[9]]>>2
+	id[4] = dec[src[6]]<<5 | dec[src[7]]
+	id[3] = dec[src[4]]<<7 | dec[src[5]]<<2 | dec[src[6]]>>3
+	id[2] = dec[src[3]]<<4 | dec[src[4]]>>1
+	id[1] = dec[src[1]]<<6 | dec[src[2]]<<1 | dec[src[3]]>>4
+	id[0] = dec[src[0]]<<3 | dec[src[1]]>>2
+	return true
 }
 
 // MarshalText implements encoding.TextMarshaler.
@@ -269,16 +340,41 @@ func (id *ID) UnmarshalJSON(text []byte) error {
 	return id.UnmarshalText(text[1 : len(text)-1])
 }
 
-// randInt generates a random number to initialize the counter. Despite the
-// return value in the function signature--done for compatibility with package
-// atomic functions--the actual value is deliberately constrained to uint16
-// max values.
-func randInt() uint32 {
-	b := make([]byte, 2)
+// randUint32 returns a cryptographically secure random uint32
+func randUint32() uint32 {
+	b := make([]byte, 4)
 	if _, err := rand.Read(b); err != nil {
 		panic(fmt.Errorf("sid: cannot generate random number: %v;", err))
 	}
-	// casting to uint32 so we can utilize atomic.AddUint32 in NewWithTime().
-	// Alternative to binary.BigEndian.Uint16(b)
-	return uint32(uint16(b[0])<<8 | uint16(b[1]))
+    return uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[3])
+}
+
+func readPlatformMachineID() (string, error) {
+	b, err := ioutil.ReadFile("/etc/machine-id")
+	if err != nil || len(b) == 0 {
+		b, err = ioutil.ReadFile("/sys/class/dmi/id/product_uuid")
+	}
+    return string(b), err
+}
+
+// readMachineId generates machine id and puts it into the machineId global
+// variable. If this function fails to get the hostname, it will cause
+// a runtime error.
+func readMachineID() []byte {
+	id := make([]byte, 3)
+	hid, err := readPlatformMachineID()
+	if err != nil || len(hid) == 0 {
+		hid, err = os.Hostname()
+	}
+	if err == nil && len(hid) != 0 {
+		hw := md5.New()
+		hw.Write([]byte(hid))
+		copy(id, hw.Sum(nil))
+	} else {
+		// Fallback to rand number if machine id can't be gathered
+		if _, randErr := rand.Reader.Read(id); randErr != nil {
+			panic(fmt.Errorf("xid: cannot get hostname nor generate a random number: %v; %v", err, randErr))
+		}
+	}
+	return id
 }
