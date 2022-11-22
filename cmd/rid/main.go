@@ -1,4 +1,4 @@
-// Package main - the `sid` command - generate or inspect sids.
+// Package main - the `rid` command - generate or inspect rid.
 package main
 
 import (
@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/solutionroute/sid"
+	"github.com/solutionroute/rid"
 )
 
 var (
@@ -21,8 +21,8 @@ func init() {
 func main() {
     flag.Usage = func() {
         pgm := os.Args[0]
-        fmt.Fprintf(flag.CommandLine.Output(), "usage: %s -c N          # print N sid(s)\n", pgm)
-        fmt.Fprintf(flag.CommandLine.Output(), "       %s 0629p0rqdrw8p # decode one or more sid(s)\n", pgm)
+        fmt.Fprintf(flag.CommandLine.Output(), "usage: %s -c N          # print N rid(s)\n", pgm)
+        fmt.Fprintf(flag.CommandLine.Output(), "       %s 0629p0rqdrw8p # decode one or more rid(s)\n", pgm)
         // flag.PrintDefaults()
     }
 	flag.Parse()
@@ -37,9 +37,9 @@ func main() {
 	errors := 0
     fmt.Fprintf(os.Stdout, "args: %s %d", args, len(args))
 
-    // If no valid flag, Either attempt to decode string as a sid
+    // If no valid flag, Either attempt to decode string as a rid
 	for _, arg := range args {
-		id, err := sid.FromString(arg)
+		id, err := rid.FromString(arg)
 		if err != nil {
 			errors++
 			fmt.Printf("[%s] %s\n", arg, err)
@@ -61,10 +61,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// OR... generate one (or -c value) sid
+	// OR... generate one (or -c value) rid
     if len(args) == 0 {
         for c := 0; c < count; c++ {
-            fmt.Fprintf(os.Stdout, "%s", sid.New())
+            fmt.Fprintf(os.Stdout, "%s", rid.New())
             if count > 1 {
                 fmt.Println()
             }

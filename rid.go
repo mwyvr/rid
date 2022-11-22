@@ -1,47 +1,34 @@
 /*
-Package sid (simple, short-ish, id) provides a unique-enough ID generator for
+Package rid provides a unique-enough ID generator for
 applications with modest (meaning non-distributed) needs. 
 
-xid: cdufojgp26gen4t3rprg | 20 characters
-sid: cdyfm3xpcf9hp07z     | 16 characters
-
-sid can generate more than 4 billion IDs per second, or approximately 1 every
-0.3 nanosecond (unachievable on hardware available to most of us) before facing
-duplication.
+rid can generate more than 4 billion possible random IDs per second, per
+process, per machine. Duplication in practical use is unlikely. Ymmv.
 
     id := sid.New()
     fmt.Printf("%s", id) 
 // TODO replace all the examples once fully tested
-// 0629q04t4c001vvq
 
-A sid ID is a 10-byte value.
-
-    // 0629q04t4c001vvq
-    sid.FromString("0629q04t4c001vvq") == id   // true
-    fmt.Println(id[:])                      // [1 125 232 75 178 116 96 127]
-
-Each ID's 8-byte binary representation: id:{1, 125, 232, 75, 178, 116, 96, 127}
-is comprised of a:
+Each ID's 12-byte binary representation is comprised of a:
 
 - 4-byte timestamp value representing seconds since the Unix epoch
 - 2-byte machine ID
 - 2-byte process ID
 - 4-byte random value
 
-IDs are chronologically sortable with a minor and only occasional tradeoff in
-second-level sortability due to the trailing counter value.
+IDs are chronologically sortable to the second, with a tradeoff in fine-grained
+sortability due to the trailing random value component.
 
-The String() representation us base32 encoded using a modified Crockford
+The String() representation is Base32 encoded using a modified Crockford
 inspired alphabet.
 
 Acknowledgement: Much of this package is based on the globally-unique capable
 rs/xid package which itself levers ideas from mongodb. See https://github.com/rs/xid.
 */
-package sid
+package rid
 
 import (
 	"database/sql/driver"
-	// "encoding/base32"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -64,7 +51,6 @@ const (
     // 
     // encoding/Base32 charset for comparison:
     //        "0123456789abcdefghijklmnopqrstuv"
-	charset = "0123456789abcdefghjkmnpqrstvwxyz"
 	encoding = "0123456789abcdefghjkmnpqrstvwxyz"
 )
 
@@ -72,8 +58,7 @@ var (
 	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
-	// machineId stores machine id generated once and used in subsequent calls
-	// to NewObjectId function.
+	// machineId stores a md5 hash of the machine identifier or hostname
 	machineID = readMachineID()
 
 	// pid stores the current process id
@@ -84,7 +69,6 @@ var (
 
 	// dec is the decoding map for base32 encoding
 	dec      [256]byte
-	// encoding = base32.NewEncoding(charset).WithPadding(-1)
 )
 
 func init() {
@@ -106,10 +90,9 @@ func New() ID {
 func NewWithTime(tm time.Time) ID {
 	var id ID
 
-
 	// Timestamp, 4 bytes, big endian
 	binary.BigEndian.PutUint32(id[:], uint32(tm.Unix()))
-	// Machine, first 2 bytes of md5(hostname)
+	// Machine, only the first 2 bytes of md5(hostname)
 	id[4] = machineID[0]
 	id[5] = machineID[1]
 	// Pid, 2 bytes, specs don't specify endianness, but we use big endian.
@@ -122,7 +105,8 @@ func NewWithTime(tm time.Time) ID {
 	id[10] = byte(rv >> 8)
 	id[11] = byte(rv)
 
-    fmt.Println(id.Seconds(), id.Entropy(), len(id)) 
+    // TODO
+    // fmt.Println(id.Seconds(), id.Entropy(), len(id)) 
 
 	return id
 }

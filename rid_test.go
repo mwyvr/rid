@@ -1,4 +1,4 @@
-package sid
+package rid
 
 // TODO add chronological sorting test
 

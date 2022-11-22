@@ -1,17 +1,19 @@
-[![godoc](http://img.shields.io/badge/godev-reference-blue.svg?style=flat)](https://pkg.go.dev/github.com/solutionroute/sid?tab=doc)[![Build Status](https://travis-ci.org/solutionroute/sid.svg?branch=master)](https://travis-ci.org/solutionroute/sid)[![Go Coverage](https://img.shields.io/badge/coverage-98.3%25-brightgreen.svg?style=flat)](http://gocover.io/github.com/solutionroute/sid)[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![godoc](http://img.shields.io/badge/godev-reference-blue.svg?style=flat)](https://pkg.go.dev/github.com/solutionroute/rid?tab=doc)[![Build Status](https://travis-ci.org/solutionroute/rid.svg?branch=master)](https://travis-ci.org/solutionroute/rid)[![Go Coverage](https://img.shields.io/badge/coverage-98.3%25-brightgreen.svg?style=flat)](http://gocover.io/github.com/solutionroute/rid)[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-# sid
+# rid
 
-Package sid provides a unique-enough, random-ish ID generator for applications
-with modest (read: non-distributed), needs.
+Package rid provides a random-ish ID generator; the binary representation is 12
+bytes long, the Base32 encoded representation is 20 characters long and
+URL-friendly. The entropy component is a 4-byte unsigned random number with 4+
+billion possibilities per second.
 
-String representations of an ID e.g. `05yygjxjehg7y` are compact (13
-characters), human-friendly (all lowercase, with no i, l, o or u characters),
-double-clickable (no '-' or other punctuation) and URL-safe.
+Acknowledgement: This package borrows heavily from the k-sortable rs/xid
+package which itself levers ideas from mongodb. See https://github.com/rs/xid.
+
 
 ```go
-    id := sid.New()
-    fmt.Printf("%s", id) // 05yygjxjehg7y
+    id := rid.New()
+    fmt.Printf("%s", id) //  w
 ```
 
 ## Under the covers
