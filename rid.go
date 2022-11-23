@@ -57,7 +57,7 @@ const (
 var (
 	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
-    rNG = newRng()
+    rgenerator = &rng {lastSecond: 0, wasGenerated: make(map[uint32]bool)}
 
 	// machineId stores a md5 hash of the machine identifier or hostname
 	machineID = readMachineID()
@@ -101,7 +101,7 @@ func NewWithTime(tm time.Time) ID {
 	id[7] = byte(pid)
 	// 4 bytes for the random value, big endian
     // rv := randInt()
-    rv := rNG.BySecond(tm.Unix())
+    rv := rgenerator.BySecond(tm.Unix())
 	id[8] = byte(rv >> 24)
 	id[9] = byte(rv >> 16)
 	id[10] = byte(rv >> 8)
