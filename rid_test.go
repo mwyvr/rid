@@ -26,7 +26,7 @@ type idTest struct {
 	id           ID
 	rawBytes     []byte
 	seconds      int64
-	entropy      uint32
+	random       uint32
 	b32          string
 }
 
@@ -151,8 +151,8 @@ func TestID_Components(t *testing.T) {
 			}
 		})
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.id.Entropy(); (got != tt.entropy) && (tt.valid != false) {
-				t.Errorf("ID.Entropy() = %v, want %v", got, tt.entropy)
+			if got := tt.id.Random(); (got != tt.random) && (tt.valid != false) {
+				t.Errorf("ID.Random() = %v, want %v", got, tt.random)
 			}
 		})
 		t.Run(tt.name, func(t *testing.T) {
@@ -254,7 +254,7 @@ func Test_decode(t *testing.T) {
 	// there really are no checks in decode; they happen in UnmarshalText,
 	// the only caller of decode(). For code coverage:
 	decode(id, []byte("05yykgvzqc002"[:]))
-	if id.Entropy() != 1 {
+	if id.Random() != 1 {
 		t.Errorf("decode produced an anomoly: %#v", id)
 	}
 }
@@ -369,10 +369,10 @@ func ExampleNew() {
 	fmt.Printf(`ID:
     String()       %s   
     Seconds() %d  
-    Entropy()        %d // random for this one-off run 
+    Random()        %d // random for this one-off run 
     Time()         %v
     Bytes():       %3v  
-`, id.String(), id.Seconds(), id.Entropy(), id.Time(), id.Bytes())
+`, id.String(), id.Seconds(), id.Random(), id.Time(), id.Bytes())
 }
 
 func ExampleNewWithTime() {
@@ -380,10 +380,10 @@ func ExampleNewWithTime() {
 	fmt.Printf(`ID:
     String()       %s
     Seconds() %d
-    Entropy()        %d // random for this one-off run 
+    Random()        %d // random for this one-off run 
     Time()         %v
     Bytes():       %3v
-`, id.String(), id.Seconds(), id.Entropy(), id.Time().UTC(), id.Bytes())
+`, id.String(), id.Seconds(), id.Random(), id.Time().UTC(), id.Bytes())
 }
 
 func ExampleFromString() {
@@ -391,7 +391,7 @@ func ExampleFromString() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(id.Seconds(), id.Entropy())
+	fmt.Println(id.Seconds(), id.Random())
 	// [05yx13hj9kq4g] ms:1639881519692 count:61000 time:2021-12-18 18:38:39.692 -0800 PST id:{1, 125, 208, 142, 50, 76, 238, 72}
 }
 

@@ -2,13 +2,27 @@
 
 # rid
 
-Package rid provides a random-ish ID generator; the binary representation is 12
-bytes long, the Base32-encoded representation is 20 characters long and
-URL-friendly. The entropy component is a 4-byte unsigned random number with 4+
-billion possibilities per second.
+**WORK IN PROGRESS, Nov 23 2022 please check back later**
 
-Acknowledgement: This package borrows heavily from the k-sortable rs/xid
-package which itself levers ideas from mongodb. See https://github.com/rs/xid.
+Package rid provides a random ID generator. The 12 byte binary ID encodes as a
+20-character long, URL-friendly/Base32 encoded, mostly k-sortable (to the
+second resolution) identifier.
+
+Each ID's 12-byte binary representation is comprised of a:
+
+    - 4-byte timestamp value representing seconds since the Unix epoch
+    - 2-byte machine ID
+    - 2-byte process ID
+    - 4-byte random value with 4,294,967,295 possibilities guaranteed to be
+      unique for a given [timestamp|machine ID|process ID].
+
+**Acknowledgement**: This package borrows heavily from the
+[rs/xid](https://github.com/rs/xid) package which itself levers ideas from
+[MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/). Where
+this package differs is the use of admittedly slower random number generation
+as opposed to a trailing counter for the last 4 bytes of the ID.
+
+## Usage
 
 
 ```go
@@ -16,52 +30,30 @@ package which itself levers ideas from mongodb. See https://github.com/rs/xid.
     fmt.Printf("%s", id) //  cdym59rs24a5g86efepg
 ```
 
-## Under the covers
-
-Each ID's 12-byte binary representation is comprised of a:
-
-- 4-byte timestamp value representing seconds since the Unix epoch
-- 2-byte machine ID
-- 2-byte process ID
-- 4-byte random value
-
-IDs are chronologically sortable to the second, with a tradeoff in fine-grained
-sortability due to the trailing random value component.
-
-The String() representation is Base32 encoded using a modified Crockford
-inspired alphabet.
-
 ## Batteries included
 
-ID implements a number of common interfaces including package sql's
+rid.ID implements a number of common interfaces including package sql's
 driver.Valuer, sql.Scanner, TextMarshaler, TextUnmarshaler, json.Marshaler,
 json.Unmarshaler, and Stringer.
 
-Package rid also provides a command line tool `rid` allowing for id generation or inspection:
+Package rid also provides a command line tool `rid` allowing for id generation
+or inspection:
 
     $ rid
-    cdykpdgs2472sz29rxx0
+    cdz2kt8s25hpv44k214g
+    $rid `rid`
+    [cdz2ktgs25hq5ysrgg0g] seconds:1669212650 random:4214785275 machine:[25 17] pid:25458 time:2022-11-23 06:10:50 -0800 PST ID{99, 126, 41, 234, 25, 17, 99, 114, 251, 56, 132, 1}
+    $ rid `rid`
+    [cdz2kvgs25hqstfgez00] seconds:1669212654 random:3924850665 machine:[25 17] pid:25468 time:2022-11-23 06:10:54 -0800 PST ID{99, 126, 41, 238, 25, 17, 99, 124, 233, 240, 119, 192}
 
-    $ rid cdykpdgs2472sz29rxx0
-    [cdykpdgs2472sz29rxx0] seconds:1669151542 entropy:4232693756 machine:[25] pid:4366 time:2022-11-22 13:12:22 -0800 PST \
-    ID{99, 125, 59, 54, 25, 17, 14, 44, 252, 73, 199, 122}
 
-    # generate and inspect a bunch
-    $ rid `rid -c 2`
-    [cdym9v0s24bnhqh7bawg] seconds:1669154028 entropy:3727121118 machine:[25] pid:4375 time:2022-11-22 13:53:48 -0800 PST \
-    ID{99, 125, 68, 236, 25, 17, 23, 88, 222, 39, 90, 185}
-    [cdym9v0s24bngggvqhw0] seconds:1669154028 entropy:1109113922 machine:[25] pid:4375 time:2022-11-22 13:53:48 -0800 PST \
-    ID{99, 125, 68, 236, 25, 17, 23, 88, 66, 27, 188, 120}
+## See Also
 
-## Source of inspiration
+If ~ 400-500ns/op is too slow and/or you don't need the randomness this package
+seeks to provide, consider the well tested and highly performant xid package.
+See https://github.com/rs/xid.
 
-Thanks to the author of this article for turning me on to `xid` and other packages:
+For a comparison of various unique ID solutions, have a read:
 
 https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
-
-## Acknowledgement
-
-This package borrows heavily from the [rs/xid](https://github.com/rs/xid)
-package which itself levers ideas from
-[MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
 

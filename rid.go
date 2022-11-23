@@ -57,6 +57,7 @@ const (
 var (
 	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
+    rNG = newRng()
 
 	// machineId stores a md5 hash of the machine identifier or hostname
 	machineID = readMachineID()
@@ -99,14 +100,12 @@ func NewWithTime(tm time.Time) ID {
 	id[6] = byte(pid >> 8)
 	id[7] = byte(pid)
 	// 4 bytes for the random value, big endian
-    rv := randUint32()
+    // rv := randInt()
+    rv := rNG.BySecond(tm.Unix())
 	id[8] = byte(rv >> 24)
 	id[9] = byte(rv >> 16)
 	id[10] = byte(rv >> 8)
 	id[11] = byte(rv)
-
-    // TODO
-    // fmt.Println(id.Seconds(), id.Entropy(), len(id)) 
 
 	return id
 }
@@ -169,16 +168,16 @@ func (id ID) Seconds() int64 {
 	return int64(binary.BigEndian.Uint32(id[0:4]))
 }
 
-// Machine returns the 3-byte machine id part of the id.
+// Machine returns the 2-byte machine id part of the id.
 // It's a runtime error to call this method with an invalid id.
 func (id ID) Machine() []byte {
-	return id[4:5]
+	return id[4:6]
 }
 
 // Pid returns the process id part of the id.
 // It's a runtime error to call this method with an invalid id.
 func (id ID) Pid() uint16 {
-	return binary.BigEndian.Uint16(id[5:7])
+	return binary.BigEndian.Uint16(id[6:8])
 }
 
 // Time returns the ID's timestamp compoent, with resolution in seconds from
@@ -187,9 +186,9 @@ func (id ID) Time() time.Time {
 	return time.Unix(id.Seconds(), 0)
 }
 
-// Entropy returns the random component of the ID.
-func (id ID) Entropy() uint32 {
-    b := id[8:11]
+// Random returns the random component of the ID.
+func (id ID) Random() uint32 {
+    b := id[8:12]
 	return uint32(uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[0]))
 }
 
@@ -223,24 +222,12 @@ func (id *ID) UnmarshalText(text []byte) error {
 			return ErrInvalidID
 		}
 	}
-    // mw's spin
-	// count, err := decode(id, text)
-	// if (count != rawLen) || (err != nil) {
- //        fmt.Println("here", count, rawLen)
-	// 	return ErrInvalidID
-	// }
-    // rs/xid:
     if !decode(id, text) {
 		*id = nilID
 		return ErrInvalidID
 	}
 	return nil
 }
-
-// decode a Base32 representation of an ID as a []byte value.
-// func decode(id *ID, src []byte) (int, error) {
-// 	return encoding.Decode(id[:], src)
-// }
 
 // decode by unrolling the stdlib base32 algorithm + customized safe check.
 func decode(id *ID, src []byte) bool {
@@ -324,15 +311,8 @@ func (id *ID) UnmarshalJSON(text []byte) error {
 	return id.UnmarshalText(text[1 : len(text)-1])
 }
 
-// randUint32 returns a cryptographically secure random uint32
-func randUint32() uint32 {
-	b := make([]byte, 4)
-	if _, err := rand.Read(b); err != nil {
-		panic(fmt.Errorf("rid: cannot generate random number: %v;", err))
-	}
-    return uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[3])
-}
 
+// Linux only
 func readPlatformMachineID() (string, error) {
 	b, err := ioutil.ReadFile("/etc/machine-id")
 	if err != nil || len(b) == 0 {
@@ -345,7 +325,7 @@ func readPlatformMachineID() (string, error) {
 // variable. If this function fails to get the hostname, it will cause
 // a runtime error.
 func readMachineID() []byte {
-	id := make([]byte, 3)
+	id := make([]byte, 2)
 	hid, err := readPlatformMachineID()
 	if err != nil || len(hid) == 0 {
 		hid, err = os.Hostname()
@@ -357,7 +337,7 @@ func readMachineID() []byte {
 	} else {
 		// Fallback to rand number if machine id can't be gathered
 		if _, randErr := rand.Reader.Read(id); randErr != nil {
-			panic(fmt.Errorf("xid: cannot get hostname nor generate a random number: %v; %v", err, randErr))
+			panic(fmt.Errorf("rid: cannot get hostname nor generate a random number: %v; %v", err, randErr))
 		}
 	}
 	return id

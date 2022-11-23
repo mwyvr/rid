@@ -53,7 +53,7 @@ func main() {
 			s = s + strconv.Itoa(int(b))
 		}
 		s = s + "}"
-        fmt.Printf("[%s] seconds:%d entropy:%d machine:%v pid:%v time:%v ID%s\n", arg, id.Seconds(), id.Entropy(), id.Machine(), id.Pid(), id.Time(), s)
+        fmt.Printf("[%s] seconds:%d random:%d machine:%v pid:%v time:%v ID%s\n", arg, id.Seconds(), id.Random(), id.Machine(), id.Pid(), id.Time(), s)
 	}
 	if errors > 0 {
 		fmt.Printf("%d error(s)\n", errors)
