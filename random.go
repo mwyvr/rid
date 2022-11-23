@@ -2,17 +2,32 @@ package rid
 
 import (
     "fmt"
-    "crypto/rand"
     "sync"
+    "encoding/binary"
+    crypto_rand "crypto/rand"
+    math_rand "math/rand"
 )
 
+func init() {
+    var b [8]byte
+    _, err := crypto_rand.Read(b[:])
+    if err != nil {
+        panic("cannot seed math/rand package with cryptographically secure random number generator")
+    }
+    math_rand.Seed(int64(binary.LittleEndian.Uint64(b[:])))
+}
+
 // randUint generates a random uint32 for use as one component of a unique rid.
-func randUint() uint32 {
+func XrandUint() uint32 {
 	b := make([]byte, 4)
-	if _, err := rand.Reader.Read(b); err != nil {
+	if _, err := crypto_rand.Reader.Read(b); err != nil {
 		panic(fmt.Errorf("rid: cannot generate random number: %v;", err))
 	}
 	return uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[3])
+}
+
+func randUint32() uint32 {
+    return math_rand.Uint32()
 }
 
 // rng represents a random number generator providing random numbers guaranteed
@@ -40,7 +55,7 @@ func (r *rng) BySecond (second int64) uint32 {
     }
 
     for {
-        i := randUint()
+        i := randUint32()
         if !r.wasGenerated[i] {
             r.wasGenerated[i] = true
             return i
