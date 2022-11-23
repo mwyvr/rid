@@ -32,7 +32,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-    "io/ioutil"
 	"crypto/md5"
 	"crypto/rand"
     "os"
@@ -57,7 +56,9 @@ const (
 var (
 	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
-    rgenerator = &rng {lastSecond: 0, wasGenerated: make(map[uint32]bool)}
+
+    // BySecond method generates unique random numbers per second clock tick
+    rgenerator = &rng {lastUpdated: 0, exists: make(map[uint32]bool)}
 
 	// machineId stores a md5 hash of the machine identifier or hostname
 	machineID = readMachineID()
@@ -65,11 +66,11 @@ var (
 	// pid stores the current process id
 	pid = os.Getpid()
 
-	ErrInvalidID = errors.New("rid: invalid id")
-	ErrInvalidLength = errors.New("rid: invalid encoded length")
-
 	// dec is the decoding map for base32 encoding
 	dec      [256]byte
+
+	ErrInvalidID = errors.New("rid: invalid id")
+	ErrInvalidLength = errors.New("rid: invalid encoded length")
 )
 
 func init() {
@@ -100,7 +101,6 @@ func NewWithTime(tm time.Time) ID {
 	id[6] = byte(pid >> 8)
 	id[7] = byte(pid)
 	// 4 bytes for the random value, big endian
-    // rv := randInt()
     rv := rgenerator.BySecond(tm.Unix())
 	id[8] = byte(rv >> 24)
 	id[9] = byte(rv >> 16)
@@ -122,12 +122,6 @@ func (id ID) String() string {
 	// avoids an allocation
 	return *(*string)(unsafe.Pointer(&text))
 }
-
-// encode as Base32 using our custom character set
-// func encode(dst, id []byte) {
-// 	encoding.Encode(dst, id[:])
-// }
-
 
 // encode by unrolling the stdlib base32 algorithm + removing all safe checks
 func encode(dst, id []byte) {
@@ -168,6 +162,12 @@ func (id ID) Seconds() int64 {
 	return int64(binary.BigEndian.Uint32(id[0:4]))
 }
 
+// Time returns the ID's timestamp compoent, with resolution in seconds from
+// the Unix epoc.
+func (id ID) Time() time.Time {
+	return time.Unix(id.Seconds(), 0)
+}
+
 // Machine returns the 2-byte machine id part of the id.
 // It's a runtime error to call this method with an invalid id.
 func (id ID) Machine() []byte {
@@ -178,12 +178,6 @@ func (id ID) Machine() []byte {
 // It's a runtime error to call this method with an invalid id.
 func (id ID) Pid() uint16 {
 	return binary.BigEndian.Uint16(id[6:8])
-}
-
-// Time returns the ID's timestamp compoent, with resolution in seconds from
-// the Unix epoc.
-func (id ID) Time() time.Time {
-	return time.Unix(id.Seconds(), 0)
 }
 
 // Random returns the random component of the ID.
@@ -312,18 +306,9 @@ func (id *ID) UnmarshalJSON(text []byte) error {
 }
 
 
-// Linux only
-func readPlatformMachineID() (string, error) {
-	b, err := ioutil.ReadFile("/etc/machine-id")
-	if err != nil || len(b) == 0 {
-		b, err = ioutil.ReadFile("/sys/class/dmi/id/product_uuid")
-	}
-    return string(b), err
-}
-
 // readMachineId generates machine id and puts it into the machineId global
-// variable. If this function fails to get the hostname, it will cause
-// a runtime error.
+// variable. If this function fails to get the hostname, and the fallback
+// fails, it will cause a runtime error.
 func readMachineID() []byte {
 	id := make([]byte, 2)
 	hid, err := readPlatformMachineID()
@@ -342,3 +327,4 @@ func readMachineID() []byte {
 	}
 	return id
 }
+
