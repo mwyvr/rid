@@ -34,7 +34,6 @@ package rid
 import (
 	"bytes"
 	"crypto/md5"
-	"crypto/rand"
 	"database/sql/driver"
 	"encoding/binary"
 	"errors"
@@ -50,6 +49,7 @@ type ID [rawLen]byte
 
 const (
 	rawLen     = 12 // binary representation
+    randomLen  = 4 // bytes
 	encodedLen = 20 // base32 representation
 	// ID string representations are base32-encoded using a character set
 	// inspired by Crockford: i, l, o, u removed and w, x, y, z added.
@@ -62,9 +62,6 @@ const (
 var (
 	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
-
-	// BySecond method generates unique random numbers per second clock tick
-	rgenerator = &rng{lastUpdated: 0, exists: make(map[uint32]bool)}
 
 	// machineId stores a md5 hash of the machine identifier or hostname
 	machineID = readMachineID()
@@ -341,9 +338,10 @@ func readMachineID() []byte {
 		copy(id, hw.Sum(nil))
 	} else {
 		// Fallback to rand number if machine id can't be gathered
-		if _, randErr := rand.Reader.Read(id); randErr != nil {
-			panic(fmt.Errorf("rid: cannot get hostname nor generate a random number: %v; %v", err, randErr))
-		}
+        id, err = randomMachineId()
+        if err != nil {
+			panic(fmt.Errorf("rid: cannot get hostname nor generate a random number: %v", err))
+        }
 	}
 	return id
 }
