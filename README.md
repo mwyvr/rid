@@ -55,17 +55,18 @@ or inspection:
 
 `rid` did not have ultra-high performance as an objective; using
 cryptographically secure random number generation is inherently slower than an
-incrementing counter.
+incrementing counter such as used in `xid`.
 
-On my laptop, writing 1 million generated IDs to /dev/null < 0.7 seconds. This
-is fast enough for any of my use cases.
+On my laptop, connected to a fast network (entropy comes in part from the net)
+writing 1 million generated IDs to /dev/null < 0.7 seconds. This is fast enough
+for any of my use cases.
 
     $ time rid -c 1000000 > /dev/null
     real    0m0.710s
     user    0m0.448s
     sys	    0m0.267s
 
-Desktop with 8 cores:
+Desktop with 8 cores/16 "cpus":
 
     goos: linux
     goarch: amd64
@@ -73,13 +74,17 @@ Desktop with 8 cores:
     cpu: AMD Ryzen 7 3800X 8-Core Processor             
 
     $ go test -cpu 1 -benchmem  -run=^$   -bench  ^.*$
-    BenchmarkIDNew        	 2652682	       455.3 ns/op	      0 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded 	 2364918	       468.9 ns/op	      0 B/op	       0 allocs/op
+    enchmarkIDNew        	 2706148	       462.2 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded 	 2546980	       479.8 ns/op	       0 B/op	       0 allocs/op
 
-    # cryptographically safe random generation is slower on AMD as you add parallel processes
-    $ go test -benchmem  -run=^$   -bench  ^.*$
-    BenchmarkIDNew-16           	 1000000	      1088 ns/op	      0 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded-16    	 1000000	      1121 ns/op	      0 B/op	       0 allocs/op
+    # cryptographically safe random generation is slower on AMD as you add parallel processes, even +1 CPU:
+    $ go test -cpu 2 -benchmem  -run=^$   -bench  ^.*$
+    BenchmarkIDNew-2          	 1000000	      1129 ns/op	      18 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded-2   	 1000000	      1097 ns/op	      17 B/op	       0 allocs/op
+
+    $ go test -cpu 16 -benchmem  -run=^$   -bench  ^.*$
+    BenchmarkIDNew-16           	 1000000	      1043 ns/op	      18 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded-16    	 1000000	      1081 ns/op	      17 B/op	       0 allocs/op
 
 Laptop with 4 cores:
 
@@ -96,6 +101,8 @@ Laptop with 4 cores:
     cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
     BenchmarkIDNew-8         1756305	       726.7 ns/op	      0 B/op	       0 allocs/op
     BenchmarkIDNewEncoded-8  1706679	       733.7 ns/op	      0 B/op	       0 allocs/op
+
+Benchmarking `math/rand` showed a 50% improvement on the 16-cpu desktop benchmark.
 
 ## See Also
 
