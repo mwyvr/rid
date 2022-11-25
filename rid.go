@@ -49,7 +49,7 @@ type ID [rawLen]byte
 
 const (
 	rawLen     = 12 // binary representation
-    randomLen  = 4 // bytes
+	randomLen  = 4  // bytes
 	encodedLen = 20 // base32 representation
 	// ID string representations are base32-encoded using a character set
 	// inspired by Crockford: i, l, o, u removed and w, x, y, z added.
@@ -71,6 +71,9 @@ var (
 
 	// dec is the decoding map for base32 encoding
 	dec [256]byte
+
+    // thread-safe crypto-secure unique-per-second tick 
+	rgenerator    = &rng{lastUpdated: 0, exists: make(map[uint32]bool)}
 
 	ErrInvalidID = errors.New("rid: invalid id")
 )
@@ -103,7 +106,7 @@ func NewWithTime(tm time.Time) ID {
 	id[6] = byte(pid >> 8)
 	id[7] = byte(pid)
 	// 4 bytes for the random value, big endian
-	rv := rgenerator.BySecond(tm.Unix())
+	rv := rgenerator.Next(tm.Unix())
 	id[8] = byte(rv >> 24)
 	id[9] = byte(rv >> 16)
 	id[10] = byte(rv >> 8)
@@ -338,10 +341,10 @@ func readMachineID() []byte {
 		copy(id, hw.Sum(nil))
 	} else {
 		// Fallback to rand number if machine id can't be gathered
-        id, err = randomMachineId()
-        if err != nil {
+		id, err = randomMachineId()
+		if err != nil {
 			panic(fmt.Errorf("rid: cannot get hostname nor generate a random number: %v", err))
-        }
+		}
 	}
 	return id
 }
