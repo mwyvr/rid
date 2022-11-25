@@ -2,8 +2,6 @@
 
 # rid
 
-**WORK IN PROGRESS, Nov 23 2022 tests still need updating**
-
 Package rid provides a semi-random ID generator. The 12 byte binary ID encodes
 as a 20-character long, URL-friendly/Base32 encoded, mostly k-sortable (to the
 second resolution) identifier.
