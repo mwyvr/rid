@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
+    "strings"
 
 	"github.com/solutionroute/rid"
 )
@@ -44,16 +44,8 @@ func main() {
 			fmt.Printf("[%s] %s\n", arg, err)
 			continue
 		}
-		// pretty print the bytes
-		s := "{"
-		for _, b := range id.Bytes() {
-			if s != "{" {
-				s = s + ", "
-			}
-			s = s + strconv.Itoa(int(b))
-		}
-		s = s + "}"
-        fmt.Printf("[%s] seconds:%d random:%d machine:%v pid:%v time:%v ID%s\n", arg, id.Seconds(), id.Random(), id.Machine(), id.Pid(), id.Time(), s)
+        fmt.Printf("[%s] seconds:%d random:%d machine:%v pid:%v time:%v ID{%s}\n", 
+            arg, id.Seconds(), id.Random(), id.Machine(), id.Pid(), id.Time(), asHex(id[:]))
 	}
 	if errors > 0 {
 		fmt.Printf("%d error(s)\n", errors)
@@ -67,4 +59,13 @@ func main() {
         }
 
     }
+}
+
+func asHex(b []byte) string {
+    s := []string{}
+    for _, v := range b {
+        s = append(s, fmt.Sprintf("%#x", v))
+    }
+    return strings.Join(s, ", ")
+
 }
