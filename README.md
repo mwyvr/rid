@@ -56,10 +56,34 @@ or inspection:
 ## Benchmark
 
 `rid` did not have ultra-high performance as an objective; using
-cryptographically secure random number generation is inherently slow, but
-600-800ns to generate a unique ID isn't an issue for my use cases.
+cryptographically secure random number generation is inherently slower than an
+incrementing counter.
 
-Laptop with 8 cores:
+On my laptop, writing 1 million generated IDs to /dev/null < 0.7 seconds. This
+is fast enough for any of my use cases.
+
+    $ time rid -c 1000000 > /dev/null
+    real    0m0.710s
+    user    0m0.448s
+    sys	    0m0.267s
+
+Desktop with 8 cores:
+
+    goos: linux
+    goarch: amd64
+    pkg: github.com/solutionroute/rid
+    cpu: AMD Ryzen 7 3800X 8-Core Processor             
+
+    $ go test -cpu 1 -benchmem  -run=^$   -bench  ^.*$
+    BenchmarkIDNew        	 2652682	       455.3 ns/op	      31 B/op	       1 allocs/op
+    BenchmarkIDNewEncoded 	 2364918	       468.9 ns/op	      34 B/op	       1 allocs/op
+
+    # cryptographically safe random generation is slower on AMD as you add parallel processes
+    $ go test -benchmem  -run=^$   -bench  ^.*$
+    BenchmarkIDNew-16           	 1000000	      1088 ns/op	      31 B/op	       1 allocs/op
+    BenchmarkIDNewEncoded-16    	 1000000	      1121 ns/op	      40 B/op	       1 allocs/op
+
+Laptop with 4 cores:
 
     goos: linux
     goarch: amd64
@@ -74,14 +98,6 @@ Laptop with 8 cores:
     cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
     BenchmarkIDNew-8         1756305	       726.7 ns/op	      34 B/op	       1 allocs/op
     BenchmarkIDNewEncoded-8  1706679	       733.7 ns/op	      35 B/op	       1 allocs/op
-
-Is 600-800ns per ID too slow? Writing 1 million generated IDs to a file takes <
-2 seconds. Fast enough for my use cases.
-
-    $ time rid -c 1000000 > foo
-    real	0m1.780s
-    user	0m0.797s
-    sys	0m0.991s
 
 ## See Also
 
