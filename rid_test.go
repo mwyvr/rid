@@ -21,33 +21,33 @@ var (
 )
 
 type idParts struct {
-    id ID 
-    timestamp int64
-    machine []byte
-    pid     uint16
-    random  uint32
+	id        ID
+	timestamp int64
+	machine   []byte
+	pid       uint16
+	random    uint32
 }
 
-var IDs = []idParts {
-    // sorted should be IDs 1, 2, 0
-    {
-        // [ce0dmp0s249v4q507980] seconds:1669388888 random:1554004572 machine:[0x19, 0x11] pid:5042 time:2022-11-25 07:08:08 -0800 PST 
-        ID{0x63, 0x80, 0xda, 0x58, 0x19, 0x11, 0x13, 0xb2, 0x5c, 0xa0, 0x3a, 0x50},
+var IDs = []idParts{
+	// sorted should be IDs 1, 2, 0
+	{
+		// [ce0dmp0s249v4q507980] seconds:1669388888 random:1554004572 machine:[0x19, 0x11] pid:5042 time:2022-11-25 07:08:08 -0800 PST
+		ID{0x63, 0x80, 0xda, 0x58, 0x19, 0x11, 0x13, 0xb2, 0x5c, 0xa0, 0x3a, 0x50},
 		1669388888,
 		[]byte{0x19, 0x11},
 		5042,
 		1554004572,
 	},
-    {
+	{
 		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		0,
 		[]byte{0x00, 0x00},
 		0x0000,
 		0,
 	},
-    {
-        // [ce0djy0s248ra7qrh140] seconds:1669388664 random:519604254 machine:[0x19, 0x11] pid:4485 time:2022-11-25 07:04:24 -0800 PST 
-        ID{0x63, 0x80, 0xd9, 0x78, 0x19, 0x11, 0x11, 0x85, 0x1e, 0xf8, 0x88, 0x48},
+	{
+		// [ce0djy0s248ra7qrh140] seconds:1669388664 random:519604254 machine:[0x19, 0x11] pid:4485 time:2022-11-25 07:04:24 -0800 PST
+		ID{0x63, 0x80, 0xd9, 0x78, 0x19, 0x11, 0x11, 0x85, 0x1e, 0xf8, 0x88, 0x48},
 		1669388664,
 		[]byte{0x19, 0x11},
 		4485,
@@ -86,10 +86,10 @@ func TestNew(t *testing.T) {
 		// Test for uniqueness among all other 9 generated ids
 		for j, tid := range ids {
 			if j != i {
-                // can't use ID.Compare for this test, need to compare entire ID[:]
-                if bytes.Compare(id[:], tid[:]) == 0 {
+				// can't use ID.Compare for this test, need to compare entire ID[:]
+				if bytes.Compare(id[:], tid[:]) == 0 {
 
-				// if id.Compare(tid) == 0 {
+					// if id.Compare(tid) == 0 {
 					t.Errorf("generated ID is not unique (%d/%d)\n%v", i, j, ids)
 				}
 			}
@@ -271,19 +271,19 @@ func TestSort(t *testing.T) {
 
 // Benchmarks
 func BenchmarkIDNew(b *testing.B) {
-    b.RunParallel(func(pb *testing.PB) {
-        for pb.Next(){
-            _ = New()
-        }
-    })
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_ = New()
+		}
+	})
 }
 
 func BenchmarkIDNewEncoded(b *testing.B) {
-    b.RunParallel(func(pb *testing.PB) {
-        for pb.Next(){
-            _ = New().String()
-        }
-    })
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_ = New().String()
+		}
+	})
 }
 
 // examples
@@ -301,21 +301,31 @@ func ExampleNew() {
 func ExampleNewWithTime() {
 	id := NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
 	fmt.Printf(`ID:
-    String()       %s
+    String()  %s
     Seconds() %d
-    Random()        %d // random for this one-off run 
-    Time()         %v
-    Bytes():       %3v
-`, id.String(), id.Seconds(), id.Random(), id.Time().UTC(), id.Bytes())
+    Machine() %v 
+    Pid()     %d
+    Random()  %d 
+    Time()    %v
+    Bytes()   %3v
+`, id.String(), id.Seconds(), id.Machine(), id.Pid(), id.Random(), id.Time().UTC(), id.Bytes())
+	// ID:
+	//     String()  br5y200s24mr78qrkr7g
+	//     Seconds() 1577836800
+	//     Machine() [25 17]
+	//     Pid()     10627
+	//     Random()  2734202530
+	//     Time()    2020-01-01 00:00:00 +0000 UTC
+	//     Bytes()   [ 94  11 225   0  25  17  41 131 162 248 158  15]
 }
 
 func ExampleFromString() {
-	id, err := FromString("05yx13hj9kq4g")
+	id, err := FromString("ce0dz5gs24h2e30a74rg")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(id.Seconds(), id.Random())
-	// [05yx13hj9kq4g] ms:1639881519692 count:61000 time:2021-12-18 18:38:39.692 -0800 PST id:{1, 125, 208, 142, 50, 76, 238, 72}
+	// 1669390230 201996556
 }
 
 // func TestID_MarshalJSON(t *testing.T) {
