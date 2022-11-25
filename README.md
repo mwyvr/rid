@@ -73,13 +73,13 @@ Desktop with 8 cores:
     cpu: AMD Ryzen 7 3800X 8-Core Processor             
 
     $ go test -cpu 1 -benchmem  -run=^$   -bench  ^.*$
-    BenchmarkIDNew        	 2652682	       455.3 ns/op	      31 B/op	       1 allocs/op
-    BenchmarkIDNewEncoded 	 2364918	       468.9 ns/op	      34 B/op	       1 allocs/op
+    BenchmarkIDNew        	 2652682	       455.3 ns/op	      0 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded 	 2364918	       468.9 ns/op	      0 B/op	       0 allocs/op
 
     # cryptographically safe random generation is slower on AMD as you add parallel processes
     $ go test -benchmem  -run=^$   -bench  ^.*$
-    BenchmarkIDNew-16           	 1000000	      1088 ns/op	      31 B/op	       1 allocs/op
-    BenchmarkIDNewEncoded-16    	 1000000	      1121 ns/op	      40 B/op	       1 allocs/op
+    BenchmarkIDNew-16           	 1000000	      1088 ns/op	      0 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded-16    	 1000000	      1121 ns/op	      0 B/op	       0 allocs/op
 
 Laptop with 4 cores:
 
@@ -89,13 +89,13 @@ Laptop with 4 cores:
     cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
 
     $ go test -cpu 1 -benchmem  -run=^$   -bench  ^.*$ 
-    BenchmarkIDNew        	 1362223	       827.7 ns/op	      33 B/op	       1 allocs/op
-    BenchmarkIDNewEncoded 	 1571004	       754.6 ns/op	      31 B/op	       1 allocs/op
+    BenchmarkIDNew        	 1362223	       827.7 ns/op	      0 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded 	 1571004	       754.6 ns/op	      0 B/op	       0 allocs/op
 
     $ go test -benchmem  -run=^$   -bench  ^.*$ 
     cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
-    BenchmarkIDNew-8         1756305	       726.7 ns/op	      34 B/op	       1 allocs/op
-    BenchmarkIDNewEncoded-8  1706679	       733.7 ns/op	      35 B/op	       1 allocs/op
+    BenchmarkIDNew-8         1756305	       726.7 ns/op	      0 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded-8  1706679	       733.7 ns/op	      0 B/op	       0 allocs/op
 
 ## See Also
 
