@@ -2,17 +2,36 @@ package rid
 
 import (
     "fmt"
+    "io"
     "sync"
     "crypto/rand"
 )
 
-// randUint32 generates a cryptographically secure random uint32
+var (
+	// BySecond method generates unique random numbers per second clock tick
+	rgenerator = &rng{lastUpdated: 0, exists: make(map[uint32]bool)}
+    randMutex = sync.Mutex{}
+    randBuffer = [randomLen]byte{}
+    randBufferLen = len(randBuffer)
+)
+
+// randomMachineId generates a fallback machine ID
+func randomMachineId() ([]byte, error) {
+	b := make([]byte, 2)
+	_, err := rand.Reader.Read(b)
+    return b, err
+}
+
+// randUint32 generates a cryptographically secure random uint32. This function
+// is goroutine safe.
 func randUint32() uint32 {
-	b := make([]byte, 4)
-	if _, err := rand.Reader.Read(b); err != nil {
+    randMutex.Lock()
+    _, err := io.ReadAtLeast(rand.Reader, randBuffer[:], randBufferLen)
+    if err != nil {
 		panic(fmt.Errorf("rid: cannot generate random number: %v;", err))
-	}
-	return uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[3])
+    }
+    randMutex.Unlock()
+	return uint32(randBuffer[0])<<24 | uint32(randBuffer[1])<<16 | uint32(randBuffer[2])<<8 | uint32(randBuffer[3])
 }
 
 // rng represents a random number generator providing random numbers guaranteed
