@@ -2,10 +2,10 @@
 
 # rid
 
-**WORK IN PROGRESS, Nov 23 2022 please check back later**
+**WORK IN PROGRESS, Nov 23 2022 tests still need updating**
 
-Package rid provides a random ID generator. The 12 byte binary ID encodes as a
-20-character long, URL-friendly/Base32 encoded, mostly k-sortable (to the
+Package rid provides a semi-random ID generator. The 12 byte binary ID encodes
+as a 20-character long, URL-friendly/Base32 encoded, mostly k-sortable (to the
 second resolution) identifier.
 
 Each ID's 12-byte binary representation is comprised of a:
@@ -13,8 +13,8 @@ Each ID's 12-byte binary representation is comprised of a:
     - 4-byte timestamp value representing seconds since the Unix epoch
     - 2-byte machine ID
     - 2-byte process ID
-    - 4-byte random value with 4,294,967,295 possibilities guaranteed to be
-      unique for a given [timestamp|machine ID|process ID].
+    - 4-byte random value guaranteed to be unique for a given 
+      timestamp+machine ID+process ID.
 
 **Acknowledgement**: This package borrows heavily from the
 [rs/xid](https://github.com/rs/xid) package which itself levers ideas from
@@ -24,10 +24,9 @@ as opposed to a trailing counter for the last 4 bytes of the ID.
 
 ## Usage
 
-
 ```go
     id := rid.New()
-    fmt.Printf("%s", id) //  cdym59rs24a5g86efepg
+    fmt.Printf("%s", id) //  ce0e7egs24nkzkn6egfg
 ```
 
 ## Batteries included
@@ -40,20 +39,57 @@ Package rid also provides a command line tool `rid` allowing for id generation
 or inspection:
 
     $ rid
-    cdz2kt8s25hpv44k214g
-    $rid `rid`
-    [cdz2ktgs25hq5ysrgg0g] seconds:1669212650 random:4214785275 machine:[25 17] pid:25458 time:2022-11-23 06:10:50 -0800 PST ID{99, 126, 41, 234, 25, 17, 99, 114, 251, 56, 132, 1}
-    $ rid `rid`
-    [cdz2kvgs25hqstfgez00] seconds:1669212654 random:3924850665 machine:[25 17] pid:25468 time:2022-11-23 06:10:54 -0800 PST ID{99, 126, 41, 238, 25, 17, 99, 124, 233, 240, 119, 192}
+    ce0e7ygs24nw4zebrz10
 
+    # produce 4
+    $ rid -c 4
+    ce0e8n0s24p7329f3gfg
+    ce0e8n0s24p73q9hazp0
+    ce0e8n0s24p73qjbffz0
+    ce0e8n0s24p72rxdr64g
+
+    # produce one (or more, with -c) and inspect
+    $rid `rid -c 2`
+    [ce0e960s24phh0qrnz7g] seconds:1669391512 random:2197335938 machine:[0x19, 0x11] pid:11544 time:2022-11-25 07:51:52 -0800 PST ID{0x63, 0x80, 0xe4, 0x98, 0x19, 0x11, 0x2d, 0x18, 0x82, 0xf8, 0xaf, 0xcf}
+    [ce0e960s24phh39seya0] seconds:1669391512 random:2369353613 machine:[0x19, 0x11] pid:11544 time:2022-11-25 07:51:52 -0800 PST ID{0x63, 0x80, 0xe4, 0x98, 0x19, 0x11, 0x2d, 0x18, 0x8d, 0x39, 0x77, 0x94}
+
+## Benchmark
+
+`rid` did not have ultra-high performance as an objective; using
+cryptographically secure random number generation is inherently slow, but
+600-800ns to generate a unique ID isn't an issue for my use cases.
+
+Laptop with 8 cores:
+
+    goos: linux
+    goarch: amd64
+    pkg: github.com/solutionroute/rid
+    cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
+
+    $ go test -cpu 1 -benchmem  -run=^$   -bench  ^.*$ 
+    BenchmarkIDNew        	 1362223	       827.7 ns/op	      33 B/op	       1 allocs/op
+    BenchmarkIDNewEncoded 	 1571004	       754.6 ns/op	      31 B/op	       1 allocs/op
+
+    $ go test -benchmem  -run=^$   -bench  ^.*$ 
+    cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
+    BenchmarkIDNew-8         1756305	       726.7 ns/op	      34 B/op	       1 allocs/op
+    BenchmarkIDNewEncoded-8  1706679	       733.7 ns/op	      35 B/op	       1 allocs/op
+
+Is 600-800ns per ID too slow? Writing 1 million generated IDs to a file takes <
+2 seconds. Fast enough for my use cases.
+
+    $ time rid -c 1000000 > foo
+    real	0m1.780s
+    user	0m0.797s
+    sys	0m0.991s
 
 ## See Also
 
-If ~ 400-500ns/op is too slow and/or you don't need the randomness this package
-seeks to provide, consider the well tested and highly performant xid package.
-See https://github.com/rs/xid.
+If you don't want the randomness this package provides, consider the well
+tested and highly performant xid package upon which rid is based. See
+https://github.com/rs/xid.
 
-For a comparison of various unique ID solutions, have a read:
+For a comparison of various golang unique ID solutions, have a read:
 
 https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
 
