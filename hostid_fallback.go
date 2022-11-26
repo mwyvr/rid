@@ -1,4 +1,4 @@
-// +build !darwin,!linux,!freebsd,!windows
+//go:build !darwin && !linux && !freebsd && !windows
 
 package rid
 
