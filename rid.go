@@ -72,8 +72,8 @@ var (
 	// dec is the decoding map for base32 encoding
 	dec [256]byte
 
-    // thread-safe crypto-secure unique-per-second tick 
-	rgenerator    = &rng{lastUpdated: 0, exists: make(map[uint32]bool)}
+	// thread-safe random number generator guaranteed unique-per-second tick
+	rgenerator = &rng{lastUpdated: 0, exists: make(map[uint32]bool)}
 
 	ErrInvalidID = errors.New("rid: invalid id")
 )
