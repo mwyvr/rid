@@ -2,9 +2,11 @@
 
 # rid
 
-Package rid provides a semi-random ID generator. The 12 byte binary ID encodes
-as a 20-character long, URL-friendly/Base32 encoded, mostly k-sortable (to the
-second resolution) identifier.
+Package rid provides a (semi) random ID generator; rid generation is
+goroutine-safe. A rid in string form looks like this: `ce0e7egs24nkzkn6egfg`.
+
+The 12 byte binary ID encodes as a 20-character long, URL-friendly/Base32
+encoded, mostly k-sortable (to the second resolution) identifier.
 
 Each ID's 12-byte binary representation is comprised of a:
 
@@ -53,20 +55,12 @@ or inspection:
 
 ## Benchmark
 
-`rid` did not have ultra-high performance as an objective; using
-cryptographically secure random number generation is inherently slower than an
-incrementing counter such as used in `xid`.
+`rid` did not have ultra-high performance as an objective, as using random number
+generation is inherently slower than an incrementing counter such as used in
+`xid`. That said even my laptop can generate 1 million unique ids in less than a
+second, and performance does not degrade significantly as core count increases.
 
-On my laptop, connected to a fast network (entropy comes in part from the net)
-writing 1 million generated IDs to /dev/null < 0.7 seconds. This is fast enough
-for any of my use cases.
-
-    $ time rid -c 1000000 > /dev/null
-    real    0m0.710s
-    user    0m0.448s
-    sys	    0m0.267s
-
-Desktop with 8 cores/16 "cpus":
+AMD based Desktop with 8 cores/16 cpus:
 
     goos: linux
     goarch: amd64
@@ -74,35 +68,32 @@ Desktop with 8 cores/16 "cpus":
     cpu: AMD Ryzen 7 3800X 8-Core Processor             
 
     $ go test -cpu 1 -benchmem  -run=^$   -bench  ^.*$
-    enchmarkIDNew        	 2706148	       462.2 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded 	 2546980	       479.8 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkIDNew        	 8099502	       178.6 ns/op	      13 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded 	^[ 6485542	       187.1 ns/op	       0 B/op	       0 allocs/op
 
-    # cryptographically safe random generation is slower on AMD as you add parallel processes, even +1 CPU:
-    $ go test -cpu 2 -benchmem  -run=^$   -bench  ^.*$
-    BenchmarkIDNew-2          	 1000000	      1129 ns/op	      18 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded-2   	 1000000	      1097 ns/op	      17 B/op	       0 allocs/op
+    $ go test -cpu 8 -benchmem  -run=^$   -bench  ^.*$
+    BenchmarkIDNew-8          	 2426989	       505.6 ns/op	      14 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded-8   	 2374066	       513.2 ns/op	       0 B/op	       0 allocs/op
 
     $ go test -cpu 16 -benchmem  -run=^$   -bench  ^.*$
-    BenchmarkIDNew-16           	 1000000	      1043 ns/op	      18 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded-16    	 1000000	      1081 ns/op	      17 B/op	       0 allocs/op
+    BenchmarkIDNew-16           	 2061738	       579.1 ns/op	      17 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded-16    	 2073908	       591.0 ns/op	       0 B/op	       0 allocs/op
 
-Laptop with 4 cores:
+Intel based Laptop with 4 cores/8 cpus scales better in concurrent situations:
 
     goos: linux
     goarch: amd64
     pkg: github.com/solutionroute/rid
     cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
 
-    $ go test -cpu 1 -benchmem  -run=^$   -bench  ^.*$ 
-    BenchmarkIDNew        	 1362223	       827.7 ns/op	      0 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded 	 1571004	       754.6 ns/op	      0 B/op	       0 allocs/op
+    $ go test -cpu 1 -benchmem  -run=^$ -bench ^.*$ 
+    BenchmarkIDNew        	 5740708	       268.1 ns/op	      19 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded 	 4854775	       248.9 ns/op	       0 B/op	       0 allocs/op
 
-    $ go test -benchmem  -run=^$   -bench  ^.*$ 
-    cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
-    BenchmarkIDNew-8         1756305	       726.7 ns/op	      0 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded-8  1706679	       733.7 ns/op	      0 B/op	       0 allocs/op
+    $ go test -cpu 8 -benchmem  -run=^$ -bench ^.*$ 
+    BenchmarkIDNew-8          	 3827337	       313.1 ns/op	      10 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded-8   	 3610014	       327.1 ns/op	       1 B/op	       0 allocs/op
 
-Benchmarking `math/rand` showed a 50% improvement on the 16-cpu desktop benchmark.
 
 ## See Also
 
