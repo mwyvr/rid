@@ -49,7 +49,6 @@ type ID [rawLen]byte
 
 const (
 	rawLen     = 12 // binary representation
-	randomLen  = 4  // bytes
 	encodedLen = 20 // base32 representation
 	// ID string representations are base32-encoded using a character set
 	// inspired by Crockford: i, l, o, u removed and w, x, y, z added.
