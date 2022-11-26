@@ -1,23 +1,13 @@
 package rid
 
-// TODO add chronological sorting test
-
 import (
 	"bytes"
 	// "database/sql/driver"
 	// enc "encoding"
 	"fmt"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
-)
-
-var (
-	// testing concurrency safety
-	wg            sync.WaitGroup
-	numConcurrent = 2000 // go routines X
-	numIter       = 500  // id creation/routine
 )
 
 type idParts struct {
@@ -87,9 +77,7 @@ func TestNew(t *testing.T) {
 		for j, tid := range ids {
 			if j != i {
 				// can't use ID.Compare for this test, need to compare entire ID[:]
-				if bytes.Compare(id[:], tid[:]) == 0 {
-
-					// if id.Compare(tid) == 0 {
+				if bytes.Equal(id[:], tid[:]) {
 					t.Errorf("generated ID is not unique (%d/%d)\n%v", i, j, ids)
 				}
 			}
@@ -327,34 +315,3 @@ func ExampleFromString() {
 	fmt.Println(id.Seconds(), id.Random())
 	// 1669390230 201996556
 }
-
-// func TestID_MarshalJSON(t *testing.T) {
-// 	if got, err := nilID.MarshalJSON(); string(got) != "null" {
-// 		t.Errorf("ID.MarshalJSON() of nilID error = %v, got %v", err, got)
-// 	}
-// 	if got, err := (ID{1, 125, 208, 142, 50, 76, 238, 72}).MarshalJSON(); string(got) != "\"05yx13hj9kq4g\"" {
-// 		if err != nil {
-// 			t.Errorf("ID.MarshalJSON() err %v marshaling %v", err, "\"05yx13hj9kq4g\"")
-// 		}
-// 		t.Errorf("ID.MarshalJSON() got %v want %v", string(got), "\"05yx13hj9kq4g\"")
-// 	}
-// }
-//
-// func TestID_UnmarshalJSON(t *testing.T) {
-// 	var id ID
-// 	err := id.UnmarshalJSON([]byte("null"))
-// 	if err != nil {
-// 		t.Errorf("ID.UnmarshalJSON() of null, error = %v", err)
-// 	}
-// 	if id != nilID {
-// 		t.Errorf("ID.UnmarshalJSON() error = %v", err)
-// 	}
-// 	// 2020...
-// 	text := []byte("\"05yykgvzqc002\"")
-// 	if err = id.UnmarshalJSON(text); err != nil {
-// 		t.Errorf("ID.UnmarshalJSON() error = %v", err)
-//
-// 	} else if id != (ID{1, 125, 233, 195, 127, 187, 0, 1}) {
-// 		t.Errorf("ID.UnmarshalJSON() of %v, got %v", text, id.String())
-// 	}
-// }
