@@ -79,21 +79,20 @@ AMD based Desktop with 8 cores/16 cpus:
     BenchmarkIDNew-16           	 2061738	       579.1 ns/op	      17 B/op	       0 allocs/op
     BenchmarkIDNewEncoded-16    	 2073908	       591.0 ns/op	       0 B/op	       0 allocs/op
 
-Intel based Laptop with 4 cores/8 cpus scales better in concurrent situations:
+Intel based Laptop with 4 cores/8 cpus:
 
     goos: linux
     goarch: amd64
     pkg: github.com/solutionroute/rid
     cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
 
-    $ go test -cpu 1 -benchmem  -run=^$ -bench ^.*$ 
-    BenchmarkIDNew        	 5740708	       268.1 ns/op	      19 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded 	 4854775	       248.9 ns/op	       0 B/op	       0 allocs/op
+    $ go test -cpu 1 -benchmem  -run=^$   -bench  ^.*$ 
+    BenchmarkIDNew        	 8768462	       178.2 ns/op	      12 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded 	 6655179	       179.5 ns/op	       1 B/op	       0 allocs/op
 
-    $ go test -cpu 8 -benchmem  -run=^$ -bench ^.*$ 
-    BenchmarkIDNew-8          	 3827337	       313.1 ns/op	      10 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded-8   	 3610014	       327.1 ns/op	       1 B/op	       0 allocs/op
-
+    $ go test -cpu 8 -benchmem  -run=^$   -bench  ^.*$ 
+    BenchmarkIDNew-8          	 5793776	       216.9 ns/op	      18 B/op	       0 allocs/op
+    BenchmarkIDNewEncoded-8   	 5421951	       214.7 ns/op	       0 B/op	       0 allocs/op
 
 ## See Also
 
