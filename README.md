@@ -58,47 +58,47 @@ or inspection:
 an incrementing counter such as used in `xid`. That said, even my 4-core laptop
 can generate 1 million unique IDs in less than half a second.
 
-  $ go test -cpu 1,4,8 -benchmem  -run=^$   -bench  ^.*$ 
-  goos: linux
-  goarch: amd64
-  pkg: github.com/solutionroute/rid
-  cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
-  BenchmarkNew            	 3958836	       304.2 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkNew-4          	 9496116	       128.0 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkNew-8          	11436218	        95.03 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkNewString      	 3775807	       312.2 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkNewString-4    	 8709002	       130.9 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkNewString-8    	11844847	        99.31 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkString         	125418398	         9.280 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkString-4       	368931138	         3.177 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkString-8       	365420338	         3.315 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkFromString     	51823634	        23.78 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkFromString-4   	134684247	         9.774 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkFromString-8   	100000000	        10.16 ns/op	       0 B/op	       0 allocs/op
+    $ go test -cpu 1,4,8 -benchmem  -run=^$   -bench  ^.*$ 
+    goos: linux
+    goarch: amd64
+    pkg: github.com/solutionroute/rid
+    cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
+    BenchmarkNew            	 3958836	       304.2 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNew-4          	 9496116	       128.0 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNew-8          	11436218	        95.03 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNewString      	 3775807	       312.2 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNewString-4    	 8709002	       130.9 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNewString-8    	11844847	        99.31 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkString         	125418398	         9.280 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkString-4       	368931138	         3.177 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkString-8       	365420338	         3.315 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkFromString     	51823634	        23.78 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkFromString-4   	134684247	         9.774 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkFromString-8   	100000000	        10.16 ns/op	       0 B/op	       0 allocs/op
 
 On an 8-core AMD desktop:
 
-  $ go test -cpu 1,4,8,16 -benchmem  -run=^$   -bench  ^.*$
-  goos: linux
-  goarch: amd64
-  pkg: github.com/solutionroute/rid
-  cpu: AMD Ryzen 7 3800X 8-Core Processor             
-  BenchmarkNew              	 2934926	       348.3 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkNew-4            	 6130580	       175.4 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkNew-8            	11195751	        93.88 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkNew-16           	20034466	        60.26 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkNewString        	 3356666	       349.5 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkNewString-4      	 7201807	       163.9 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkNewString-8      	12041784	       102.0 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkNewString-16     	19052943	        62.93 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkString           	124277928	         9.608 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkString-4         	465495543	         2.461 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkString-8         	951393741	         1.254 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkString-16        	1000000000	         1.163 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkFromString       	52376870	        21.41 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkFromString-4     	217893273	         5.486 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkFromString-8     	414482971	         2.784 ns/op	       0 B/op	       0 allocs/op
-  BenchmarkFromString-16    	469130386	         2.544 ns/op	       0 B/op	       0 allocs/op
+    $ go test -cpu 1,4,8,16 -benchmem  -run=^$   -bench  ^.*$
+    goos: linux
+    goarch: amd64
+    pkg: github.com/solutionroute/rid
+    cpu: AMD Ryzen 7 3800X 8-Core Processor             
+    BenchmarkNew              	 2934926	       348.3 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNew-4            	 6130580	       175.4 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNew-8            	11195751	        93.88 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNew-16           	20034466	        60.26 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNewString        	 3356666	       349.5 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNewString-4      	 7201807	       163.9 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNewString-8      	12041784	       102.0 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNewString-16     	19052943	        62.93 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkString           	124277928	         9.608 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkString-4         	465495543	         2.461 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkString-8         	951393741	         1.254 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkString-16        	1000000000	         1.163 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkFromString       	52376870	        21.41 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkFromString-4     	217893273	         5.486 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkFromString-8     	414482971	         2.784 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkFromString-16    	469130386	         2.544 ns/op	       0 B/op	       0 allocs/op
 
 ## See Also
 
