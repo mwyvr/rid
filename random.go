@@ -21,11 +21,11 @@ type rng struct {
 }
 
 // Next returns a psuedo random uint32 guaranteed to be unique for each
-// timestamp (seconds from Unix epoch). This implementation uses hash/maphash
-// to access a fast runtime generated seed as the random number.  The random
-// generation is inherently thread safe, but our collision detection is not so
-// those locks remain as in CryptoNext. A 2 - 5 times performance increase is
-// the benefit of this approach and scales better as cores increase.
+// timestamp (seconds from Unix epoch) | machineID | pid. This implementation
+// uses hash/maphash to access a fast runtime generated seed as the random
+// number.  Why not math/rand or crypto/rand? This approach levers a
+// random-enough fast runtime generator providing a 2 - 5 times performance
+// increase; even more importantly, it scales better as cores increase.
 func (r *rng) Next(ts int64) uint32 {
 	if r.lastUpdated != ts {
 		// reset the mapping each new second
@@ -44,10 +44,11 @@ func (r *rng) Next(ts int64) uint32 {
 		// Sum64 initializes Seed{}; since there's no bytes in the buffer to hash,
 		// what is returned is the Seed itself, i.e.
 		// seed {17011520470102362949} -> Sum64: 17011520470102362949
-		// Why this hack? Performance, and from maphash/hash.go:
+    // from maphash/hash.go:
 		// "A Hash is not safe for concurrent use by multiple goroutines, but a Seed is."
 		i := uint32(new(maphash.Hash).Sum64() >> 32)
 
+    // but map access requires the lock
 		if !r.exists[i] {
 			r.exists[i] = true
 			return i
