@@ -33,7 +33,6 @@ package rid
 
 import (
 	"bytes"
-	"crypto/md5"
 	"database/sql/driver"
 	"encoding/binary"
 	"errors"
@@ -68,12 +67,11 @@ var (
 	// pid is the current process id
 	pid = os.Getpid()
 
+	// for random segment generation
+	ridRandBuf = make([]byte, 4)
+
 	// dec is the decoding map for base32 encoding
 	dec [256]byte
-
-  // thread-safe random number generator guaranteed to return a unique number
-  // per-machineID/pid/second
-	rgenerator = &rng{lastUpdated: 0, exists: make(map[uint32]bool)}
 
 	ErrInvalidID = errors.New("rid: invalid id")
 )
@@ -95,9 +93,11 @@ func New() ID {
 
 // NewWithTime returns a new ID based upon the supplied Time value.
 func NewWithTime(tm time.Time) ID {
-	var id ID
-	// Timestamp, 4 bytes, big endian
-  var t = tm.Unix()
+	var (
+		id ID
+		// Timestamp, 4 bytes, big endian
+		t       = tm.Unix()
+	)
 
 	binary.BigEndian.PutUint32(id[:], uint32(t))
 	// Machine, only the first 2 bytes of md5(hostname)
@@ -106,12 +106,12 @@ func NewWithTime(tm time.Time) ID {
 	// Pid, 2 bytes, specs don't specify endianness, but we use big endian.
 	id[6] = byte(pid >> 8)
 	id[7] = byte(pid)
-	// 4 bytes for the random value, big endian
-	rv := rgenerator.Next(t)
-	id[8] = byte(rv >> 24)
-	id[9] = byte(rv >> 16)
-	id[10] = byte(rv >> 8)
-	id[11] = byte(rv)
+	// 4 bytes for the random value
+	randomBytes(ridRandBuf)
+	id[8] = ridRandBuf[0]
+	id[9] = ridRandBuf[1]
+	id[10] = ridRandBuf[2]
+	id[11] = ridRandBuf[3]
 
 	return id
 }
@@ -325,29 +325,6 @@ func (id *ID) UnmarshalJSON(text []byte) error {
 		return nil
 	}
 	return id.UnmarshalText(text[1 : len(text)-1])
-}
-
-// readMachineId generates machine id and puts it into the machineId global
-// variable. If this function fails to get the hostname, and the fallback
-// fails, it will cause a runtime error.
-func readMachineID() []byte {
-	id := make([]byte, 2)
-	hid, err := readPlatformMachineID()
-	if err != nil || len(hid) == 0 {
-		hid, err = os.Hostname()
-	}
-	if err == nil && len(hid) != 0 {
-		hw := md5.New()
-		hw.Write([]byte(hid))
-		copy(id, hw.Sum(nil))
-	} else {
-		// Fallback to rand number if machine id can't be gathered
-		id, err = randomMachineId()
-		if err != nil {
-			panic(fmt.Errorf("rid: cannot get hostname nor generate a random number: %v", err))
-		}
-	}
-	return id
 }
 
 // Compare returns an integer comparing two IDs, comparing only the first 8 bytes:
