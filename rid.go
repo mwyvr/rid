@@ -1,10 +1,7 @@
 /*
-Package rid provides a hybrid k-sortable random ID generator. The 12 byte
-binary ID string representation is a 20-character long, URL-friendly/Base32
-encoded, mostly k-sortable (to the second resolution) identifier.
-
-IDs are chronologically sortable to the second, with a tradeoff in fine-grained
-sortability due to the trailing random value component.
+Package rid provides a (mostly) k-sortable random ID generator. The 12 byte
+binary ID string representation is 20-characters long, URL-friendly/Base32
+encoded globally-unique identifier. IDs are chronologically sortable to the second.
 
 Each ID's 12-byte binary representation is comprised of a:
 
@@ -13,17 +10,20 @@ Each ID's 12-byte binary representation is comprised of a:
   - 2-byte process ID
   - 4-byte random value
 
-The String() representation of ID is Base32 encoded using a modified Crockford
-inspired alphabet.
+rid implements a number of well-known interfaces to make
+interacting with json and databases more convenient.  The String()
+representation of ID is Base32 encoded using a modified Crockford-inspired
+alphabet.
 
 Example:
 
 	id := rid.New()
-	fmt.Printf("%s", id) //  cdym59rs24a5g86efepg
+	fmt.Printf("%s", id) 			//  cdym59rs24a5g86efepg
+	fmt.Printf("%s", id.String()) 	//  cdym59rs24a5g86efepg
 
 Acknowledgement: This package borrows heavily from rs/xid
-(https://github.com/rs/xid), a capable unique ID package which itself levers
-ideas from MongoDB (https://docs.mongodb.com/manual/reference/method/ObjectId/).
+(https://github.com/rs/xid), a capable globally-unique ID package which itself
+levers ideas from MongoDB (https://docs.mongodb.com/manual/reference/method/ObjectId/).
 
 Where rid differs from xid is in the use of (admittedly slower) random number
 generation as opposed to a trailing counter for the last 4 bytes of the ID.
@@ -48,7 +48,7 @@ type ID [rawLen]byte
 const (
 	rawLen     = 12 // binary representation
 	encodedLen = 20 // base32 representation
-	// ID string representations are base32-encoded using a character set
+	// encoding stores the character set for a custom Base32 encoding
 	// inspired by Crockford: i, l, o, u removed and w, x, y, z added.
 	//
 	// encoding/Base32 charset for comparison:
@@ -57,16 +57,18 @@ const (
 )
 
 var (
+	// nilID represents the zero-value of an ID
 	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
-	// machineId is md5 hash of the machine identifier or hostname or fallback
+	// machineId is derived from two bytes of the md5 hash of the machine
+	// identifier or hostname or fallback
 	machineID = readMachineID()
 
 	// pid is the current process id
 	pid = os.Getpid()
 
-	// randBuf is used during for random segment generation
+	// randBuf is used for random segment generation
 	randBuf = make([]byte, 4)
 
 	// dec is the decoding map for base32 encoding
@@ -94,8 +96,7 @@ func New() ID {
 func NewWithTime(tm time.Time) ID {
 	var (
 		id ID
-		// Timestamp, 4 bytes, big endian
-		t = tm.Unix()
+		t  = tm.Unix()
 	)
 
 	binary.BigEndian.PutUint32(id[:], uint32(t))
@@ -138,13 +139,13 @@ func (id ID) String() string {
 	return *(*string)(unsafe.Pointer(&text))
 }
 
-// Encode encodes the id using base32 encoding, writing 20 bytes to dst and return it.
+// Encode encodes the id using base32 encoding.
 func (id ID) Encode(dst []byte) []byte {
 	encode(dst, id[:])
 	return dst
 }
 
-// encode by unrolling the stdlib base32 algorithm + removing all safe checks
+// encode by unrolling the stdlib base32 algorithm + removing all safe checks.
 func encode(dst, id []byte) {
 	_ = dst[19]
 	_ = id[11]
@@ -171,43 +172,38 @@ func encode(dst, id []byte) {
 	dst[0] = encoding[id[0]>>3]
 }
 
-// Bytes returns by value the byte array representation of ID.
+// Bytes returns by value the byte slice representation of ID.
 func (id ID) Bytes() []byte {
 	return id[:]
 }
 
-// Seconds returns the timestamp component of the id in seconds since the Unix
-// epoc.
+// Seconds returns the ID timestamp component as seconds since the Unix epoch.
 func (id ID) Seconds() int64 {
-	// First 4 bytes of ID is 32-bit big-endian seconds from epoch.
 	return int64(binary.BigEndian.Uint32(id[0:4]))
 }
 
-// Time returns the ID's timestamp compoent, with resolution in seconds from
-// the Unix epoc.
+// Time returns the ID's timestamp compoent as a Time value.
 func (id ID) Time() time.Time {
 	return time.Unix(id.Seconds(), 0)
 }
 
 // Machine returns the 2-byte machine id part of the id.
-// It's a runtime error to call this method with an invalid id.
 func (id ID) Machine() []byte {
 	return id[4:6]
 }
 
 // Pid returns the process id part of the id.
-// It's a runtime error to call this method with an invalid id.
 func (id ID) Pid() uint16 {
 	return binary.BigEndian.Uint16(id[6:8])
 }
 
-// Random returns the random component of the ID.
+// Random returns the trailing random number component of the ID.
 func (id ID) Random() uint32 {
 	b := id[8:12]
 	return uint32(uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[0]))
 }
 
-// FromString returns an ID by decoding a base32 representation of an ID
+// FromString returns an ID by decoding a Base32 representation of an ID
 func FromString(str string) (ID, error) {
 	id := &ID{}
 	err := id.UnmarshalText([]byte(str))
@@ -244,7 +240,7 @@ func (id *ID) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// decode by unrolling the stdlib base32 algorithm + customized safe check.
+// decode by unrolling the stdlib base32 algorithm.
 func decode(id *ID, src []byte) bool {
 	_ = src[19]
 	_ = id[11]
