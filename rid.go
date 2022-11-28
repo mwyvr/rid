@@ -66,8 +66,8 @@ var (
 	// pid is the current process id
 	pid = os.Getpid()
 
-	// for random segment generation
-	ridRandBuf = make([]byte, 4)
+	// randBuf is used during for random segment generation
+	randBuf = make([]byte, 4)
 
 	// dec is the decoding map for base32 encoding
 	dec [256]byte
@@ -85,7 +85,7 @@ func init() {
 	}
 }
 
-// New returns a new ID using the current time; IDs represent millisecond time resolution.
+// New returns a new ID using the current time; IDs represent time resolution in seconds.
 func New() ID {
 	return NewWithTime(time.Now())
 }
@@ -95,7 +95,7 @@ func NewWithTime(tm time.Time) ID {
 	var (
 		id ID
 		// Timestamp, 4 bytes, big endian
-		t       = tm.Unix()
+		t = tm.Unix()
 	)
 
 	binary.BigEndian.PutUint32(id[:], uint32(t))
@@ -106,11 +106,11 @@ func NewWithTime(tm time.Time) ID {
 	id[6] = byte(pid >> 8)
 	id[7] = byte(pid)
 	// 4 bytes for the random value
-	randomBytes(ridRandBuf)
-	id[8] = ridRandBuf[0]
-	id[9] = ridRandBuf[1]
-	id[10] = ridRandBuf[2]
-	id[11] = ridRandBuf[3]
+	randomBytes(randBuf)
+	id[8] = randBuf[0]
+	id[9] = randBuf[1]
+	id[10] = randBuf[2]
+	id[11] = randBuf[3]
 
 	return id
 }
@@ -332,7 +332,7 @@ func (id *ID) UnmarshalJSON(text []byte) error {
 // - 2-byte process ID
 // ... while ignoring the trailing:
 // - 4-byte random value
-// Otherwise, it behaves just like `bytes.Compare`.
+// Otherwise, it behaves just like `bytes.Compar(b1[:], b2[:])`.
 // The result will be 0 if two IDs are identical, -1 if current id is less than
 // the other one, and 1 if current id is greater than the other.
 func (id ID) Compare(other ID) int {
