@@ -62,16 +62,17 @@ var (
 	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
-	// machineId stores a md5 hash of the machine identifier or hostname
+	// machineId is md5 hash of the machine identifier or hostname or fallback
 	machineID = readMachineID()
 
-	// pid stores the current process id
+	// pid is the current process id
 	pid = os.Getpid()
 
 	// dec is the decoding map for base32 encoding
 	dec [256]byte
 
-	// thread-safe random number generator guaranteed unique-per-second tick
+  // thread-safe random number generator guaranteed to return a unique number
+  // per-machineID/pid/second
 	rgenerator = &rng{lastUpdated: 0, exists: make(map[uint32]bool)}
 
 	ErrInvalidID = errors.New("rid: invalid id")
@@ -95,9 +96,10 @@ func New() ID {
 // NewWithTime returns a new ID based upon the supplied Time value.
 func NewWithTime(tm time.Time) ID {
 	var id ID
-
 	// Timestamp, 4 bytes, big endian
-	binary.BigEndian.PutUint32(id[:], uint32(tm.Unix()))
+  var t = tm.Unix()
+
+	binary.BigEndian.PutUint32(id[:], uint32(t))
 	// Machine, only the first 2 bytes of md5(hostname)
 	id[4] = machineID[0]
 	id[5] = machineID[1]
@@ -105,7 +107,7 @@ func NewWithTime(tm time.Time) ID {
 	id[6] = byte(pid >> 8)
 	id[7] = byte(pid)
 	// 4 bytes for the random value, big endian
-	rv := rgenerator.Next(tm.Unix())
+	rv := rgenerator.Next(t)
 	id[8] = byte(rv >> 24)
 	id[9] = byte(rv >> 16)
 	id[10] = byte(rv >> 8)
