@@ -15,7 +15,10 @@ Each ID's 12-byte binary representation is comprised of a:
     - 2-byte process ID
     - 4-byte cryptographically secure random value
 
-**Acknowledgement**: This package borrows heavily from the
+Including a machine and process ID makes rids potentially suitable, without
+need for configuration or coordination, for distributed applications.
+
+**Acknowledgement**: This package borrows heavily from the at-scale capable 
 [rs/xid](https://github.com/rs/xid) package which itself levers ideas from
 [MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/). Where
 this package differs is the use of admittedly slower random number generation
