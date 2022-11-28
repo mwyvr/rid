@@ -66,14 +66,15 @@ func TestIDPartsExtraction(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	// Generate 10 ids
-	ids := make([]ID, 100)
-	for i := 0; i < 100; i++ {
+  var numIDS = 10000
+	ids := make([]ID, numIDS)
+	for i := 0; i < numIDS; i++ {
 		ids[i] = New()
 	}
-	for i := 1; i < 100; i++ {
+	for i := 1; i < numIDS; i++ {
 		prevID := ids[i-1]
 		id := ids[i]
-		// Test for uniqueness among all other 9 generated ids
+		// Test for uniqueness among all other generated ids
 		for j, tid := range ids {
 			if j != i {
 				// can't use ID.Compare for this test, need to compare entire ID[:]
