@@ -11,8 +11,7 @@ Each ID's 12-byte binary representation is comprised of a:
   - 4-byte timestamp value representing seconds since the Unix epoch
   - 2-byte machine ID
   - 2-byte process ID
-  - 4-byte random value with 4,294,967,295 possibilities; collision detection
-    guarantees the random value is unique for a given timestamp+machine ID+process ID.
+  - 4-byte random value
 
 The String() representation of ID is Base32 encoded using a modified Crockford
 inspired alphabet.
