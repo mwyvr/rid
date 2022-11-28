@@ -19,8 +19,9 @@ Each ID's 12-byte binary representation is comprised of a:
 **Acknowledgement**: This package borrows heavily from the
 [rs/xid](https://github.com/rs/xid) package which itself levers ideas from
 [MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/). Where
-this package differs is the use of admittedly slower random number generation
-as opposed to a trailing counter for the last 4 bytes of the ID.
+this package differs is the use of a slightly optimized but admittedly slower
+random number generation as opposed to xid's use of a simple counter for the
+last 4 bytes of the ID.
 
 ## Usage
 
@@ -55,44 +56,12 @@ or inspection:
 
 ## Benchmark
 
-`rid` did not have ultra-high performance as an objective, as using random number
+`rid` using random number
 generation is inherently slower than an incrementing counter such as used in
 `xid`. That said even my laptop can generate 1 million unique ids in less than a
 second, and performance does not degrade significantly as core count increases.
 
-AMD based Desktop with 8 cores/16 cpus:
-
-    goos: linux
-    goarch: amd64
-    pkg: github.com/solutionroute/rid
-    cpu: AMD Ryzen 7 3800X 8-Core Processor             
-
-    $ go test -cpu 1 -benchmem  -run=^$   -bench  ^.*$
-    BenchmarkIDNew        	 8099502	       178.6 ns/op	      13 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded 	^[ 6485542	       187.1 ns/op	       0 B/op	       0 allocs/op
-
-    $ go test -cpu 8 -benchmem  -run=^$   -bench  ^.*$
-    BenchmarkIDNew-8          	 2426989	       505.6 ns/op	      14 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded-8   	 2374066	       513.2 ns/op	       0 B/op	       0 allocs/op
-
-    $ go test -cpu 16 -benchmem  -run=^$   -bench  ^.*$
-    BenchmarkIDNew-16           	 2061738	       579.1 ns/op	      17 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded-16    	 2073908	       591.0 ns/op	       0 B/op	       0 allocs/op
-
-Intel based Laptop with 4 cores/8 cpus:
-
-    goos: linux
-    goarch: amd64
-    pkg: github.com/solutionroute/rid
-    cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
-
-    $ go test -cpu 1 -benchmem  -run=^$   -bench  ^.*$ 
-    BenchmarkIDNew        	 8768462	       178.2 ns/op	      12 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded 	 6655179	       179.5 ns/op	       1 B/op	       0 allocs/op
-
-    $ go test -cpu 8 -benchmem  -run=^$   -bench  ^.*$ 
-    BenchmarkIDNew-8          	 5793776	       216.9 ns/op	      18 B/op	       0 allocs/op
-    BenchmarkIDNewEncoded-8   	 5421951	       214.7 ns/op	       0 B/op	       0 allocs/op
+See [benchmark.md](./benchmark.md) for more.
 
 ## See Also
 
