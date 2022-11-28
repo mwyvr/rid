@@ -258,7 +258,7 @@ func TestSort(t *testing.T) {
 }
 
 // Benchmarks
-func BenchmarkIDNew(b *testing.B) {
+func BenchmarkNew(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			_ = New()
@@ -266,10 +266,31 @@ func BenchmarkIDNew(b *testing.B) {
 	})
 }
 
-func BenchmarkIDNewEncoded(b *testing.B) {
+// common use case
+func BenchmarkNewString(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			_ = New().String()
+		}
+	})
+}
+
+// encoding performance
+func BenchmarkString(b *testing.B) {
+	id := New()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_ = id.String()
+		}
+	})
+}
+
+// decoding performance
+func BenchmarkFromString(b *testing.B) {
+	str := "ce1tcars24hcmnsc8jvg"
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, _ = FromString(str)
 		}
 	})
 }
@@ -278,12 +299,11 @@ func BenchmarkIDNewEncoded(b *testing.B) {
 func ExampleNew() {
 	id := New()
 	fmt.Printf(`ID:
-    String()       %s   
+    String()  %s   
     Seconds() %d  
-    Random()        %d // random for this one-off run 
-    Time()         %v
-    Bytes():       %3v  
-`, id.String(), id.Seconds(), id.Random(), id.Time(), id.Bytes())
+    Random()  %d // random for this one-off run 
+    Time()    %v
+    Bytes()   %3v\n`, id.String(), id.Seconds(), id.Random(), id.Time(), id.Bytes())
 }
 
 func ExampleNewWithTime() {
@@ -295,16 +315,7 @@ func ExampleNewWithTime() {
     Pid()     %d
     Random()  %d 
     Time()    %v
-    Bytes()   %3v
-`, id.String(), id.Seconds(), id.Machine(), id.Pid(), id.Random(), id.Time().UTC(), id.Bytes())
-	// ID:
-	//     String()  br5y200s24mr78qrkr7g
-	//     Seconds() 1577836800
-	//     Machine() [25 17]
-	//     Pid()     10627
-	//     Random()  2734202530
-	//     Time()    2020-01-01 00:00:00 +0000 UTC
-	//     Bytes()   [ 94  11 225   0  25  17  41 131 162 248 158  15]
+    Bytes()   %3v\n`, id.String(), id.Seconds(), id.Machine(), id.Pid(), id.Random(), id.Time().UTC(), id.Bytes())
 }
 
 func ExampleFromString() {
