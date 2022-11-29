@@ -66,7 +66,7 @@ func TestIDPartsExtraction(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	// Generate 10 ids
-  var numIDS = 10000
+	var numIDS = 10000
 	ids := make([]ID, numIDS)
 	for i := 0; i < numIDS; i++ {
 		ids[i] = New()
@@ -205,6 +205,22 @@ func TestFromBytes_InvalidBytes(t *testing.T) {
 		if got, want := err != nil, c.shouldFail; got != want {
 			t.Errorf("FromBytes() error got %v, want %v", got, want)
 		}
+	}
+}
+
+func TestIDDriverScan(t *testing.T) {
+
+	// [ce0djy0s248ra7qrh140] seconds:1669388664 random:519604254 machine:[0x19, 0x11] pid:4485 time:2022-11-25 07:04:24 -0800 PST
+	// ID{0x63, 0x80, 0xd9, 0x78, 0x19, 0x11, 0x11, 0x85, 0x1e, 0xf8, 0x88, 0x48}
+	got := ID{}
+	err := got.Scan("ce0djy0s248ra7qrh140")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := ID{0x63, 0x80, 0xd9, 0x78, 0x19, 0x11, 0x11, 0x85, 0x1e, 0xf8, 0x88, 0x48}
+
+	if got.Compare(want) != 0 {
+		t.Errorf("Scan() = %v, want %v", got, want)
 	}
 }
 
