@@ -87,20 +87,17 @@ func init() {
 	}
 }
 
-// New returns a new ID using the current time; IDs represent time resolution in seconds.
+// New returns a new ID using the current time;
 func New() ID {
 	return NewWithTime(time.Now())
 }
 
 // NewWithTime returns a new ID based upon the supplied Time value.
 func NewWithTime(tm time.Time) ID {
-	var (
-		id ID
-		t  = tm.Unix()
-	)
+	var id ID
 
-	binary.BigEndian.PutUint32(id[:], uint32(t))
-	// Machine, only the first 2 bytes of md5(hostname)
+	binary.BigEndian.PutUint32(id[:], uint32(tm.Unix()))
+	// Machine, only the first 2 bytes of the md5 hash
 	id[4] = machineID[0]
 	id[5] = machineID[1]
 	// Pid, 2 bytes, specs don't specify endianness, but we use big endian.
@@ -131,7 +128,7 @@ func NilID() ID {
 	return nilID
 }
 
-// String returns the custom base32 encoded representation of ID.
+// String returns the custom base32 encoded representation of ID as a string.
 func (id ID) String() string {
 	text := make([]byte, encodedLen)
 	encode(text, id[:])
@@ -139,7 +136,7 @@ func (id ID) String() string {
 	return *(*string)(unsafe.Pointer(&text))
 }
 
-// Encode encodes the id using base32 encoding.
+// Encode encodes the id using base32 encoding, returning a slice.
 func (id ID) Encode(dst []byte) []byte {
 	encode(dst, id[:])
 	return dst
@@ -182,7 +179,7 @@ func (id ID) Seconds() int64 {
 	return int64(binary.BigEndian.Uint32(id[0:4]))
 }
 
-// Time returns the ID's timestamp compoent as a Time value.
+// Time returns the ID's timestamp compoent as a Time value with seconds resolution.
 func (id ID) Time() time.Time {
 	return time.Unix(id.Seconds(), 0)
 }
