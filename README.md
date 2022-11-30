@@ -3,7 +3,7 @@
 # rid
 
 Package rid provides a [k-sortable](https://en.wikipedia.org/wiki/K-sorted_sequence),
-configuration-free, unique ID generator.  Binary IDs Base-32 encode as a
+zero-configuration, unique ID generator.  Binary IDs Base-32 encode as a
 20-character URL-friendly representation like: `ce0e7egs24nkzkn6egfg`.
 
 The 12-byte binary representation of an ID is comprised of a:
