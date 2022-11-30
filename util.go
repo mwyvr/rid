@@ -6,11 +6,45 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 )
 
 var (
 	rander = rand.Reader
+	rGen   = &randomGenerator{lastTick: 0, isExists: make(map[[4]byte]bool)}
 )
+
+// randomGenerator represents a random number generator providing random numbers guaranteed
+// to be unique for each second per machine per process.
+type randomGenerator struct {
+	lastTick uint32
+	isExists map[[4]byte]bool
+	rbytes   [4]byte // arrays, not slices, allowed as keys to map
+	mu       sync.RWMutex
+}
+
+// BySecond returns a random uint32 guaranteed to be unique for each second
+// tick of the clock. This function is concurrency-safe.
+func (r *randomGenerator) Next(second uint32) []byte {
+	// reset the mapping for every new second, when called
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.lastTick != second {
+		r.lastTick = second
+		for k := range r.isExists {
+			delete(r.isExists, k)
+			// fmt.Println("was dupe", k)
+		}
+	}
+
+	for {
+		randomBytes(r.rbytes[:]) // pass as a slice
+		if !r.isExists[r.rbytes] {
+			r.isExists[r.rbytes] = true
+			return r.rbytes[:]
+		}
+	}
+}
 
 // randomBytes completely fills slice b with random data via crypto/rand
 func randomBytes(b []byte) {

@@ -323,8 +323,8 @@ func ExampleNew() {
     Bytes()   %3v\n`, id.String(), id.Seconds(), id.Random(), id.Time(), id.Bytes())
 }
 
-func ExampleNewWithTime() {
-	id := NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
+func ExampleNewWithTimestamp() {
+	id := NewWithTimestamp(uint32(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()))
 	fmt.Printf(`ID:
     String()  %s
     Seconds() %d

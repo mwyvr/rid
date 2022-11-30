@@ -70,9 +70,6 @@ var (
 	// pid is the current process id
 	pid = os.Getpid()
 
-	// randBuf is used for random segment generation
-	randBuf = make([]byte, 4)
-
 	// dec is the decoding map for base32 encoding
 	dec [256]byte
 
@@ -91,14 +88,15 @@ func init() {
 
 // New returns a new ID using the current time;
 func New() ID {
-	return NewWithTime(time.Now())
+	return NewWithTimestamp(uint32(time.Now().Unix()))
 }
 
 // NewWithTime returns a new ID based upon the supplied Time value.
-func NewWithTime(tm time.Time) ID {
+func NewWithTimestamp(ts uint32) ID {
 	var id ID
+	var randBytes = make([]byte, 4)
 
-	binary.BigEndian.PutUint32(id[:], uint32(tm.Unix()))
+	binary.BigEndian.PutUint32(id[:], ts)
 	// Machine, only the first 2 bytes of the md5 hash
 	id[4] = machineID[0]
 	id[5] = machineID[1]
@@ -106,11 +104,11 @@ func NewWithTime(tm time.Time) ID {
 	id[6] = byte(pid >> 8)
 	id[7] = byte(pid)
 	// 4 bytes for the random value
-	randomBytes(randBuf)
-	id[8] = randBuf[0]
-	id[9] = randBuf[1]
-	id[10] = randBuf[2]
-	id[11] = randBuf[3]
+	randBytes = rGen.Next(ts)
+	id[8] = randBytes[0]
+	id[9] = randBytes[1]
+	id[10] = randBytes[2]
+	id[11] = randBytes[3]
 
 	return id
 }
