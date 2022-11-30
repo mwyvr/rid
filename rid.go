@@ -1,14 +1,16 @@
 /*
-Package rid provides a (mostly) k-sortable random ID generator. The 12 byte
-binary ID string representation is 20-characters long, URL-friendly/Base32
-encoded globally-unique identifier. IDs are chronologically sortable to the second.
+Package rid provides a k-sortable configuration-free, unique ID generator.
 
-Each ID's 12-byte binary representation is comprised of a:
+Package rid provides a [k-sortable](https://en.wikipedia.org/wiki/K-sorted_sequence),
+configuration-free, unique ID generator.  Binary IDs Base-32 encode as a
+20-character URL-friendly representation like: `ce0e7egs24nkzkn6egfg`.
+
+The 12-byte binary representation of an ID is comprised of a:
 
   - 4-byte timestamp value representing seconds since the Unix epoch
-  - 2-byte machine ID
-  - 2-byte process ID
-  - 4-byte random value
+  - 2-byte machine identifier
+  - 2-byte process identifier
+  - 4-byte cryptographically secure generated random value
 
 rid implements a number of well-known interfaces to make
 interacting with json and databases more convenient.  The String()

@@ -1,4 +1,4 @@
-// Package main - the `rid` command - generate or inspect rid.
+// Package main - the `rid` command - generate or inspect rids.
 package main
 
 import (
@@ -15,14 +15,14 @@ var (
 )
 
 func init() {
-	flag.IntVar(&count, "c", count, "Generate n * IDs")
+	flag.IntVar(&count, "c", count, "Generate count number of IDs")
 }
 
 func main() {
 	flag.Usage = func() {
 		pgm := os.Args[0]
-		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s -c N          # print N rid(s)\n", pgm)
-		fmt.Fprintf(flag.CommandLine.Output(), "       %s 0629p0rqdrw8p # decode one or more rid(s)\n", pgm)
+		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s -c N                 # generate N rids\n", pgm)
+		fmt.Fprintf(flag.CommandLine.Output(), "       %s cdym59rs24a5g86efepg # decode one or more rid(s)\n", pgm)
 		// flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -57,7 +57,6 @@ func main() {
 		for c := 0; c < count; c++ {
 			fmt.Fprintf(os.Stdout, "%s\n", rid.New())
 		}
-
 	}
 }
 
@@ -67,5 +66,4 @@ func asHex(b []byte) string {
 		s = append(s, fmt.Sprintf("%#x", v))
 	}
 	return strings.Join(s, ", ")
-
 }
