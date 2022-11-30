@@ -10,9 +10,7 @@ import (
 	"github.com/solutionroute/rid"
 )
 
-var (
-	count int = 1
-)
+var count int = 1
 
 func init() {
 	flag.IntVar(&count, "c", count, "Generate count number of IDs")
@@ -21,22 +19,23 @@ func init() {
 func main() {
 	flag.Usage = func() {
 		pgm := os.Args[0]
-		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s -c N                 # generate N rids\n", pgm)
-		fmt.Fprintf(flag.CommandLine.Output(), "       %s cdym59rs24a5g86efepg # decode one or more rid(s)\n", pgm)
-		// flag.PrintDefaults()
+		fmt.Fprintf(flag.CommandLine.Output(),
+			"usage: %s -c N                 # generate N rids\n", pgm)
+		fmt.Fprintf(flag.CommandLine.Output(),
+			"       %s cdym59rs24a5g86efepg # decode one or more rid(s)\n", pgm)
 	}
 	flag.Parse()
 	args := flag.Args()
 
 	if count > 1 && len(args) > 0 {
-		fmt.Fprintf(flag.CommandLine.Output(), "error: -c (output) and args (input) both specified; perform only one at a time.\n")
+		fmt.Fprintf(flag.CommandLine.Output(),
+			"error: -c (output) and args (input) both specified; perform only one at a time.\n")
 		flag.Usage()
 		os.Exit(1)
 	}
 
 	errors := 0
-
-	// If no valid flag, Either attempt to decode string as a rid
+	// If args, attempt to decode as an rid
 	for _, arg := range args {
 		id, err := rid.FromString(arg)
 		if err != nil {
@@ -44,19 +43,15 @@ func main() {
 			fmt.Printf("[%s] %s\n", arg, err)
 			continue
 		}
-		fmt.Printf("%s seconds:%d machine:[%s] pid:%v random:%10d | time:%v ID{%s}\n",
-			arg, id.Seconds(),
-			asHex(id.Machine()),
-			id.Pid(),
-			id.Random(),
-			id.Time(), asHex(id[:]))
+		fmt.Printf("%s seconds:%d machine:[%s] pid:%v random:%10d | time:%v ID{%s}\n", arg,
+			id.Seconds(), asHex(id.Machine()), id.Pid(), id.Random(), id.Time(), asHex(id.Bytes()))
 	}
 	if errors > 0 {
 		fmt.Printf("%d error(s)\n", errors)
 		os.Exit(1)
 	}
 
-	// OR... generate one (or -c value) rid
+	// if -c N, generate one rid
 	if len(args) == 0 {
 		for c := 0; c < count; c++ {
 			fmt.Fprintf(os.Stdout, "%s\n", rid.New())
