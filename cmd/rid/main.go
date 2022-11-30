@@ -44,7 +44,7 @@ func main() {
 			fmt.Printf("[%s] %s\n", arg, err)
 			continue
 		}
-		fmt.Printf("[%s] seconds:%d random:%d machine:[%s] pid:%v time:%v ID{%s}\n",
+		fmt.Printf("[%s] seconds:%d random:%10d machine:[%s] pid:%v time:%v ID{%s}\n",
 			arg, id.Seconds(), id.Random(), asHex(id.Machine()), id.Pid(), id.Time(), asHex(id[:]))
 	}
 	if errors > 0 {
@@ -65,5 +65,5 @@ func asHex(b []byte) string {
 	for _, v := range b {
 		s = append(s, fmt.Sprintf("%#x", v))
 	}
-	return strings.Join(s, ", ")
+	return strings.Join(s, ",")
 }

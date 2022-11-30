@@ -37,12 +37,12 @@ bytes of the ID.
 
 ## Batteries included
 
-rid.ID implements a number of common interfaces including package sql's
+`rid.ID` implements a number of common interfaces including package sql's
 driver.Valuer, sql.Scanner, TextMarshaler, TextUnmarshaler, json.Marshaler,
 json.Unmarshaler, and Stringer.
 
-Package rid also provides a command line tool `rid` allowing for id generation
-or inspection:
+Package `rid` also provides a command line tool `rid` allowing for id generation
+and inspection. To install: `go install github.com/solutionroute/rid/...`
 
     $ rid
     ce0e7ygs24nw4zebrz10
@@ -55,15 +55,19 @@ or inspection:
     ce0e8n0s24p72rxdr64g
 
     # produce one (or more, with -c) and inspect
-    $rid `rid -c 2`
-    [ce0e960s24phh0qrnz7g] seconds:1669391512 random:2197335938 machine:[0x19, 0x11] pid:11544 time:2022-11-25 07:51:52 -0800 PST ID{0x63, 0x80, 0xe4, 0x98, 0x19, 0x11, 0x2d, 0x18, 0x82, 0xf8, 0xaf, 0xcf}
-    [ce0e960s24phh39seya0] seconds:1669391512 random:2369353613 machine:[0x19, 0x11] pid:11544 time:2022-11-25 07:51:52 -0800 PST ID{0x63, 0x80, 0xe4, 0x98, 0x19, 0x11, 0x2d, 0x18, 0x8d, 0x39, 0x77, 0x94}
+    $rid `rid -c 4`
+
+    [ce3qht8s24mjwma64r8g] seconds:1669822697 random:1363551825 machine:[0x19,0x11] pid:10542 time:2022-11-30 07:38:17 -0800 PST ID{0x63,0x87,0x78,0xe9,0x19,0x11,0x29,0x2e,0x51,0x46,0x26,0x11}
+    [ce3qht8s24mjxybpys70] seconds:1669822697 random:4185323257 machine:[0x19,0x11] pid:10542 time:2022-11-30 07:38:17 -0800 PST ID{0x63,0x87,0x78,0xe9,0x19,0x11,0x29,0x2e,0xf9,0x76,0xf6,0x4e}
+    [ce3qht8s24mjw0280sz0] seconds:1669822697 random:   4720128 machine:[0x19,0x11] pid:10542 time:2022-11-30 07:38:17 -0800 PST ID{0x63,0x87,0x78,0xe9,0x19,0x11,0x29,0x2e,0x0,0x48,0x6,0x7e}
+    [ce3qht8s24mjwwecpntg] seconds:1669822697 random:1909241201 machine:[0x19,0x11] pid:10542 time:2022-11-30 07:38:17 -0800 PST ID{0x63,0x87,0x78,0xe9,0x19,0x11,0x29,0x2e,0x71,0xcc,0xb5,0x75}
 
 ## Benchmark
 
-`rid` using a random number for one segment of the ID is inherently slower than
-an incrementing counter such as used in `xid`. That said, my 4-core laptop
-can generate 4 million unique IDs in 1 second using a single process.
+Using a random number for one segment of the ID is inherently slower than
+an incrementing counter such as used in `github.com/rs/xid`. That said, my 4-core laptop
+can generate 4 million unique IDs in 1 second using a single process and scales
+up from there.
 
     $ go test -cpu 1,4,8 -benchmem  -run=^$   -bench  ^.*$
     goos: linux goarch: amd64
@@ -84,9 +88,9 @@ On an 8-core AMD desktop:
 
 ## See Also
 
-If you don't want the sortable semi-randomness this package provides, consider
-the well tested and highly performant k-sortable `rs/xid` package upon which
-`rid` is based. See https://github.com/rs/xid.
+If you don't need the sortable semi-randomness this package provides, consider
+the well tested and performant k-sortable `rs/xid` package upon which `rid` is
+based. See https://github.com/rs/xid.
 
 For a comparison of various golang unique ID solutions, including `rs/xid`, see:
 https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
