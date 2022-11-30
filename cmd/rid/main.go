@@ -44,8 +44,12 @@ func main() {
 			fmt.Printf("[%s] %s\n", arg, err)
 			continue
 		}
-		fmt.Printf("[%s] seconds:%d random:%10d machine:[%s] pid:%v time:%v ID{%s}\n",
-			arg, id.Seconds(), id.Random(), asHex(id.Machine()), id.Pid(), id.Time(), asHex(id[:]))
+		fmt.Printf("%s seconds:%d machine:[%s] pid:%v random:%10d | time:%v ID{%s}\n",
+			arg, id.Seconds(),
+			asHex(id.Machine()),
+			id.Pid(),
+			id.Random(),
+			id.Time(), asHex(id[:]))
 	}
 	if errors > 0 {
 		fmt.Printf("%d error(s)\n", errors)
