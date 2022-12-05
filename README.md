@@ -2,6 +2,8 @@
 
 # rid
 
+**Note**: Dec 5 2022 this package is being coming closer to being stable but is not as yet.
+
 Package rid provides a [k-sortable](https://en.wikipedia.org/wiki/K-sorted_sequence),
 zero-configuration, unique ID generator.  Binary IDs are encoded as Base32,
 producing a 20-character URL-friendly representation like: `ce0e7egs24nkzkn6egfg`.
@@ -9,10 +11,10 @@ producing a 20-character URL-friendly representation like: `ce0e7egs24nkzkn6egfg
 The 12-byte binary representation of an ID is comprised of a:
 
 - 4-byte timestamp value representing seconds ticked since the Unix epoch
-- 2-byte process signature, derived from md5 hash of machine ID + process ID
-- 6-byte fastrand random 
+- 2-byte process signature, derived from a md5 hash of the machine ID + process ID
+- 6-byte fastrand random number
 
-rid implements a number of well-known interfaces to make use with json
+rid also implements a number of well-known interfaces to make use with json
 and databases more convenient.
 
 **Acknowledgement**: This package borrows _heavily_ from the at-scale capable
@@ -50,10 +52,10 @@ and inspection. To install: `go install github.com/solutionroute/rid/...`
 
     # produce 4 and inspect
     $rid `rid -c 4`
-    ce3r1ars24zj69nxftj0 seconds:1669824683 machine:[0x19,0x11] pid:16163 random: 649952806 | time:2022-11-30 08:11:23 -0800 PST ID{0x63,0x87,0x80,0xab,0x19,0x11,0x3f,0x23,0x26,0xbd,0x7e,0xa4}
-    ce3r1ars24zj7xwwc3k0 seconds:1669824683 machine:[0x19,0x11] pid:16163 random:4154220791 | time:2022-11-30 08:11:23 -0800 PST ID{0x63,0x87,0x80,0xab,0x19,0x11,0x3f,0x23,0xf7,0x9c,0x60,0xe6}
-    ce3r1ars24zj6016apjg seconds:1669824683 machine:[0x19,0x11] pid:16163 random:   2512128 | time:2022-11-30 08:11:23 -0800 PST ID{0x63,0x87,0x80,0xab,0x19,0x11,0x3f,0x23,0x0,0x26,0x55,0xa5}
-    ce3r1ars24zj7dkzbd80 seconds:1669824683 machine:[0x19,0x11] pid:16163 random:3061799862 | time:2022-11-30 08:11:23 -0800 PST ID{0x63,0x87,0x80,0xab,0x19,0x11,0x3f,0x23,0xb6,0x7f,0x5b,0x50}
+    ce774rps8mhktmy2wr1g seconds:1670279778 rtsig:[0xd9,0x45] random: 38746305259011 | time:2022-12-05 14:36:18 -0800 PST ID{0x63,0x8e,0x72,0x62,0xd9,0x45,0x23,0x3d,0x53,0xc2,0xe6,0x3}
+    ce774rps8mbs76j3jat0 seconds:1670279778 rtsig:[0xd9,0x45] random: 25922715751092 | time:2022-12-05 14:36:18 -0800 PST ID{0x63,0x8e,0x72,0x62,0xd9,0x45,0x17,0x93,0x9a,0x43,0x92,0xb4}
+    ce774rps8qz3ye4mscz0 seconds:1670279778 rtsig:[0xd9,0x45] random:279547485670206 | time:2022-12-05 14:36:18 -0800 PST ID{0x63,0x8e,0x72,0x62,0xd9,0x45,0xfe,0x3f,0x38,0x94,0xcb,0x3e}
+    ce774rps8m0b8r2vprgg seconds:1670279778 rtsig:[0xd9,0x45] random:   774710736417 | time:2022-12-05 14:36:18 -0800 PST ID{0x63,0x8e,0x72,0x62,0xd9,0x45,0x0,0xb4,0x60,0x5b,0xb6,0x21}
 
 ## Package Comparisons
 
@@ -75,9 +77,9 @@ https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
 
 ## Package Benchmarks
 
-Note: `rid` uses a Go runtime "fastrand"; it's non-deterministic, requires no seeding, and fast. 
-There are undoubtedly cryptographic reasons why it should not be used but for the 
-purpose of this package `fastrand` seems ideal.
+Note: For random number generation `rid` uses a Go runtime "fastrand"; it's non-deterministic, 
+requires no seeding, and fast.  There are undoubtedly cryptographic reasons why it should not be 
+used for many purposes, but for the purpose of *this* package, `fastrand` seemed ideal.
 
 A comparison with the above noted packages can be found in [bench/bench_test.go](bench/bench_test.go). Output:
 
@@ -90,7 +92,7 @@ A comparison with the above noted packages can be found in [bench/bench_test.go]
     cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
     BenchmarkRid            	32174292	        35.92 ns/op	       0 B/op	       0 allocs/op
     BenchmarkRid-2          	64156003	        20.27 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkRid-8          	132875484	         9.163 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-8          	132875484	         9.163 ns/op	   0 B/op	       0 allocs/op
     BenchmarkXid            	32172444	        37.11 ns/op	       0 B/op	       0 allocs/op
     BenchmarkXid-2          	36815612	        31.93 ns/op	       0 B/op	       0 allocs/op
     BenchmarkXid-8          	71943614	        16.49 ns/op	       0 B/op	       0 allocs/op
