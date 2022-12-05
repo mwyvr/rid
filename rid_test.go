@@ -11,37 +11,33 @@ import (
 )
 
 type idParts struct {
-	id        ID
-	timestamp int64
-	machine   []byte
-	pid       uint16
-	random    uint32
+	id               ID
+	timestamp        int64
+	runtimesignature []byte
+	random           uint64
 }
 
 var IDs = []idParts{
-	// sorted should be IDs 1, 2, 0
+	// sorted (ascending) should be IDs 1, 2, 0
 	{
-		// [ce0dmp0s249v4q507980] seconds:1669388888 random:1554004572 machine:[0x19, 0x11] pid:5042 time:2022-11-25 07:08:08 -0800 PST
-		ID{0x63, 0x80, 0xda, 0x58, 0x19, 0x11, 0x13, 0xb2, 0x5c, 0xa0, 0x3a, 0x50},
-		1669388888,
-		[]byte{0x19, 0x11},
-		5042,
-		1554004572,
+		// ce6s9m4nv5be5w91b2tg seconds:1670223056 rtsig:[0x95,0xd9] random: 95532708092085 | time:2022-12-04 22:50:56 -0800 PST ID{0x63,0x8d,0x94,0xd0,0x95,0xd9,0x56,0xe2,0xf1,0x21,0x58,0xb5}
+		ID{0x63, 0x8d, 0x94, 0xd0, 0x95, 0xd9, 0x56, 0xe2, 0xf1, 0x21, 0x58, 0xb5},
+		1670223056,
+		[]byte{0x95, 0xd9},
+		95532708092085,
 	},
 	{
 		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		0,
 		[]byte{0x00, 0x00},
-		0x0000,
 		0,
 	},
 	{
-		// [ce0djy0s248ra7qrh140] seconds:1669388664 random:519604254 machine:[0x19, 0x11] pid:4485 time:2022-11-25 07:04:24 -0800 PST
-		ID{0x63, 0x80, 0xd9, 0x78, 0x19, 0x11, 0x11, 0x85, 0x1e, 0xf8, 0x88, 0x48},
-		1669388664,
-		[]byte{0x19, 0x11},
-		4485,
-		519604254,
+		// ce6s7tarwkqzbch94xt0 seconds:1670222825 rtsig:[0x58,0xe4] random:263838535067508 | time:2022-12-04 22:47:05 -0800 PST ID{0x63,0x8d,0x93,0xe9,0x58,0xe4,0xef,0xf5,0xb2,0x29,0x27,0x74}
+		ID{0x63, 0x8d, 0x93, 0xe9, 0x58, 0xe4, 0xef, 0xf5, 0xb2, 0x29, 0x27, 0x74},
+		1670222825,
+		[]byte{0x58, 0xe4},
+		263838535067508,
 	},
 }
 
@@ -51,11 +47,8 @@ func TestIDPartsExtraction(t *testing.T) {
 			if got, want := v.id.Time(), time.Unix(v.timestamp, 0); got != want {
 				t.Errorf("Time() = %v, want %v", got, want)
 			}
-			if got, want := v.id.Machine(), v.machine; !bytes.Equal(got, want) {
-				t.Errorf("Machine() = %v, want %v", got, want)
-			}
-			if got, want := v.id.Pid(), v.pid; got != want {
-				t.Errorf("Pid() = %v, want %v", got, want)
+			if got, want := v.id.RuntimeSignature(), v.runtimesignature; !bytes.Equal(got, want) {
+				t.Errorf("RuntimeSignature() = %v, want %v", got, want)
 			}
 			if got, want := v.id.Random(), v.random; got != want {
 				t.Errorf("Random() = %v, want %v", got, want)
@@ -65,7 +58,8 @@ func TestIDPartsExtraction(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-	// Generate 10 ids
+	// Generate N ids, see if all unique
+	// TODO add parallel test
 	var numIDS = 10000
 	ids := make([]ID, numIDS)
 	for i := 0; i < numIDS; i++ {
@@ -89,12 +83,8 @@ func TestNew(t *testing.T) {
 			t.Error("wrong timestamp in generated ID")
 		}
 		// Check that machine ids are the same
-		if !bytes.Equal(id.Machine(), prevID.Machine()) {
+		if !bytes.Equal(id.RuntimeSignature(), prevID.RuntimeSignature()) {
 			t.Error("machine ID not equal")
-		}
-		// Check that pids are the same
-		if id.Pid() != prevID.Pid() {
-			t.Error("pid not equal")
 		}
 	}
 }
@@ -103,14 +93,6 @@ func TestIDString(t *testing.T) {
 	id := ID{0x4d, 0x88, 0xe1, 0x5b, 0x60, 0xf4, 0x86, 0xe4, 0x28, 0x41, 0x2d, 0xc9}
 	if got, want := id.String(), "9p4e2pv0yj3e8a215q4g"; got != want {
 		t.Errorf("String() = %v, want %v", got, want)
-	}
-}
-
-func TestIDEncode(t *testing.T) {
-	id := ID{0x4d, 0x88, 0xe1, 0x5b, 0x60, 0xf4, 0x86, 0xe4, 0x28, 0x41, 0x2d, 0xc9}
-	text := make([]byte, encodedLen)
-	if got, want := string(id.Encode(text)), "9p4e2pv0yj3e8a215q4g"; got != want {
-		t.Errorf("Encode() = %v, want %v", got, want)
 	}
 }
 
@@ -190,24 +172,6 @@ func TestFromBytes_Invariant(t *testing.T) {
 	}
 }
 
-func TestFromBytes_InvalidBytes(t *testing.T) {
-	cases := []struct {
-		length     int
-		shouldFail bool
-	}{
-		{11, true},
-		{12, false},
-		{13, true},
-	}
-	for _, c := range cases {
-		b := make([]byte, c.length)
-		_, err := FromBytes(b)
-		if got, want := err != nil, c.shouldFail; got != want {
-			t.Errorf("FromBytes() error got %v, want %v", got, want)
-		}
-	}
-}
-
 func TestIDDriverScan(t *testing.T) {
 
 	// [ce0djy0s248ra7qrh140] seconds:1669388664 random:519604254 machine:[0x19, 0x11] pid:4485 time:2022-11-25 07:04:24 -0800 PST
@@ -274,6 +238,14 @@ func TestSort(t *testing.T) {
 	}
 }
 
+func Test_runtimeSignature(t *testing.T) {
+	// should not be a nil value
+	var nilMachineID = make([]byte, 2)
+	if got := runtimeSignature(); reflect.DeepEqual(got, nilMachineID) {
+		t.Errorf("randomMachineId() = %v, want %v, shouldn't be nil", got, nilMachineID)
+	}
+}
+
 // Benchmarks
 func BenchmarkNew(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
@@ -316,11 +288,12 @@ func BenchmarkFromString(b *testing.B) {
 func ExampleNew() {
 	id := New()
 	fmt.Printf(`ID:
-    String()  %s   
-    Seconds() %d  
-    Random()  %d // random for this one-off run 
+    String()  %s
+    Seconds() %d
+    ProcessSignature() %v 
+    Random()  %d 
     Time()    %v
-    Bytes()   %3v\n`, id.String(), id.Seconds(), id.Random(), id.Time(), id.Bytes())
+    Bytes()   %3v\n`, id.String(), id.Seconds(), id.RuntimeSignature(), id.Random(), id.Time().UTC(), id.Bytes())
 }
 
 func ExampleNewWithTimestamp() {
@@ -328,11 +301,10 @@ func ExampleNewWithTimestamp() {
 	fmt.Printf(`ID:
     String()  %s
     Seconds() %d
-    Machine() %v 
-    Pid()     %d
+    ProcessSignature() %v 
     Random()  %d 
     Time()    %v
-    Bytes()   %3v\n`, id.String(), id.Seconds(), id.Machine(), id.Pid(), id.Random(), id.Time().UTC(), id.Bytes())
+    Bytes()   %3v\n`, id.String(), id.Seconds(), id.RuntimeSignature(), id.Random(), id.Time().UTC(), id.Bytes())
 }
 
 func ExampleFromString() {

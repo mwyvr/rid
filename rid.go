@@ -8,9 +8,8 @@ configuration-free, unique ID generator.  Binary IDs Base-32 encode as a
 The 12-byte binary representation of an ID is comprised of a:
 
   - 4-byte timestamp value representing seconds since the Unix epoch
-  - 2-byte machine identifier
-  - 2-byte process identifier
-  - 4-byte cryptographically secure generated random value
+  - 2-byte process signature comprised of md5 hash of machiine ID+process ID
+  - 6-byte random value
 
 rid implements a number of well-known interfaces to make
 interacting with json and databases more convenient.  The String()
@@ -34,12 +33,15 @@ package rid
 
 import (
 	"bytes"
+	"crypto/md5"
 	"database/sql/driver"
+	"encoding/base32"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"time"
 	"unsafe"
 )
@@ -50,12 +52,12 @@ type ID [rawLen]byte
 const (
 	rawLen     = 12 // binary representation
 	encodedLen = 20 // base32 representation
-	// encoding stores the character set for a custom Base32 encoding
+	// charset stores the character set for a custom Base32 charset
 	// inspired by Crockford: i, l, o, u removed and w, x, y, z added.
 	//
-	// encoding/Base32 charset for comparison:
+	// charset/Base32 charset for comparison:
 	//         "0123456789abcdefghijklmnopqrstuv"
-	encoding = "0123456789abcdefghjkmnpqrstvwxyz"
+	charset = "0123456789abcdefghjkmnpqrstvwxyz"
 )
 
 var (
@@ -63,13 +65,11 @@ var (
 	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
-	// machineId is derived from two bytes of the md5 hash of the machine
-	// identifier or hostname or fallback
-	machineID = readMachineID()
+	// rtSignature is derived from two bytes of the md5 hash of the machine
+	// identifier and process ID
+	rtSignature = runtimeSignature()
 
-	// pid is the current process id
-	pid = os.Getpid()
-
+	encoding = base32.NewEncoding(charset).WithPadding(-1)
 	// dec is the decoding map for base32 encoding
 	dec [256]byte
 
@@ -81,8 +81,8 @@ func init() {
 	for i := 0; i < len(dec); i++ {
 		dec[i] = 0xFF
 	}
-	for i := 0; i < len(encoding); i++ {
-		dec[encoding[i]] = byte(i)
+	for i := 0; i < len(charset); i++ {
+		dec[charset[i]] = byte(i)
 	}
 }
 
@@ -91,25 +91,28 @@ func New() ID {
 	return NewWithTimestamp(uint32(time.Now().Unix()))
 }
 
+// func fastrand() uint64 {
+// 	return uint64(new(maphash.Hash).Sum64())
+// }
+
 // NewWithTime returns a new ID based upon the supplied Time value.
 func NewWithTimestamp(ts uint32) ID {
 	var id ID
-	var randBytes = make([]byte, 4)
+	// var randBytes = make([]byte, 6)
 
 	binary.BigEndian.PutUint32(id[:], ts)
-	// Machine, only the first 2 bytes of the md5 hash
-	id[4] = machineID[0]
-	id[5] = machineID[1]
-	// Pid, 2 bytes, specs don't specify endianness, but we use big endian.
-	id[6] = byte(pid >> 8)
-	id[7] = byte(pid)
-	// 4 bytes for the random value
-	randBytes = rGen.Next(ts)
-	id[8] = randBytes[0]
-	id[9] = randBytes[1]
-	id[10] = randBytes[2]
-	id[11] = randBytes[3]
-
+	// processSignature, only the first 2 bytes of the md5 hash
+	id[4] = rtSignature[0]
+	id[5] = rtSignature[1]
+	// via fastrand()
+	// rv := fastrand()
+	rv := randUint64()
+	id[6] = byte(rv >> 40)
+	id[7] = byte(rv >> 32)
+	id[8] = byte(rv >> 24)
+	id[9] = byte(rv >> 16)
+	id[10] = byte(rv >> 8)
+	id[11] = byte(rv)
 	return id
 }
 
@@ -136,37 +139,9 @@ func (id ID) String() string {
 	return *(*string)(unsafe.Pointer(&text))
 }
 
-// Encode encodes the id using base32 encoding, returning a slice.
-func (id ID) Encode(dst []byte) []byte {
-	encode(dst, id[:])
-	return dst
-}
-
-// encode by unrolling the stdlib base32 algorithm + removing all safe checks.
+// encode as Base32 using our custom character set
 func encode(dst, id []byte) {
-	_ = dst[19]
-	_ = id[11]
-
-	dst[19] = encoding[(id[11]<<4)&0x1F]
-	dst[18] = encoding[(id[11]>>1)&0x1F]
-	dst[17] = encoding[(id[11]>>6)&0x1F|(id[10]<<2)&0x1F]
-	dst[16] = encoding[id[10]>>3]
-	dst[15] = encoding[id[9]&0x1F]
-	dst[14] = encoding[(id[9]>>5)|(id[8]<<3)&0x1F]
-	dst[13] = encoding[(id[8]>>2)&0x1F]
-	dst[12] = encoding[id[8]>>7|(id[7]<<1)&0x1F]
-	dst[11] = encoding[(id[7]>>4)&0x1F|(id[6]<<4)&0x1F]
-	dst[10] = encoding[(id[6]>>1)&0x1F]
-	dst[9] = encoding[(id[6]>>6)&0x1F|(id[5]<<2)&0x1F]
-	dst[8] = encoding[id[5]>>3]
-	dst[7] = encoding[id[4]&0x1F]
-	dst[6] = encoding[id[4]>>5|(id[3]<<3)&0x1F]
-	dst[5] = encoding[(id[3]>>2)&0x1F]
-	dst[4] = encoding[id[3]>>7|(id[2]<<1)&0x1F]
-	dst[3] = encoding[(id[2]>>4)&0x1F|(id[1]<<4)&0x1F]
-	dst[2] = encoding[(id[1]>>1)&0x1F]
-	dst[1] = encoding[(id[1]>>6)&0x1F|(id[0]<<2)&0x1F]
-	dst[0] = encoding[id[0]>>3]
+	encoding.Encode(dst, id[:])
 }
 
 // Bytes returns by value the byte slice representation of ID.
@@ -184,20 +159,16 @@ func (id ID) Time() time.Time {
 	return time.Unix(id.Seconds(), 0)
 }
 
-// Machine returns the 2-byte machine id part of the id.
-func (id ID) Machine() []byte {
+// RuntimeSignature returns the 2-byte identifier
+func (id ID) RuntimeSignature() []byte {
 	return id[4:6]
 }
 
-// Pid returns the process id part of the id.
-func (id ID) Pid() uint16 {
-	return binary.BigEndian.Uint16(id[6:8])
-}
-
 // Random returns the trailing random number component of the ID.
-func (id ID) Random() uint32 {
-	b := id[8:12]
-	return uint32(uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[0]))
+func (id ID) Random() uint64 {
+	b := id[6:12]
+	return uint64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 |
+		uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
 }
 
 // FromString returns an ID by decoding a Base32 representation of an ID
@@ -230,35 +201,16 @@ func (id *ID) UnmarshalText(text []byte) error {
 			return ErrInvalidID
 		}
 	}
-	if !decode(id, text) {
+	if _, err := decode(id, text); err != nil {
 		*id = nilID
 		return ErrInvalidID
 	}
 	return nil
 }
 
-// decode by unrolling the stdlib base32 algorithm.
-func decode(id *ID, src []byte) bool {
-	_ = src[19]
-	_ = id[11]
-
-	id[11] = dec[src[17]]<<6 | dec[src[18]]<<1 | dec[src[19]]>>4
-	// check the last byte
-	if encoding[(id[11]<<4)&0x1F] != src[19] {
-		return false
-	}
-	id[10] = dec[src[16]]<<3 | dec[src[17]]>>2
-	id[9] = dec[src[14]]<<5 | dec[src[15]]
-	id[8] = dec[src[12]]<<7 | dec[src[13]]<<2 | dec[src[14]]>>3
-	id[7] = dec[src[11]]<<4 | dec[src[12]]>>1
-	id[6] = dec[src[9]]<<6 | dec[src[10]]<<1 | dec[src[11]]>>4
-	id[5] = dec[src[8]]<<3 | dec[src[9]]>>2
-	id[4] = dec[src[6]]<<5 | dec[src[7]]
-	id[3] = dec[src[4]]<<7 | dec[src[5]]<<2 | dec[src[6]]>>3
-	id[2] = dec[src[3]]<<4 | dec[src[4]]>>1
-	id[1] = dec[src[1]]<<6 | dec[src[2]]<<1 | dec[src[3]]>>4
-	id[0] = dec[src[0]]<<3 | dec[src[1]]>>2
-	return true
+// decode a Base32 representation of an ID
+func decode(id *ID, src []byte) (int, error) {
+	return encoding.Decode(id[:], src)
 }
 
 // MarshalText implements encoding.TextMarshaler.
@@ -350,4 +302,38 @@ func (s sorter) Swap(i, j int) {
 // It works by wrapping `[]ID` and use `sort.Sort`.
 func Sort(ids []ID) {
 	sort.Sort(sorter(ids))
+}
+
+// randUint32 produces psuedo random numbers using the go runtime function fastrand
+// These are non-deterministic and use on x86 hardware acceleration. 10x faster and
+// passes uniqueness tests.
+//
+//go:linkname randUint32 runtime.fastrand
+func randUint32() uint32
+
+func randUint64() uint64 {
+	return uint64(randUint32())<<32 | uint64(randUint32())
+}
+
+// runtimeSignature returns a md5 hash of a combination of a machine ID and the current process ID.
+// If this function fails to get the hostname, and the fallback
+// fails, it will cause a runtime error.
+func runtimeSignature() []byte {
+	sig := make([]byte, 2)
+	hid, err := readPlatformMachineID()
+	if err != nil || len(hid) == 0 {
+		hid, err = os.Hostname()
+	}
+	if err != nil {
+		// Fallback to rand number if machine id can't be gathered
+		hid = strconv.Itoa(int(randUint32()))
+	}
+	pid := strconv.Itoa(os.Getpid())
+	rs := md5.New()
+	_, err = rs.Write([]byte(hid + pid)) // two strings
+	if err != nil {
+		panic(fmt.Errorf("rid: cannot produce signature hash: %v", err))
+	}
+	copy(sig, rs.Sum(nil))
+	return sig
 }

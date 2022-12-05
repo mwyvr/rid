@@ -9,13 +9,8 @@ producing a 20-character URL-friendly representation like: `ce0e7egs24nkzkn6egfg
 The 12-byte binary representation of an ID is comprised of a:
 
 - 4-byte timestamp value representing seconds ticked since the Unix epoch
-- 2-byte machine identifier
-- 2-byte process identifier
-- 4-byte crypto/rand generated random value verified per tick for uniqueness
-
-Including the machine and process info into an ID makes `rid` potentially
-suitable, without need for configuration or coordination, for distributed
-applications. Your use case may vary.
+- 2-byte process signature, derived from md5 hash of machine ID + process ID
+- 6-byte fastrand random 
 
 rid implements a number of well-known interfaces to make use with json
 and databases more convenient.
@@ -24,9 +19,8 @@ and databases more convenient.
 [rs/xid](https://github.com/rs/xid) package which itself levers ideas from
 [MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
 
-Where this package primarily differs is the use of cryptographically secure
-random numbers as opposed to xid's use of a monotonic counter for the last 4
-bytes of the ID.
+Where this package primarily differs is the use of random numbers as opposed to 
+xid's use of a monotonic counter for the last 4 bytes of the ID.
 
 ## Usage
 
@@ -91,26 +85,35 @@ Nevertheless, `rid` remains performant enough for many use cases. See
 
 ### Intel 4-core Dell Latitude 7420 laptop
 
-    $ go test -cpu 1,2,8 -benchmem  -run=^$   -benchtime 1s -bench  ^.*$ 
+
+### AMD 8-core desktop
+
+    $ go test -cpu 1,2,8,16 -benchmem  -run=^$   -bench  ^.*$
     goos: linux
     goarch: amd64
     pkg: github.com/solutionroute/rid/bench
-    cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
-    BenchmarkRid            	 3132163	       440.2 ns/op	      17 B/op	       0 allocs/op
-    BenchmarkRid-2          	 2332372	       501.2 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkRid-8          	 2434858	       489.9 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkXid            	30396781	        37.74 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkXid-2          	35541860	        34.44 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkXid-8          	74413412	        16.47 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkKsuid          	 3705994	       315.3 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkKsuid-2        	 3211878	       368.7 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkKsuid-8        	 3229306	       364.9 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkGoogleUuid     	 4200759	       285.5 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkGoogleUuid-2   	 6372727	       186.4 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkGoogleUuid-8   	11384917	       124.4 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkUlid           	  159339	      7436 ns/op	    5440 B/op	       3 allocs/op
-    BenchmarkUlid-2         	  229455	      4741 ns/op	    5440 B/op	       3 allocs/op
-    BenchmarkUlid-8         	  639322	      1806 ns/op	    5440 B/op	       3 allocs/op
-    BenchmarkBetterguid     	13666479	        80.71 ns/op	      24 B/op	       1 allocs/op
-    BenchmarkBetterguid-2   	11158867	       103.4 ns/op	      24 B/op	       1 allocs/op
-    BenchmarkBetterguid-8   	 6611118	       173.9 ns/op	      24 B/op	       1 allocs/op
+    cpu: AMD Ryzen 7 3800X 8-Core Processor             
+    BenchmarkRid              	22292438	        53.16 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-2            	43628499	        26.78 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-8            	167917729	         7.036 ns/op	   0 B/op	       0 allocs/op
+    BenchmarkRid-16           	290794456	         4.280 ns/op	   0 B/op	       0 allocs/op
+    BenchmarkXid              	22106098	        52.18 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-2            	37716454	        98.79 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-8            	42242080	        33.74 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-16           	69441694	        17.13 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid            	 3153589	       374.0 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-2          	 1401748	       820.8 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-8          	 1436038	       835.3 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-16         	 1413260	       854.5 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkGoogleUuid       	 3527152	       322.1 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-2     	 5470621	       202.6 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-8     	20003352	        59.37 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-16    	27508473	        41.06 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkUlid             	  146946	      7818 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-2           	  294543	      4322 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-8           	  799596	      1452 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-16          	  789370	      1509 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkBetterguid       	14070801	        81.99 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-2     	 9354339	       171.2 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-8     	 3932574	       323.3 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-16    	 3130768	       377.5 ns/op	      24 B/op	       1 allocs/op
