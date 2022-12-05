@@ -59,7 +59,7 @@ and inspection. To install: `go install github.com/solutionroute/rid/...`
 
 | Package                                                   |BLen|ELen| K-Sort| 0-Cfg | Encoded ID                           | Method     | Components |
 |-----------------------------------------------------------|----|----|-------|-------|--------------------------------------|------------|------------|
-| [solutionroute/rid](https://github.com/solutionroute/rid) | 12 | 20 |  true |  true | ce3vsz0s24fn979qfjpg                 | crypt/rand | ts(seconds) : machine ID : process ID : random |
+| [solutionroute/rid](https://github.com/solutionroute/rid) | 12 | 20 |  true |  true | ce3vsz0s24fn979qfjpg                 | fastrand   | ts(seconds) : machine ID : process ID : random |
 | [rs/xid](https://github.com/rs/xid)                       | 12 | 20 |  true |  true | ce3rpv0p26gdpm40gbv0                 | counter    | ts(seconds) : machine ID : process ID : counter |
 | [segmentio/ksuid](https://github.com/segmentio/ksuid)     | 20 | 27 |  true |  true | 2IHYlFPNznxhMcMpdi4ppCtwJWZ          | random     | ts(seconds) : random |
 | [google/uuid](https://github.com/google/uuid)             | 16 | 36 | false |  true | db5507af-6a9c-40ea-899b-0fe3c547086e | crypt/rand | (v4) version + variant + 122 bits random |
@@ -75,16 +75,37 @@ https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
 
 ## Package Benchmarks
 
-Benchmarks were purposely left until last in this README. `rid` was developed to
-provide a more random unique ID than `xid` produces; to do so it relies on
-`crypto/rand` plus a uniqueness checking algorithm which involves a map and
-mutex locks, with a predictable hit on performance.
+Note: `rid` uses a Go runtime "fastrand"; it's non-deterministic, requires no seeding, and fast. 
+There are undoubtedly cryptographic reasons why it should not be used but for the 
+purpose of this package `fastrand` seems ideal.
 
-Nevertheless, `rid` remains performant enough for many use cases. See 
-[bench/bench_test.go](bench/bench_test.go).
+A comparison with the above noted packages can be found in [bench/bench_test.go](bench/bench_test.go). Output:
 
 ### Intel 4-core Dell Latitude 7420 laptop
 
+    $ go test -cpu 1,2,8 -benchmem  -run=^$   -bench  ^.*$ 
+    goos: linux
+    goarch: amd64
+    pkg: github.com/solutionroute/rid/bench
+    cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
+    BenchmarkRid            	32174292	        35.92 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-2          	64156003	        20.27 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-8          	132875484	         9.163 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid            	32172444	        37.11 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-2          	36815612	        31.93 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-8          	71943614	        16.49 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid          	 3849388	       308.2 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-2        	 3261043	       366.3 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-8        	 3274056	       365.7 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkGoogleUuid     	 4241515	       279.6 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-2   	 6379092	       174.4 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-8   	13265209	        90.80 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkUlid           	  155619	      7373 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-2         	  254022	      4858 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-8         	  567592	      2110 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkBetterguid     	13743166	        82.97 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-2   	11306263	       101.7 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-8   	 6983956	       167.5 ns/op	      24 B/op	       1 allocs/op
 
 ### AMD 8-core desktop
 
