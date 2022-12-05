@@ -34,8 +34,8 @@ func main() {
 			true,
 			true,
 			rid.New().String(),
-			"crypt/rand",
-			"ts(seconds) : machine ID : process ID : random",
+			"fastrand",
+			"ts(seconds) : runtime signature : random",
 		},
 		{
 			"[rs/xid](https://github.com/rs/xid)",
