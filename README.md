@@ -2,27 +2,25 @@
 
 # rid
 
-**Note**: Dec 5 2022 this package is being coming closer to being stable but is not as yet.
-
-Package rid provides a [k-sortable](https://en.wikipedia.org/wiki/K-sorted_sequence),
+Package `rid` provides a [k-sortable](https://en.wikipedia.org/wiki/K-sorted_sequence),
 zero-configuration, unique ID generator.  Binary IDs are encoded as Base32,
-producing a 20-character URL-friendly representation like: `ce0e7egs24nkzkn6egfg`.
+producing a 20-character URL-friendly representation like: `ce7cjjn0vwjj89nerxag`.
 
 The 12-byte binary representation of an ID is comprised of a:
 
 - 4-byte timestamp value representing seconds ticked since the Unix epoch
-- 2-byte process signature, derived from a md5 hash of the machine ID + process ID
+- 2-byte machine+process signature, derived from a md5 hash of the machine ID + process ID
 - 6-byte random number using Go's runtime `fastrand` function. [1]
 
-rid also implements a number of well-known interfaces to make use with json
+`rid` also implements a number of well-known interfaces to make use with json
 and databases more convenient.
 
 **Acknowledgement**: This package borrows _heavily_ from the at-scale capable
 [rs/xid](https://github.com/rs/xid) package which itself levers ideas from
 [MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
 
-Where this package primarily differs is the use of random numbers as opposed to 
-xid's use of a monotonic counter for the last 4 bytes of the ID.
+Where this package primarily differs is the use of 6-byte random numbers as 
+opposed to xid's use of a monotonic counter for the last 4 bytes of the ID.
 
 [1] For more information on fastrand (wyrand) see: https://github.com/wangyi-fudan/wyhash
  and [Go's sources for runtime/stubs.go](https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go;bpv=1;bpt=1?q=fastrand&ss=go%2Fgo:src%2Fruntime%2F).
@@ -30,8 +28,11 @@ xid's use of a monotonic counter for the last 4 bytes of the ID.
 ## Usage
 
 ```go
-    id := rid.New()
-    fmt.Printf("%s", id) // ce0e7egs24nkzkn6egfg
+	i := rid.New()
+	fmt.Printf("%s\n", i)           // ce7cq2h7m59ymhyny5f0
+	fmt.Printf("%v\n", i[:])        // [99 142 203 138 39 161 83 234 71 213 241 94]
+	res, _ := i.MarshalJSON()
+	fmt.Printf("%s\n", res)         // "ce7cq2h7m59ymhyny5f0"
 ```
 
 ## Batteries included
@@ -46,19 +47,25 @@ xid's use of a monotonic counter for the last 4 bytes of the ID.
 Package `rid` also provides a command line tool `rid` allowing for id generation
 and inspection. To install: `go install github.com/solutionroute/rid/...`
 
-    $ rid
-    ce0e7ygs24nw4zebrz10
+    $ rid 
+    ce7cjjn0vwjj89nerxag
 
     $ rid -c 2
-    ce0e8n0s24p7329f3gfg
-    ce0e8n0s24p73q9hazp0
+    ce7cjm5zmaza1s8ef8g0
+    ce7cjm5zma56p6t0pjm0
 
     # produce 4 and inspect
     $rid `rid -c 4`
-    ce774rps8mhktmy2wr1g seconds:1670279778 rtsig:[0xd9,0x45] random: 38746305259011 | time:2022-12-05 14:36:18 -0800 PST ID{0x63,0x8e,0x72,0x62,0xd9,0x45,0x23,0x3d,0x53,0xc2,0xe6,0x3}
-    ce774rps8mbs76j3jat0 seconds:1670279778 rtsig:[0xd9,0x45] random: 25922715751092 | time:2022-12-05 14:36:18 -0800 PST ID{0x63,0x8e,0x72,0x62,0xd9,0x45,0x17,0x93,0x9a,0x43,0x92,0xb4}
-    ce774rps8qz3ye4mscz0 seconds:1670279778 rtsig:[0xd9,0x45] random:279547485670206 | time:2022-12-05 14:36:18 -0800 PST ID{0x63,0x8e,0x72,0x62,0xd9,0x45,0xfe,0x3f,0x38,0x94,0xcb,0x3e}
-    ce774rps8m0b8r2vprgg seconds:1670279778 rtsig:[0xd9,0x45] random:   774710736417 | time:2022-12-05 14:36:18 -0800 PST ID{0x63,0x8e,0x72,0x62,0xd9,0x45,0x0,0xb4,0x60,0x5b,0xb6,0x21}
+    ce7cczpvebcrq17kydhg seconds:1670301310 rtsig:[0xdb,0x72] random:239193254261603 | time:2022-12-05 20:35:10 -0800 PST ID{0x63,0x8e,0xc6,0x7e,0xdb,0x72,0xd9,0x8b,0x84,0xf3,0xf3,0x63}
+    ce7cczpve8fnkc0d68wg seconds:1670301310 rtsig:[0xdb,0x72] random: 34470066205241 | time:2022-12-05 20:35:10 -0800 PST ID{0x63,0x8e,0xc6,0x7e,0xdb,0x72,0x1f,0x59,0xb0,0xd,0x32,0x39}
+    ce7cczyveas70ayma7g0 seconds:1670301311 rtsig:[0xdb,0x72] random:196194841416160 | time:2022-12-05 20:35:11 -0800 PST ID{0x63,0x8e,0xc6,0x7f,0xdb,0x72,0xb2,0x70,0x2b,0xd4,0x51,0xe0}
+    ce7cczyve8jp1x5d13e0 seconds:1670301311 rtsig:[0xdb,0x72] random: 41098352068828 | time:2022-12-05 20:35:11 -0800 PST ID{0x63,0x8e,0xc6,0x7f,0xdb,0x72,0x25,0x60,0xf4,0xad,0x8,0xdc}
+
+## Random Source
+
+For random number generation `rid` uses a Go runtime `fastrand64`, available in
+Go versions released post-spring 2022; it's non-deterministic, goroutine safe, 
+and fast.  For the purpose of *this* package, `fastrand64` seems ideal.
 
 ## Package Comparisons
 
@@ -80,35 +87,10 @@ https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
 
 ## Package Benchmarks
 
-Note: For random number generation `rid` uses a Go runtime `fastrand64`,
-available in Go versions released post-spring 2022; it's non-deterministic,
-goroutine safe, and fast.  For the purpose of *this* package, `fastrand64` seems ideal.
-
 A comparison with the above noted packages can be found in [bench/bench_test.go](bench/bench_test.go). Output:
 
 ### Intel 4-core Dell Latitude 7420 laptop
 
-    $ go test -cpu 1,2,4,8 -benchmem  -run=^$   -bench  ^.*$ 
-    goos: linux
-    goarch: amd64
-    pkg: github.com/solutionroute/rid
-    cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
-    BenchmarkNew            	32963941	        35.31 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkNew-2          	65869234	        18.81 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkNew-4          	100000000	        11.42 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkNew-8          	138833602	         8.635 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkNewString      	23706258	        49.14 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkNewString-2    	44180200	        27.54 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkNewString-4    	59931339	        17.28 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkNewString-8    	73962973	        14.81 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkString         	68831280	        26.65 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkString-2       	126463826	         9.418 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkString-4       	191287014	         6.194 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkString-8       	195113094	         6.130 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkFromString     	15799150	        85.25 ns/op	      24 B/op	       1 allocs/op
-    BenchmarkFromString-2   	27189865	        42.95 ns/op	      24 B/op	       1 allocs/op
-    BenchmarkFromString-4   	34844359	        28.84 ns/op	      24 B/op	       1 allocs/op
-    BenchmarkFromString-8   	40083123	        34.79 ns/op	      24 B/op	       1 allocs/op
 
 ### AMD 8-core desktop
 
