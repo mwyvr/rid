@@ -88,29 +88,27 @@ A comparison with the above noted packages can be found in [bench/bench_test.go]
 
 ### Intel 4-core Dell Latitude 7420 laptop
 
-    $ go test -cpu 1,2,8 -benchmem  -run=^$   -bench  ^.*$ 
+    $ go test -cpu 1,2,4,8 -benchmem  -run=^$   -bench  ^.*$ 
     goos: linux
     goarch: amd64
-    pkg: github.com/solutionroute/rid/bench
+    pkg: github.com/solutionroute/rid
     cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
-    BenchmarkRid            	32174292	        35.92 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkRid-2          	64156003	        20.27 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkRid-8          	132875484	         9.163 ns/op	   0 B/op	       0 allocs/op
-    BenchmarkXid            	32172444	        37.11 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkXid-2          	36815612	        31.93 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkXid-8          	71943614	        16.49 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkKsuid          	 3849388	       308.2 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkKsuid-2        	 3261043	       366.3 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkKsuid-8        	 3274056	       365.7 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkGoogleUuid     	 4241515	       279.6 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkGoogleUuid-2   	 6379092	       174.4 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkGoogleUuid-8   	13265209	        90.80 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkUlid           	  155619	      7373 ns/op	    5440 B/op	       3 allocs/op
-    BenchmarkUlid-2         	  254022	      4858 ns/op	    5440 B/op	       3 allocs/op
-    BenchmarkUlid-8         	  567592	      2110 ns/op	    5440 B/op	       3 allocs/op
-    BenchmarkBetterguid     	13743166	        82.97 ns/op	      24 B/op	       1 allocs/op
-    BenchmarkBetterguid-2   	11306263	       101.7 ns/op	      24 B/op	       1 allocs/op
-    BenchmarkBetterguid-8   	 6983956	       167.5 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkNew            	32963941	        35.31 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNew-2          	65869234	        18.81 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNew-4          	100000000	        11.42 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNew-8          	138833602	         8.635 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNewString      	23706258	        49.14 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNewString-2    	44180200	        27.54 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNewString-4    	59931339	        17.28 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkNewString-8    	73962973	        14.81 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkString         	68831280	        26.65 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkString-2       	126463826	         9.418 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkString-4       	191287014	         6.194 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkString-8       	195113094	         6.130 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkFromString     	15799150	        85.25 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkFromString-2   	27189865	        42.95 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkFromString-4   	34844359	        28.84 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkFromString-8   	40083123	        34.79 ns/op	      24 B/op	       1 allocs/op
 
 ### AMD 8-core desktop
 
