@@ -1,5 +1,8 @@
 package rid
 
+// can verify our custom Base32 character set and encoding here:
+// https://cryptii.com/pipes/base32
+
 import (
 	"bytes"
 	"fmt"
@@ -18,7 +21,7 @@ type idParts struct {
 var IDs = []idParts{
 	// sorted (ascending) should be IDs 1, 2, 0
 	{
-		// ce6s9m4nv5be5w91b2tg seconds:1670223056 rtsig:[0x95,0xd9] random: 95532708092085 | time:2022-12-04 22:50:56 -0800 PST ID{0x63,0x8d,0x94,0xd0,0x95,0xd9,0x56,0xe2,0xf1,0x21,0x58,0xb5}
+		// ce6s9m4nv5be5w91b2tg timestamp:1670223056 rtsig:[0x95,0xd9] random: 95532708092085 | time:2022-12-04 22:50:56 -0800 PST ID{0x63,0x8d,0x94,0xd0,0x95,0xd9,0x56,0xe2,0xf1,0x21,0x58,0xb5}
 		ID{0x63, 0x8d, 0x94, 0xd0, 0x95, 0xd9, 0x56, 0xe2, 0xf1, 0x21, 0x58, 0xb5},
 		1670223056,
 		[]byte{0x95, 0xd9},
@@ -31,7 +34,7 @@ var IDs = []idParts{
 		0,
 	},
 	{
-		// ce6s7tarwkqzbch94xt0 seconds:1670222825 rtsig:[0x58,0xe4] random:263838535067508 | time:2022-12-04 22:47:05 -0800 PST ID{0x63,0x8d,0x93,0xe9,0x58,0xe4,0xef,0xf5,0xb2,0x29,0x27,0x74}
+		// ce6s7tarwkqzbch94xt0 timestamp:1670222825 rtsig:[0x58,0xe4] random:263838535067508 | time:2022-12-04 22:47:05 -0800 PST ID{0x63,0x8d,0x93,0xe9,0x58,0xe4,0xef,0xf5,0xb2,0x29,0x27,0x74}
 		ID{0x63, 0x8d, 0x93, 0xe9, 0x58, 0xe4, 0xef, 0xf5, 0xb2, 0x29, 0x27, 0x74},
 		1670222825,
 		[]byte{0x58, 0xe4},
@@ -75,7 +78,7 @@ func TestNew(t *testing.T) {
 				}
 			}
 		}
-		// Check that timestamp was incremented and is within 30 seconds of the previous one
+		// Check that timestamp was incremented and is within 30 seconds (30000 ms) of the previous one
 		secs := id.Time().Sub(prevID.Time()).Seconds()
 		if secs < 0 || secs > 30 {
 			t.Error("wrong timestamp in generated ID")
@@ -254,7 +257,7 @@ func TestFromBytes_Invariant(t *testing.T) {
 
 func TestIDDriverScan(t *testing.T) {
 
-	// ce7kerav4yj65mzy1rp0 seconds:1670330209 rtsig:[0x5b,0x27] random:180744370392620 | time:2022-12-06 04:36:49 -0800 PST
+	// ce7kerav4yj65mzy1rp0 timestamp:1670330209 rtsig:[0x5b,0x27] random:180744370392620 | time:2022-12-06 04:36:49 -0800 PST
 	// ID{0x63,0x8f,0x37,0x61,0x5b,0x27,0xa4,0x62,0xd3,0xfe,0xe,0x2c}
 	got := ID{}
 	err := got.Scan("ce7kerav4yj65mzy1rp0")
@@ -385,22 +388,22 @@ func ExampleNew() {
 	id := New()
 	fmt.Printf(`ID:
     String()  %s
-    Seconds() %d
+    Timestamp() %d
     RuntimeSignature() %v 
     Random()  %d 
     Time()    %v
-    Bytes()   %3v\n`, id.String(), id.Seconds(), id.RuntimeSignature(), id.Random(), id.Time().UTC(), id.Bytes())
+    Bytes()   %3v\n`, id.String(), id.Timestamp(), id.RuntimeSignature(), id.Random(), id.Time().UTC(), id.Bytes())
 }
 
 func ExampleNewWithTimestamp() {
-	id := NewWithTimestamp(uint32(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()))
+	id := NewWithTimestamp(uint64(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()))
 	fmt.Printf(`ID:
     String()  %s
-    Seconds() %d
+    Timestamp() %d
     RuntimeSignature() %v 
     Random()  %d 
     Time()    %v
-    Bytes()   %3v\n`, id.String(), id.Seconds(), id.RuntimeSignature(), id.Random(), id.Time().UTC(), id.Bytes())
+    Bytes()   %3v\n`, id.String(), id.Timestamp(), id.RuntimeSignature(), id.Random(), id.Time().UTC(), id.Bytes())
 }
 
 func ExampleFromString() {
@@ -408,6 +411,6 @@ func ExampleFromString() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(id.Seconds(), id.Random())
+	fmt.Println(id.Timestamp(), id.Random())
 	// 1670329049 76131903198860
 }

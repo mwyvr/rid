@@ -99,9 +99,24 @@ func main() {
 	fmt.Printf("| Package                                                   |BLen|ELen| K-Sort| 0-Cfg | Encoded ID and Next | Method | Components |\n")
 	fmt.Printf("|-----------------------------------------------------------|----|----|-------|-------|---------------------|--------|------------|\n")
 	for _, v := range packages {
-		fmt.Printf("| %-57s | %d | %d | %5v | %5v | %s<br>%s | %s | %s |\n",
+		fmt.Printf("| %-57s | %d | %d | %5v | %5v | `%s`<br>`%s` | %s | %s |\n",
 			v.name, v.blen, v.elen, v.ksortable, v.zeroconfig, v.sample, v.next, v.uniq, v.components)
 	}
+	// t := time.Now()
+	// fmt.Println(t.Unix())
+	// fmt.Println(t.UnixMilli())
+	// fmt.Println(t.UnixNano())
+	// // nano := uint32(1670361308664)
+	// bs := []byte(strconv.Itoa(int(t.Unix())))
+	// fmt.Println(bs)
+	//
+	// buf := new(bytes.Buffer)
+	// err := binary.Write(buf, binary.BigEndian, t.UnixMilli())
+	// if err != nil {
+	// 	fmt.Println("binary.Write failed:", err)
+	// }
+	// fmt.Printf("Time: % x\n", buf.Bytes())
+	// fmt.Printf("rid: % x\n", rid.New().Bytes())
 
 }
 

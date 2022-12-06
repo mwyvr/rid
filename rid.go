@@ -5,11 +5,13 @@ Package rid provides a [k-sortable](https://en.wikipedia.org/wiki/K-sorted_seque
 configuration-free, unique ID generator.  Binary IDs Base-32 encode as a
 20-character URL-friendly representation like: `ce0e7egs24nkzkn6egfg`.
 
-The 12-byte binary representation of an ID is comprised of a:
+The 15-byte binary representation of an ID is comprised of a:
 
-  - 4-byte timestamp value representing seconds since the Unix epoch
-  - 2-byte process signature comprised of md5 hash of machiine ID+process ID
-  - 6-byte random value
+- 6-byte timestamp value representing milliseconds since the Unix epoch
+- 1-byte machine+process signature, derived from a md5 hash of the machine ID + process ID
+- 6-byte random number using Go's runtime `fastrand` function. [1]
+
+15 bytes / 120 bits also lands on an even Base32 boundary, requiring no padding.
 
 rid implements a number of well-known interfaces to make interacting with json
 and databases more convenient.  The String() representation of ID is Base32
@@ -35,7 +37,6 @@ import (
 	"crypto/md5"
 	"database/sql/driver"
 	"encoding/base32"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"os"
@@ -49,8 +50,8 @@ import (
 type ID [rawLen]byte
 
 const (
-	rawLen     = 12 // binary representation
-	encodedLen = 20 // base32 representation
+	rawLen     = 15 // binary representation
+	encodedLen = 24 // base32 representation
 	// charset stores the character set for a custom Base32 charset
 	// inspired by Crockford: i, l, o, u removed and w, x, y, z added.
 	//
@@ -61,7 +62,7 @@ const (
 
 var (
 	// nilID represents the zero-value of an ID
-	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
 	// rtsig is derived from the md5 hash of the machine identifier and process
@@ -87,26 +88,32 @@ func init() {
 
 // New returns a new ID using the current time;
 func New() ID {
-	return NewWithTimestamp(uint32(time.Now().Unix()))
+	return NewWithTimestamp(uint64(time.Now().UnixMilli()))
 }
 
 // NewWithTime returns a new ID based upon the supplied Time value.
-func NewWithTimestamp(ts uint32) ID {
+func NewWithTimestamp(ts uint64) ID {
 	var id ID
 
-	// 4 byte timestamp uint32 to the seconds
-	binary.BigEndian.PutUint32(id[:], ts)
-	// runtime processSignature
-	id[4] = rtsig[0]
-	id[5] = rtsig[1]
-	// the rest is random
+	// 6 byte timestamp (milliseconds since epoch)
+	id[0] = byte(ts >> 40)
+	id[1] = byte(ts >> 32)
+	id[2] = byte(ts >> 24)
+	id[3] = byte(ts >> 16)
+	id[4] = byte(ts >> 8)
+	id[5] = byte(ts)
+	// 1 byte process signature, semi-random
+	id[6] = rtsig[0]
+	// 6 byte random number
 	rv := randUint64()
-	id[6] = byte(rv >> 40)
-	id[7] = byte(rv >> 32)
-	id[8] = byte(rv >> 24)
-	id[9] = byte(rv >> 16)
-	id[10] = byte(rv >> 8)
-	id[11] = byte(rv)
+	id[7] = byte(rv >> 56)
+	id[8] = byte(rv >> 48)
+	id[9] = byte(rv >> 40)
+	id[10] = byte(rv >> 32)
+	id[11] = byte(rv >> 24)
+	id[12] = byte(rv >> 16)
+	id[13] = byte(rv >> 8)
+	id[14] = byte(rv)
 	return id
 }
 
@@ -143,28 +150,27 @@ func (id ID) Bytes() []byte {
 	return id[:]
 }
 
-// Seconds returns the ID timestamp component as seconds since the Unix epoch.
-func (id ID) Seconds() int64 {
-	return int64(binary.BigEndian.Uint32(id[0:4]))
+// Timestamp returns the ID timestamp component as milliseconds since the Unix epoch.
+func (id ID) Timestamp() int64 {
+	b := id[0:6]
+	return int64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
 }
 
-// Time returns the ID's timestamp component as a Time value with seconds
+// Time returns the ID's timestamp component as a Time value with millisecond
 // resolution.
 func (id ID) Time() time.Time {
-	return time.Unix(id.Seconds(), 0)
+	return time.UnixMilli(id.Timestamp())
 }
 
-// RuntimeSignature returns the 2-byte identifier
+// RuntimeSignature returns the signature, derived from the first byte of a md5 hash of (machine ID + process ID).
 func (id ID) RuntimeSignature() []byte {
-	return id[4:6]
+	return id[6:7]
 }
 
 // Random returns the trailing random number component of the ID.
 func (id ID) Random() uint64 {
-	b := id[6:12]
-
-	return uint64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 |
-		uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
+	b := id[7:]
+	return uint64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
 }
 
 // FromString returns an ID by decoding a Base32 representation of an ID
@@ -328,10 +334,10 @@ func randUint32() uint32
 //go:linkname randUint64 runtime.fastrand
 func randUint64() uint64
 
-// runtimeSignature returns a md5 hash of a combination of a machine ID and the
-// current process ID. If this function fails it will cause a runtime error.
+// runtimeSignature returns the first byte of a md5 hash of (machine ID + process ID).
+// If this function fails it will cause a runtime error.
 func runtimeSignature() []byte {
-	sig := make([]byte, 2)
+	sig := make([]byte, 1)
 	hwid, err := readPlatformMachineID()
 	if err != nil || len(hwid) == 0 {
 		// fallback to hostname (common)

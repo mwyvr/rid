@@ -3,36 +3,35 @@
 # rid
 
 Package `rid` provides a [k-sortable](https://en.wikipedia.org/wiki/K-sorted_sequence),
-zero-configuration, unique ID generator.  Binary IDs are encoded as Base32,
-producing a 20-character URL-friendly representation like: `ce7cjjn0vwjj89nerxag`.
+zero-configuration, unique ID generator. Binary IDs are Base32-encoded,
+producing a 24-character case-insensitive URL-friendly representation like:
+`062ekgz5k5f23ejagw2n7c9f`.
 
-The 12-byte binary representation of an ID is comprised of a:
+Base32 encoding evenly aligns with 15 byte / 120 bit binary data. The 15-byte
+binary representation of an ID is comprised of a:
 
-- 4-byte timestamp value representing seconds ticked since the Unix epoch
-- 2-byte machine+process signature, derived from a md5 hash of the machine ID + process ID
+- 6-byte timestamp value representing milliseconds since the Unix epoch
+- 1-byte machine+process signature, derived from md5(machine ID + process ID)
 - 6-byte random number using Go's runtime `fastrand` function. [1]
 
-`rid` also implements a number of well-known interfaces to make use with json
+`rid` also implements a number of well-known interfaces to make use with JSON
 and databases more convenient.
 
 **Acknowledgement**: This package borrows _heavily_ from the at-scale capable
 [rs/xid](https://github.com/rs/xid) package which itself levers ideas from
 [MongoDB](https://docs.mongodb.com/manual/reference/method/ObjectId/).
 
-Where this package primarily differs is the use of 6-byte random numbers as 
-opposed to xid's use of a monotonic counter for the last 4 bytes of the ID.
+Where this package differs, rid (15 bytes) | xid (12 bytes):
 
-[1] For more information on fastrand (wyrand) see: https://github.com/wangyi-fudan/wyhash
- and [Go's sources for runtime/stubs.go](https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go;bpv=1;bpt=1?q=fastrand&ss=go%2Fgo:src%2Fruntime%2F).
+- 6-bytes of time, millisecond resolution | 4 bytes, second resolution
+- 1-byte machine+process signature | 3 bytes machine ID, 2 bytes process ID
+- 6-byte random number | 3-byte monotonic counter randomly initialized once 
 
 ## Usage
 
 ```go
 	i := rid.New()
-	fmt.Printf("%s\n", i)           // ce7cq2h7m59ymhyny5f0
-	fmt.Printf("%v\n", i[:])        // [99 142 203 138 39 161 83 234 71 213 241 94]
-	res, _ := i.MarshalJSON()
-	fmt.Printf("%s\n", res)         // "ce7cq2h7m59ymhyny5f0"
+	fmt.Printf("%s\n", i)           // 062ekkxhmp31522vfjt7jv9t 
 ```
 
 ## Batteries included
@@ -48,35 +47,44 @@ Package `rid` also provides a command line tool `rid` allowing for id generation
 and inspection. To install: `go install github.com/solutionroute/rid/cmd/...`
 
     $ rid 
-    ce7cjjn0vwjj89nerxag
+    062ekjasgt18j0xgabq5zw45
 
     $ rid -c 2
-    ce7cjm5zmaza1s8ef8g0
-    ce7cjm5zma56p6t0pjm0
+    062ekjdxbc4yr0v0zyhv19zb
+    062ekjdxbc4pesrn45jfz89k
 
     # produce 4 and inspect
     $rid `rid -c 4`
-    ce7cczpvebcrq17kydhg seconds:1670301310 rtsig:[0xdb,0x72] random:239193254261603 | time:2022-12-05 20:35:10 -0800 PST ID{0x63,0x8e,0xc6,0x7e,0xdb,0x72,0xd9,0x8b,0x84,0xf3,0xf3,0x63}
-    ce7cczpve8fnkc0d68wg seconds:1670301310 rtsig:[0xdb,0x72] random: 34470066205241 | time:2022-12-05 20:35:10 -0800 PST ID{0x63,0x8e,0xc6,0x7e,0xdb,0x72,0x1f,0x59,0xb0,0xd,0x32,0x39}
-    ce7cczyveas70ayma7g0 seconds:1670301311 rtsig:[0xdb,0x72] random:196194841416160 | time:2022-12-05 20:35:11 -0800 PST ID{0x63,0x8e,0xc6,0x7f,0xdb,0x72,0xb2,0x70,0x2b,0xd4,0x51,0xe0}
-    ce7cczyve8jp1x5d13e0 seconds:1670301311 rtsig:[0xdb,0x72] random: 41098352068828 | time:2022-12-05 20:35:11 -0800 PST ID{0x63,0x8e,0xc6,0x7f,0xdb,0x72,0x25,0x60,0xf4,0xad,0x8,0xdc}
+    062ekjn39b2g7mvzwsxk2mx9 ts:1670369682250 rtsig:[0xc5] random:  4206918794033 | time:2022-12-06 15:34:42.25 -0800 PST ID{0x1,0x84,0xe9,0xca,0xa3,0x4a,0xc5,0x3,0xd3,0x7f,0xe6,0x7b,0x31,0x53,0xa9}
+    062ekjn39b2tex8f39ht2vxk ts:1670369682250 rtsig:[0xc5] random:184121206399905 | time:2022-12-06 15:34:42.25 -0800 PST ID{0x1,0x84,0xe9,0xca,0xa3,0x4a,0xc5,0xa7,0x75,0xf,0x1a,0x63,0xa1,0x6f,0xb3}
+    062ekjn39b2n2km1wn6qzaty ts:1670369682250 rtsig:[0xc5] random: 89397628587391 | time:2022-12-06 15:34:42.25 -0800 PST ID{0x1,0x84,0xe9,0xca,0xa3,0x4a,0xc5,0x51,0x4e,0x81,0xe5,0x4d,0x7f,0xab,0x5e}
+    062ekjn39b2vxg1h326m5z9w ts:1670369682250 rtsig:[0xc5] random:209732666690882 | time:2022-12-06 15:34:42.25 -0800 PST ID{0x1,0x84,0xe9,0xca,0xa3,0x4a,0xc5,0xbe,0xc0,0x31,0x18,0x8d,0x42,0xfd,0x3c}
 
 ## Random Source
 
-For random number generation `rid` uses a Go runtime `fastrand64`, available in
-Go versions released post-spring 2022; it's non-deterministic, goroutine safe, 
-and fast.  For the purpose of *this* package, `fastrand64` seems ideal.
+For random number generation `rid` uses a Go runtime `fastrand64` [1],
+available in Go versions released post-spring 2022; it's non-deterministic,
+goroutine safe, and fast.  For the purpose of *this* package, `fastrand64`
+seems ideal.
+
+Use of `fastrand` makes `rid` performant and scales well as cores/parallel
+processes are added. While more testing will be done, no ID collisions have
+been observed over numerous runs producing upwards of 300 million ID using
+single and multiple goroutines.
+
+[1] For more information on fastrand (wyrand) see: https://github.com/wangyi-fudan/wyhash
+ and [Go's sources for runtime/stubs.go](https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go;bpv=1;bpt=1?q=fastrand&ss=go%2Fgo:src%2Fruntime%2F).
 
 ## Package Comparisons
 
 | Package                                                   |BLen|ELen| K-Sort| 0-Cfg | Encoded ID and Next | Method | Components |
 |-----------------------------------------------------------|----|----|-------|-------|---------------------|--------|------------|
-| [solutionroute/rid](https://github.com/solutionroute/rid) | 12 | 20 |  true |  true | `ce7p4gjs90p51vt8jgb0`<br>`ce7p4gjs92erj7hf0zbg` | fastrand | ts(seconds) : runtime signature : random |
-| [rs/xid](https://github.com/rs/xid)                       | 12 | 20 |  true |  true | `ce7m4ggp26g969ang10g`<br>`ce7m4ggp26g969ang110` | counter | ts(seconds) : machine ID : process ID : counter |
-| [segmentio/ksuid](https://github.com/segmentio/ksuid)     | 20 | 27 |  true |  true | `2IXwMNWG81EPVVQfn40USunOzey`<br>`2IXwMNhYfD6gojEIHtMMKvJihuQ` | random | ts(seconds) : random |
-| [google/uuid](https://github.com/google/uuid)             | 16 | 36 | false |  true | `3e5986f5-af92-4f91-b30d-54519bf456e6`<br>`d422fa01-b90a-4349-adb4-9c3fafc34ec4` | crypt/rand | (v4) version + variant + 122 bits random |
-| [oklog/ulid](https://github.com/oklog/ulid)               | 16 | 26 |  true |  true | `01GKM1FMEP61DYQ2FWP3HGTVGB`<br>`01GKM1FMEP2V0BR482XYDGNC1Q` | crypt/rand | ts(ms) : choice of random |
-| [kjk/betterguid](https://github.com/kjk/betterguid)       | 20 | 20 |  true |  true | `-NIc4x6LN0KZ-EEuz4VL`<br>`-NIc4x6LN0KZ-EEuz4VM` | counter | ts(ms) + per-ms math/rand initialized counter |
+| [solutionroute/rid](https://github.com/solutionroute/rid) | 15 | 24 |  true |  true | `062ejz2nn8sm19eqhaj4h97w`<br>`062ejz2nn8sm7c72aywz5gas` | fastrand | ts(seconds) : runtime signature : random |
+| [rs/xid](https://github.com/rs/xid)                       | 12 | 20 |  true |  true | `ce7rr1gp26gbkqlf7kp0`<br>`ce7rr1gp26gbkqlf7kpg` | counter | ts(seconds) : machine ID : process ID : counter |
+| [segmentio/ksuid](https://github.com/segmentio/ksuid)     | 20 | 27 |  true |  true | `2IYhiP9ndQPRZYmMnvQ5sq9JXw8`<br>`2IYhiNdG6sj9qvaUO7unG1UsgZ2` | random | ts(seconds) : random |
+| [google/uuid](https://github.com/google/uuid)             | 16 | 36 | false |  true | `75eb752d-d1d0-4000-994e-fbce08743687`<br>`d6873ae4-2240-46d6-8b83-42b21a55125f` | crypt/rand | (v4) version + variant + 122 bits random |
+| [oklog/ulid](https://github.com/oklog/ulid)               | 16 | 26 |  true |  true | `01GKMQRNDAQCWFR7WJA8QX8V1R`<br>`01GKMQRNDA9Q99KRYY2K8F827Q` | crypt/rand | ts(ms) : choice of random |
+| [kjk/betterguid](https://github.com/kjk/betterguid)       | 20 | 20 |  true |  true | `-NIdU4Le0mBzlgH0A87M`<br>`-NIdU4Le0mBzlgH0A87N` | counter | ts(ms) + per-ms math/rand initialized counter |
 
 If you don't need the k-sortable randomness this and other packages provide,
 consider the well-tested and performant k-sortable `rs/xid` package
@@ -91,71 +99,30 @@ A comparison with the above noted packages can be found in [bench/bench_test.go]
 
 ### Intel 4-core Dell Latitude 7420 laptop
 
-	$ go test -cpu 1,2,4,8 -benchmem  -run=^$   -bench  ^.*$ 
-	goos: linux
-	goarch: amd64
-	pkg: github.com/solutionroute/rid/bench
-	cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
-	BenchmarkRid            	32993908	        33.85 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkRid-2          	66721432	        18.47 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkRid-4          	95192704	        11.58 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkRid-8          	138976958	         8.614 ns/op	     0 B/op	       0 allocs/op
-	BenchmarkXid            	29734465	        39.70 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkXid-2          	35569008	        33.59 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkXid-4          	58303428	        26.96 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkXid-8          	71675047	        16.79 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkKsuid          	 3767475	       310.9 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkKsuid-2        	 3285496	       365.9 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkKsuid-4        	 3212817	       365.7 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkKsuid-8        	 3258997	       364.0 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkGoogleUuid     	 4371027	       273.9 ns/op	      16 B/op	       1 allocs/op
-	BenchmarkGoogleUuid-2   	 6944608	       170.5 ns/op	      16 B/op	       1 allocs/op
-	BenchmarkGoogleUuid-4   	 9430944	       112.5 ns/op	      16 B/op	       1 allocs/op
-	BenchmarkGoogleUuid-8   	13370536	        88.23 ns/op	      16 B/op	       1 allocs/op
-	BenchmarkUlid           	  160861	      7197 ns/op	      5440 B/op	       3 allocs/op
-	BenchmarkUlid-2         	  286363	      3780 ns/op	      5440 B/op	       3 allocs/op
-	BenchmarkUlid-4         	  492133	      2510 ns/op	      5440 B/op	       3 allocs/op
-	BenchmarkUlid-8         	  666226	      2082 ns/op	      5440 B/op	       3 allocs/op
-	BenchmarkBetterguid     	14120893	        81.03 ns/op	      24 B/op	       1 allocs/op
-	BenchmarkBetterguid-2   	11224359	       102.0 ns/op	      24 B/op	       1 allocs/op
-	BenchmarkBetterguid-4   	 8386694	       137.1 ns/op	      24 B/op	       1 allocs/op
-	BenchmarkBetterguid-8   	 6614655	       176.0 ns/op	      24 B/op	       1 allocs/op
-
-### AMD 8-core desktop
-
-    $ go test -cpu 1,2,4,8,16 -benchmem  -run=^$   -bench  ^.*$
+    $ go test -cpu 1,2,8 -benchmem  -run=^$   -benchtime 1s -bench  ^.*$ 
     goos: linux
     goarch: amd64
     pkg: github.com/solutionroute/rid/bench
-    cpu: AMD Ryzen 7 3800X 8-Core Processor             
-    BenchmarkRid              	22546425	        52.57 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkRid-2            	44619606	        26.36 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkRid-4            	76766934	        13.51 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkRid-8            	171874088	         6.869 ns/op	     0 B/op	       0 allocs/op
-    BenchmarkRid-16           	305219312	         3.963 ns/op	     0 B/op	       0 allocs/op
-    BenchmarkXid              	22564863	        51.45 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkXid-2            	11812347	       102.3 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkXid-4            	24562400	        52.75 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkXid-8            	50628301	        33.06 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkXid-16           	69468259	        17.08 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkKsuid            	 3238129	       363.5 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkKsuid-2          	 1558274	       811.4 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkKsuid-4          	 1453086	       836.2 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkKsuid-8          	 1413405	       837.1 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkKsuid-16         	 1371385	       861.7 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkGoogleUuid       	 3394983	       385.8 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkGoogleUuid-2     	 4834682	       209.6 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkGoogleUuid-4     	 9113331	       110.7 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkGoogleUuid-8     	17528270	        59.86 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkGoogleUuid-16    	29063694	        40.57 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkUlid             	  144672	      7925 ns/op	       440 B/op	       3 allocs/op
-    BenchmarkUlid-2           	  277130	      4259 ns/op	      5440 B/op	       3 allocs/op
-    BenchmarkUlid-4           	  473964	      2330 ns/op	      5440 B/op	       3 allocs/op
-    BenchmarkUlid-8           	  798924	      1445 ns/op	      5440 B/op	       3 allocs/op
-    BenchmarkUlid-16          	  792290	      1479 ns/op	      5440 B/op	       3 allocs/op
-    BenchmarkBetterguid       	14279642	        81.82 ns/op	      24 B/op	       1 allocs/op
-    BenchmarkBetterguid-2     	 7232544	       141.4 ns/op	      24 B/op	       1 allocs/op
-    BenchmarkBetterguid-4     	 4828852	       274.6 ns/op	      24 B/op	       1 allocs/op
-    BenchmarkBetterguid-8     	 4040710	       305.8 ns/op	      24 B/op	       1 allocs/op
-    BenchmarkBetterguid-16    	 3563704	       366.4 ns/op	      24 B/op	       1 allocs/op
+    cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
+    BenchmarkRid            	27389251	        41.95 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-2          	55504586	        22.52 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-8          	131805276	         9.059 ns/op	   0 B/op	       0 allocs/op
+    BenchmarkXid            	31823905	        36.99 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-2          	37957798	        31.98 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-8          	70593487	        16.82 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid          	 3749377	       324.4 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-2        	 3287676	       367.3 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-8        	 3296826	       365.2 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkGoogleUuid     	 4289882	       284.5 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-2   	 6151603	       217.7 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-8   	 8814963	       131.8 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkUlid           	  150135	      7539 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-2         	  235570	      4785 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-8         	  558735	      2098 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkBetterguid     	14361985	        82.00 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-2   	11374424	       101.6 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-8   	 7073932	       167.7 ns/op	      24 B/op	       1 allocs/op
+
+### AMD 8-core desktop
+
 

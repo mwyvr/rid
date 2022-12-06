@@ -43,8 +43,8 @@ func main() {
 			fmt.Printf("[%s] %s\n", arg, err)
 			continue
 		}
-		fmt.Printf("%s seconds:%d rtsig:[%s] random:%15d | time:%v ID{%s}\n", arg,
-			id.Seconds(), asHex(id.RuntimeSignature()), id.Random(), id.Time(), asHex(id.Bytes()))
+		fmt.Printf("%s ts:%d rtsig:[%s] random:%15d | time:%v ID{%s}\n", arg,
+			id.Timestamp(), asHex(id.RuntimeSignature()), id.Random(), id.Time(), asHex(id.Bytes()))
 	}
 	if errors > 0 {
 		fmt.Printf("%d error(s)\n", errors)
