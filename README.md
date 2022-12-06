@@ -45,7 +45,7 @@ opposed to xid's use of a monotonic counter for the last 4 bytes of the ID.
 - Stringer
 
 Package `rid` also provides a command line tool `rid` allowing for id generation
-and inspection. To install: `go install github.com/solutionroute/rid/...`
+and inspection. To install: `go install github.com/solutionroute/rid/cmd/...`
 
     $ rid 
     ce7cjjn0vwjj89nerxag
