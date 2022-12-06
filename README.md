@@ -73,12 +73,12 @@ and fast.  For the purpose of *this* package, `fastrand64` seems ideal.
 
 | Package                                                   |BLen|ELen| K-Sort| 0-Cfg | Encoded ID and Next | Method | Components |
 |-----------------------------------------------------------|----|----|-------|-------|---------------------|--------|------------|
-| [solutionroute/rid](https://github.com/solutionroute/rid) | 12 | 20 |  true |  true | ce7nwnjde7687w9z8beg<br>ce7nwnjde5sjnqm40a9g | fastrand | ts(seconds) : runtime signature : random |
-| [rs/xid](https://github.com/rs/xid)                       | 12 | 20 |  true |  true | ce7lslgp26g8ltgpdsvg<br>ce7lslgp26g8ltgpdt00 | counter | ts(seconds) : machine ID : process ID : counter |
-| [segmentio/ksuid](https://github.com/segmentio/ksuid)     | 20 | 27 |  true |  true | 2IXuK8r4TN4iwmkLXI0psp3Mphq<br>2IXuKAtEPfA5ePRe9l56nmFOakq | random | ts(seconds) : random |
-| [google/uuid](https://github.com/google/uuid)             | 16 | 36 | false |  true | 602fc240-deac-4e7f-9c43-1714e66f30fb<br>3c08ff59-62a9-4b4f-9298-2ab23dd727f1 | crypt/rand | (v4) version + variant + 122 bits random |
-| [oklog/ulid](https://github.com/oklog/ulid)               | 16 | 26 |  true |  true | 01GKM0H0FB413TDP5SCM91YKPR<br>01GKM0H0FB4Q41WMXZZKNK4CPE | crypt/rand | ts(ms) : choice of random |
-| [kjk/betterguid](https://github.com/kjk/betterguid)       | 20 | 20 |  true |  true | -NIc176f1hcpW14VTBBg<br>-NIc176f1hcpW14VTBBh | counter | ts(ms) + per-ms math/rand initialized counter |
+| [solutionroute/rid](https://github.com/solutionroute/rid) | 12 | 20 |  true |  true | ce7p1ak3frh5nvt04dr0<br>ce7p1ak3fvbd89wwg7kg | fastrand | ts(seconds) : runtime signature : random |
+| [rs/xid](https://github.com/rs/xid)                       | 12 | 20 |  true |  true | ce7m1agp26g8uhj9rr50<br>ce7m1agp26g8uhj9rr5g | counter | ts(seconds) : machine ID : process ID : counter |
+| [segmentio/ksuid](https://github.com/segmentio/ksuid)     | 20 | 27 |  true |  true | 2IXvX1Ycen2MpeSr79cvNPHSKKk<br>2IXvX26gYjugLi1ymUeC6RPmgQ9 | random | ts(seconds) : random |
+| [google/uuid](https://github.com/google/uuid)             | 16 | 36 | false |  true | 8f88803a-042a-4c8b-99f6-25310f0a6c71<br>e3ba99bf-af71-49c3-9e9f-4fdbbf37aef9 | crypt/rand | (v4) version + variant + 122 bits random |
+| [oklog/ulid](https://github.com/oklog/ulid)               | 16 | 26 |  true |  true | 01GKM1367SQJRGXFJYCASRHD8K<br>01GKM1367SW1ZXJGZZVM7WGHSY | crypt/rand | ts(ms) : choice of random |
+| [kjk/betterguid](https://github.com/kjk/betterguid)       | 20 | 20 |  true |  true | -NIc3OYtM6539bWg_bYw<br>-NIc3OYtM6539bWg_bYx | counter | ts(ms) + per-ms math/rand initialized counter |
 
 </tt>
 
