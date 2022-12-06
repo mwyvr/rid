@@ -64,19 +64,19 @@ var (
 	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
-	// rtsig is derived from two bytes of the md5 hash of the machine
-	// identifier and process ID
+    // rtsig is derived from the md5 hash of the machine identifier and process
+    // ID, in effect adding another random segment
 	rtsig = runtimeSignature()
 
 	encoding = base32.NewEncoding(charset).WithPadding(-1)
-	// dec is the decoding map for base32 encoding
+	// dec is the decoding map for our base32 encoding
 	dec [256]byte
 
 	ErrInvalidID = errors.New("rid: invalid id")
 )
 
 func init() {
-	// initialize the base32 decoding table
+	// initialize the base32 decoding table, used only for error checking
 	for i := 0; i < len(dec); i++ {
 		dec[i] = 0xFF
 	}
@@ -96,7 +96,7 @@ func NewWithTimestamp(ts uint32) ID {
 
 	// 4 byte timestamp uint32 to the seconds
 	binary.BigEndian.PutUint32(id[:], ts)
-	// runtime processSignature, in effect, more randomness
+	// runtime processSignature
 	id[4] = rtsig[0]
 	id[5] = rtsig[1]
 	// the rest is random
@@ -162,9 +162,9 @@ func (id ID) RuntimeSignature() []byte {
 // Random returns the trailing random number component of the ID.
 func (id ID) Random() uint64 {
 	b := id[6:12]
-	return uint64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 |
-		uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
-}
+
+    return uint64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 |
+        uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5])) }
 
 // FromString returns an ID by decoding a Base32 representation of an ID
 func FromString(str string) (ID, error) {
@@ -268,13 +268,14 @@ func (id *ID) UnmarshalJSON(text []byte) error {
 
 // Compare makes IDs k-sortable, returning an integer comparing two IDs,
 // comparing only the first 4 bytes:
+//
 //   - 4-byte timestamp
 //     ... while ignoring the trailing:
 //   - 2-byte runtime signature
 //   - 6-byte random value
 //
-// Otherwise, it behaves just like `bytes.Compare(b1[:], b2[:])`.
-// The result will be 0 if two IDs are identical, -1 if current id is less than
+// Otherwise, it behaves just like `bytes.Compare(b1[:], b2[:])`. The result
+// will be 0 if two IDs are identical, -1 if current id is less than
 // the other one, and 1 if current id is greater than the other.
 func (id ID) Compare(other ID) int {
 	return bytes.Compare(id[:5], other[:5])
@@ -300,16 +301,30 @@ func Sort(ids []ID) {
 	sort.Sort(sorter(ids))
 }
 
-// randUint32 produces psuedo random numbers using the go runtime function
-// fastrand.  Generated numbers are non-deterministic and on x86 use
-// hardware acceleration. 10x faster, scales, and passes uniqueness tests.
+
+// Random number generation
+// rid's are not intended to carry any meaning more than the 4-byte timestamp,
+// which is freely exposed. The 2-byte process signature is effectively random.
 //
+// Each rid has a further 6-bytes of randomness; crypto/rand is too slow. In
+// 2022 Go source includes an unexposed fastrand function that has the
+// performance and concurrency safety needed without requiring locks. 
+//
+//
+// For more information see the Go source at: 
+// https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go?q=fastrand
+// which include the comments:
+// Implement wyrand: https://github.com/wangyi-fudan/wyhash
+// Implement xorshift64+: 2 32-bit xorshift sequences added together.
+// Xorshift paper: https://www.jstatsoft.org/article/view/v008i14/xorshift.pdf
+// This generator passes the SmallCrush suite, part of TestU01 framework:
+// http://simul.iro.umontreal.ca/testu01/tu01.html
+
 //go:linkname randUint32 runtime.fastrand
 func randUint32() uint32
 
-func randUint64() uint64 {
-	return uint64(randUint32())<<32 | uint64(randUint32())
-}
+//go:linkname randUint64 runtime.fastrand
+func randUint64() uint64
 
 // runtimeSignature returns a md5 hash of a combination of a machine ID and the
 // current process ID. If this function fails it will cause a runtime error.
