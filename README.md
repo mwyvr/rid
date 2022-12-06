@@ -91,6 +91,35 @@ A comparison with the above noted packages can be found in [bench/bench_test.go]
 
 ### Intel 4-core Dell Latitude 7420 laptop
 
+	$ go test -cpu 1,2,4,8 -benchmem  -run=^$   -bench  ^.*$ 
+	goos: linux
+	goarch: amd64
+	pkg: github.com/solutionroute/rid/bench
+	cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
+	BenchmarkRid            	32993908	        33.85 ns/op	       0 B/op	       0 allocs/op
+	BenchmarkRid-2          	66721432	        18.47 ns/op	       0 B/op	       0 allocs/op
+	BenchmarkRid-4          	95192704	        11.58 ns/op	       0 B/op	       0 allocs/op
+	BenchmarkRid-8          	138976958	         8.614 ns/op	     0 B/op	       0 allocs/op
+	BenchmarkXid            	29734465	        39.70 ns/op	       0 B/op	       0 allocs/op
+	BenchmarkXid-2          	35569008	        33.59 ns/op	       0 B/op	       0 allocs/op
+	BenchmarkXid-4          	58303428	        26.96 ns/op	       0 B/op	       0 allocs/op
+	BenchmarkXid-8          	71675047	        16.79 ns/op	       0 B/op	       0 allocs/op
+	BenchmarkKsuid          	 3767475	       310.9 ns/op	       0 B/op	       0 allocs/op
+	BenchmarkKsuid-2        	 3285496	       365.9 ns/op	       0 B/op	       0 allocs/op
+	BenchmarkKsuid-4        	 3212817	       365.7 ns/op	       0 B/op	       0 allocs/op
+	BenchmarkKsuid-8        	 3258997	       364.0 ns/op	       0 B/op	       0 allocs/op
+	BenchmarkGoogleUuid     	 4371027	       273.9 ns/op	      16 B/op	       1 allocs/op
+	BenchmarkGoogleUuid-2   	 6944608	       170.5 ns/op	      16 B/op	       1 allocs/op
+	BenchmarkGoogleUuid-4   	 9430944	       112.5 ns/op	      16 B/op	       1 allocs/op
+	BenchmarkGoogleUuid-8   	13370536	        88.23 ns/op	      16 B/op	       1 allocs/op
+	BenchmarkUlid           	  160861	      7197 ns/op	      5440 B/op	       3 allocs/op
+	BenchmarkUlid-2         	  286363	      3780 ns/op	      5440 B/op	       3 allocs/op
+	BenchmarkUlid-4         	  492133	      2510 ns/op	      5440 B/op	       3 allocs/op
+	BenchmarkUlid-8         	  666226	      2082 ns/op	      5440 B/op	       3 allocs/op
+	BenchmarkBetterguid     	14120893	        81.03 ns/op	      24 B/op	       1 allocs/op
+	BenchmarkBetterguid-2   	11224359	       102.0 ns/op	      24 B/op	       1 allocs/op
+	BenchmarkBetterguid-4   	 8386694	       137.1 ns/op	      24 B/op	       1 allocs/op
+	BenchmarkBetterguid-8   	 6614655	       176.0 ns/op	      24 B/op	       1 allocs/op
 
 ### AMD 8-core desktop
 
@@ -102,8 +131,8 @@ A comparison with the above noted packages can be found in [bench/bench_test.go]
     BenchmarkRid              	22546425	        52.57 ns/op	       0 B/op	       0 allocs/op
     BenchmarkRid-2            	44619606	        26.36 ns/op	       0 B/op	       0 allocs/op
     BenchmarkRid-4            	76766934	        13.51 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkRid-8            	171874088	         6.869 ns/op	   0 B/op	       0 allocs/op
-    BenchmarkRid-16           	305219312	         3.963 ns/op	   0 B/op	       0 allocs/op
+    BenchmarkRid-8            	171874088	         6.869 ns/op	     0 B/op	       0 allocs/op
+    BenchmarkRid-16           	305219312	         3.963 ns/op	     0 B/op	       0 allocs/op
     BenchmarkXid              	22564863	        51.45 ns/op	       0 B/op	       0 allocs/op
     BenchmarkXid-2            	11812347	       102.3 ns/op	       0 B/op	       0 allocs/op
     BenchmarkXid-4            	24562400	        52.75 ns/op	       0 B/op	       0 allocs/op
@@ -119,11 +148,11 @@ A comparison with the above noted packages can be found in [bench/bench_test.go]
     BenchmarkGoogleUuid-4     	 9113331	       110.7 ns/op	      16 B/op	       1 allocs/op
     BenchmarkGoogleUuid-8     	17528270	        59.86 ns/op	      16 B/op	       1 allocs/op
     BenchmarkGoogleUuid-16    	29063694	        40.57 ns/op	      16 B/op	       1 allocs/op
-    BenchmarkUlid             	  144672	      7925 ns/op	    5440 B/op	       3 allocs/op
-    BenchmarkUlid-2           	  277130	      4259 ns/op	    5440 B/op	       3 allocs/op
-    BenchmarkUlid-4           	  473964	      2330 ns/op	    5440 B/op	       3 allocs/op
-    BenchmarkUlid-8           	  798924	      1445 ns/op	    5440 B/op	       3 allocs/op
-    BenchmarkUlid-16          	  792290	      1479 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid             	  144672	      7925 ns/op	       440 B/op	       3 allocs/op
+    BenchmarkUlid-2           	  277130	      4259 ns/op	      5440 B/op	       3 allocs/op
+    BenchmarkUlid-4           	  473964	      2330 ns/op	      5440 B/op	       3 allocs/op
+    BenchmarkUlid-8           	  798924	      1445 ns/op	      5440 B/op	       3 allocs/op
+    BenchmarkUlid-16          	  792290	      1479 ns/op	      5440 B/op	       3 allocs/op
     BenchmarkBetterguid       	14279642	        81.82 ns/op	      24 B/op	       1 allocs/op
     BenchmarkBetterguid-2     	 7232544	       141.4 ns/op	      24 B/op	       1 allocs/op
     BenchmarkBetterguid-4     	 4828852	       274.6 ns/op	      24 B/op	       1 allocs/op
