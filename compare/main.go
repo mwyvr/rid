@@ -20,6 +20,7 @@ type pkg struct {
 	ksortable  bool
 	zeroconfig bool
 	sample     string
+	next       string
 	uniq       string
 	components string
 }
@@ -34,6 +35,7 @@ func main() {
 			true,
 			true,
 			rid.New().String(),
+			rid.New().String(),
 			"fastrand",
 			"ts(seconds) : runtime signature : random",
 		},
@@ -43,6 +45,7 @@ func main() {
 			len(xid.New().String()),
 			true,
 			true,
+			xid.New().String(),
 			xid.New().String(),
 			"counter",
 			"ts(seconds) : machine ID : process ID : counter",
@@ -54,6 +57,7 @@ func main() {
 			true,
 			true,
 			ksuid.New().String(),
+			ksuid.New().String(),
 			"random",
 			"ts(seconds) : random",
 		},
@@ -63,6 +67,7 @@ func main() {
 			len(uuid.New().String()),
 			false,
 			true,
+			uuid.New().String(),
 			uuid.New().String(),
 			"crypt/rand",
 			"(v4) version + variant + 122 bits random",
@@ -74,6 +79,7 @@ func main() {
 			true,
 			true,
 			newUlid().String(),
+			newUlid().String(),
 			"crypt/rand",
 			"ts(ms) : choice of random",
 		},
@@ -84,16 +90,17 @@ func main() {
 			true,
 			true,
 			betterguid.New(),
+			betterguid.New(),
 			"counter",
 			"ts(ms) + per-ms math/rand initialized counter",
 		},
 	}
 
-	fmt.Printf("| Package                                                   |BLen|ELen| K-Sort| 0-Cfg | Encoded ID                           | Method     | Components |\n")
-	fmt.Printf("|-----------------------------------------------------------|----|----|-------|-------|--------------------------------------|------------|------------|\n")
+	fmt.Printf("| Package                                                   |BLen|ELen| K-Sort| 0-Cfg | Encoded ID and Next | Method | Components |\n")
+	fmt.Printf("|-----------------------------------------------------------|----|----|-------|-------|---------------------|--------|------------|\n")
 	for _, v := range packages {
-		fmt.Printf("| %-57s | %d | %d | %5v | %5v | %-36s | %-10s | %s |\n",
-			v.name, v.blen, v.elen, v.ksortable, v.zeroconfig, v.sample, v.uniq, v.components)
+		fmt.Printf("| %-57s | %d | %d | %5v | %5v | %s<br>%s | %s | %s |\n",
+			v.name, v.blen, v.elen, v.ksortable, v.zeroconfig, v.sample, v.next, v.uniq, v.components)
 	}
 
 }

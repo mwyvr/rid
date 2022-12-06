@@ -69,14 +69,18 @@ and fast.  For the purpose of *this* package, `fastrand64` seems ideal.
 
 ## Package Comparisons
 
-| Package                                                   |BLen|ELen| K-Sort| 0-Cfg | Encoded ID                           | Method     | Components |
-|-----------------------------------------------------------|----|----|-------|-------|--------------------------------------|------------|------------|
-| [solutionroute/rid](https://github.com/solutionroute/rid) | 12 | 20 |  true |  true | ce3vsz0s24fn979qfjpg                 | fastrand   | ts(seconds) : runtime signature : random |
-| [rs/xid](https://github.com/rs/xid)                       | 12 | 20 |  true |  true | ce3rpv0p26gdpm40gbv0                 | counter    | ts(seconds) : machine ID : process ID : counter |
-| [segmentio/ksuid](https://github.com/segmentio/ksuid)     | 20 | 27 |  true |  true | 2IHYlFPNznxhMcMpdi4ppCtwJWZ          | random     | ts(seconds) : random |
-| [google/uuid](https://github.com/google/uuid)             | 16 | 36 | false |  true | db5507af-6a9c-40ea-899b-0fe3c547086e | crypt/rand | (v4) version + variant + 122 bits random |
-| [oklog/ulid](https://github.com/oklog/ulid)               | 16 | 26 |  true |  true | 01GK53ME5694KZW2NS79RK70BT           | crypt/rand | ts(ms) : choice of random |
-| [kjk/betterguid](https://github.com/kjk/betterguid)       | 20 | 20 |  true |  true | -NI9DYXaHaA4RFWy_R1l                 | counter    | ts(ms) + per-ms math/rand initialized counter |
+<tt>
+
+| Package                                                   |BLen|ELen| K-Sort| 0-Cfg | Encoded ID and Next | Method | Components |
+|-----------------------------------------------------------|----|----|-------|-------|---------------------|--------|------------|
+| [solutionroute/rid](https://github.com/solutionroute/rid) | 12 | 20 |  true |  true | ce7nwnjde7687w9z8beg<br>ce7nwnjde5sjnqm40a9g | fastrand | ts(seconds) : runtime signature : random |
+| [rs/xid](https://github.com/rs/xid)                       | 12 | 20 |  true |  true | ce7lslgp26g8ltgpdsvg<br>ce7lslgp26g8ltgpdt00 | counter | ts(seconds) : machine ID : process ID : counter |
+| [segmentio/ksuid](https://github.com/segmentio/ksuid)     | 20 | 27 |  true |  true | 2IXuK8r4TN4iwmkLXI0psp3Mphq<br>2IXuKAtEPfA5ePRe9l56nmFOakq | random | ts(seconds) : random |
+| [google/uuid](https://github.com/google/uuid)             | 16 | 36 | false |  true | 602fc240-deac-4e7f-9c43-1714e66f30fb<br>3c08ff59-62a9-4b4f-9298-2ab23dd727f1 | crypt/rand | (v4) version + variant + 122 bits random |
+| [oklog/ulid](https://github.com/oklog/ulid)               | 16 | 26 |  true |  true | 01GKM0H0FB413TDP5SCM91YKPR<br>01GKM0H0FB4Q41WMXZZKNK4CPE | crypt/rand | ts(ms) : choice of random |
+| [kjk/betterguid](https://github.com/kjk/betterguid)       | 20 | 20 |  true |  true | -NIc176f1hcpW14VTBBg<br>-NIc176f1hcpW14VTBBh | counter | ts(ms) + per-ms math/rand initialized counter |
+
+</tt>
 
 If you don't need the k-sortable randomness this and other packages provide,
 consider the well-tested and performant k-sortable `rs/xid` package
