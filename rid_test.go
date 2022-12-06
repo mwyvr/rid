@@ -11,10 +11,10 @@ import (
 )
 
 type idParts struct {
-	id               ID
-	timestamp        int64
-	runtimesignature []byte
-	random           uint64
+	id     ID
+	ts     int64
+	rtsig  []byte
+	random uint64
 }
 
 var IDs = []idParts{
@@ -44,10 +44,10 @@ var IDs = []idParts{
 func TestIDPartsExtraction(t *testing.T) {
 	for i, v := range IDs {
 		t.Run(fmt.Sprintf("Test%d", i), func(t *testing.T) {
-			if got, want := v.id.Time(), time.Unix(v.timestamp, 0); got != want {
+			if got, want := v.id.Time(), time.Unix(v.ts, 0); got != want {
 				t.Errorf("Time() = %v, want %v", got, want)
 			}
-			if got, want := v.id.RuntimeSignature(), v.runtimesignature; !bytes.Equal(got, want) {
+			if got, want := v.id.RuntimeSignature(), v.rtsig; !bytes.Equal(got, want) {
 				t.Errorf("RuntimeSignature() = %v, want %v", got, want)
 			}
 			if got, want := v.id.Random(), v.random; got != want {
