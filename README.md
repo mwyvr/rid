@@ -71,12 +71,12 @@ and fast.  For the purpose of *this* package, `fastrand64` seems ideal.
 
 | Package                                                   |BLen|ELen| K-Sort| 0-Cfg | Encoded ID and Next | Method | Components |
 |-----------------------------------------------------------|----|----|-------|-------|---------------------|--------|------------|
-| [solutionroute/rid](https://github.com/solutionroute/rid) | 12 | 20 |  true |  true | ce7p1ak3frh5nvt04dr0<br>ce7p1ak3fvbd89wwg7kg | fastrand | ts(seconds) : runtime signature : random |
-| [rs/xid](https://github.com/rs/xid)                       | 12 | 20 |  true |  true | ce7m1agp26g8uhj9rr50<br>ce7m1agp26g8uhj9rr5g | counter | ts(seconds) : machine ID : process ID : counter |
-| [segmentio/ksuid](https://github.com/segmentio/ksuid)     | 20 | 27 |  true |  true | 2IXvX1Ycen2MpeSr79cvNPHSKKk<br>2IXvX26gYjugLi1ymUeC6RPmgQ9 | random | ts(seconds) : random |
-| [google/uuid](https://github.com/google/uuid)             | 16 | 36 | false |  true | 8f88803a-042a-4c8b-99f6-25310f0a6c71<br>e3ba99bf-af71-49c3-9e9f-4fdbbf37aef9 | crypt/rand | (v4) version + variant + 122 bits random |
-| [oklog/ulid](https://github.com/oklog/ulid)               | 16 | 26 |  true |  true | 01GKM1367SQJRGXFJYCASRHD8K<br>01GKM1367SW1ZXJGZZVM7WGHSY | crypt/rand | ts(ms) : choice of random |
-| [kjk/betterguid](https://github.com/kjk/betterguid)       | 20 | 20 |  true |  true | -NIc3OYtM6539bWg_bYw<br>-NIc3OYtM6539bWg_bYx | counter | ts(ms) + per-ms math/rand initialized counter |
+| [solutionroute/rid](https://github.com/solutionroute/rid) | 12 | 20 |  true |  true | `ce7p4gjs90p51vt8jgb0`<br>`ce7p4gjs92erj7hf0zbg` | fastrand | ts(seconds) : runtime signature : random |
+| [rs/xid](https://github.com/rs/xid)                       | 12 | 20 |  true |  true | `ce7m4ggp26g969ang10g`<br>`ce7m4ggp26g969ang110` | counter | ts(seconds) : machine ID : process ID : counter |
+| [segmentio/ksuid](https://github.com/segmentio/ksuid)     | 20 | 27 |  true |  true | `2IXwMNWG81EPVVQfn40USunOzey`<br>`2IXwMNhYfD6gojEIHtMMKvJihuQ` | random | ts(seconds) : random |
+| [google/uuid](https://github.com/google/uuid)             | 16 | 36 | false |  true | `3e5986f5-af92-4f91-b30d-54519bf456e6`<br>`d422fa01-b90a-4349-adb4-9c3fafc34ec4` | crypt/rand | (v4) version + variant + 122 bits random |
+| [oklog/ulid](https://github.com/oklog/ulid)               | 16 | 26 |  true |  true | `01GKM1FMEP61DYQ2FWP3HGTVGB`<br>`01GKM1FMEP2V0BR482XYDGNC1Q` | crypt/rand | ts(ms) : choice of random |
+| [kjk/betterguid](https://github.com/kjk/betterguid)       | 20 | 20 |  true |  true | `-NIc4x6LN0KZ-EEuz4VL`<br>`-NIc4x6LN0KZ-EEuz4VM` | counter | ts(ms) + per-ms math/rand initialized counter |
 
 If you don't need the k-sortable randomness this and other packages provide,
 consider the well-tested and performant k-sortable `rs/xid` package
