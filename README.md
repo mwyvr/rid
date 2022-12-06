@@ -69,7 +69,6 @@ and fast.  For the purpose of *this* package, `fastrand64` seems ideal.
 
 ## Package Comparisons
 
-<tt>
 | Package                                                   |BLen|ELen| K-Sort| 0-Cfg | Encoded ID and Next | Method | Components |
 |-----------------------------------------------------------|----|----|-------|-------|---------------------|--------|------------|
 | [solutionroute/rid](https://github.com/solutionroute/rid) | 12 | 20 |  true |  true | ce7p1ak3frh5nvt04dr0<br>ce7p1ak3fvbd89wwg7kg | fastrand | ts(seconds) : runtime signature : random |
@@ -78,7 +77,6 @@ and fast.  For the purpose of *this* package, `fastrand64` seems ideal.
 | [google/uuid](https://github.com/google/uuid)             | 16 | 36 | false |  true | 8f88803a-042a-4c8b-99f6-25310f0a6c71<br>e3ba99bf-af71-49c3-9e9f-4fdbbf37aef9 | crypt/rand | (v4) version + variant + 122 bits random |
 | [oklog/ulid](https://github.com/oklog/ulid)               | 16 | 26 |  true |  true | 01GKM1367SQJRGXFJYCASRHD8K<br>01GKM1367SW1ZXJGZZVM7WGHSY | crypt/rand | ts(ms) : choice of random |
 | [kjk/betterguid](https://github.com/kjk/betterguid)       | 20 | 20 |  true |  true | -NIc3OYtM6539bWg_bYw<br>-NIc3OYtM6539bWg_bYx | counter | ts(ms) + per-ms math/rand initialized counter |
-</tt>
 
 If you don't need the k-sortable randomness this and other packages provide,
 consider the well-tested and performant k-sortable `rs/xid` package
