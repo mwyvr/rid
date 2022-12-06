@@ -64,8 +64,8 @@ var (
 	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
-    // rtsig is derived from the md5 hash of the machine identifier and process
-    // ID, in effect adding another random segment
+	// rtsig is derived from the md5 hash of the machine identifier and process
+	// ID, in effect adding another random segment
 	rtsig = runtimeSignature()
 
 	encoding = base32.NewEncoding(charset).WithPadding(-1)
@@ -115,11 +115,6 @@ func (id ID) IsNil() bool {
 	return id == nilID
 }
 
-// Alias of IsNil
-func (id ID) IsZero() bool {
-	return id.IsNil()
-}
-
 // NilID returns a zero value for `rid.ID`.
 func NilID() ID {
 	return nilID
@@ -163,8 +158,9 @@ func (id ID) RuntimeSignature() []byte {
 func (id ID) Random() uint64 {
 	b := id[6:12]
 
-    return uint64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 |
-        uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5])) }
+	return uint64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 |
+		uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
+}
 
 // FromString returns an ID by decoding a Base32 representation of an ID
 func FromString(str string) (ID, error) {
@@ -188,11 +184,13 @@ func FromBytes(b []byte) (ID, error) {
 // All decoding is called from here.
 func (id *ID) UnmarshalText(text []byte) error {
 	if len(text) != encodedLen {
+		*id = nilID
 		return ErrInvalidID
 	}
 	for _, c := range text {
 		// invalid characters (not in encoding)
 		if dec[c] == 0xFF {
+			*id = nilID
 			return ErrInvalidID
 		}
 	}
@@ -301,17 +299,16 @@ func Sort(ids []ID) {
 	sort.Sort(sorter(ids))
 }
 
-
 // Random number generation
 // rid's are not intended to carry any meaning more than the 4-byte timestamp,
 // which is freely exposed. The 2-byte process signature is effectively random.
 //
 // Each rid has a further 6-bytes of randomness; crypto/rand is too slow. In
 // 2022 Go source includes an unexposed fastrand function that has the
-// performance and concurrency safety needed without requiring locks. 
+// performance and concurrency safety needed without requiring locks.
 //
 //
-// For more information see the Go source at: 
+// For more information see the Go source at:
 // https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go?q=fastrand
 // which include the comments:
 // Implement wyrand: https://github.com/wangyi-fudan/wyhash

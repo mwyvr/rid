@@ -2,8 +2,6 @@ package rid
 
 import (
 	"bytes"
-	// "database/sql/driver"
-	// enc "encoding"
 	"fmt"
 	"reflect"
 	"testing"
@@ -105,6 +103,24 @@ func TestFromString(t *testing.T) {
 	if got != want {
 		t.Errorf("FromString() = %v, want %v", got, want)
 	}
+	// nil ID
+	got, err = FromString("00000000000000000000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want = ID{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}
+	if got != want {
+		t.Errorf("FromString() = %v, want %v", got, want)
+	}
+	// max ID
+	got, err = FromString("zzzzzzzzzzzzzzzzzzzg") // trailing z also equals due to padding
+	if err != nil {
+		t.Fatal(err)
+	}
+	want = ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+	if got != want {
+		t.Errorf("FromString() = %v, want %v", got, want)
+	}
 }
 
 func TestFromStringInvalid(t *testing.T) {
@@ -118,6 +134,54 @@ func TestFromStringInvalid(t *testing.T) {
 	}
 	if id != nilID {
 		t.Errorf("FromString() =%v, there want %v", id, nilID)
+	}
+}
+
+func TestID_UnmarshalText(t *testing.T) {
+	tests := []struct {
+		name    string
+		text    string
+		id      *ID
+		wantErr bool
+	}{
+		{
+			"invalid chars",
+			"0000000000000000ilou",
+			&nilID,
+			true,
+		},
+		{
+			"invalid length too long",
+			"0000000000000000000000000",
+			&nilID,
+			true,
+		},
+		{
+			"invalid length too short",
+			"abcde",
+			&nilID,
+			true,
+		},
+		{
+			"valid id",
+			"ce7m7d3evfg1pa4t93x0",
+			&ID{0x63, 0x8f, 0x43, 0xb4, 0x6e, 0xdb, 0xe0, 0x1b, 0x28, 0x9a, 0x48, 0xfa},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.id.UnmarshalText([]byte(tt.text)); (err != nil) != tt.wantErr {
+				t.Errorf("ID.UnmarshalText() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	id := New()
+	if err := id.UnmarshalText([]byte("foo")); err != ErrInvalidID {
+		t.Errorf("ID.UnmarshalText() error = %v, wantErr %v", err, ErrInvalidID)
+	}
+	if err := id.UnmarshalText([]byte("foo")); err != nil && !id.IsNil() {
+		t.Errorf("ID.UnmarshalText() error = %v, want nil ID, got %v", err, id)
 	}
 }
 
@@ -170,19 +234,26 @@ func TestFromBytes_Invariant(t *testing.T) {
 	if got.Compare(want) != 0 {
 		t.Error("FromBytes(id.Bytes()) != id")
 	}
+	// invalid
+	got, err = FromBytes([]byte{0x1, 0x2})
+	if got.Compare(nilID) != 0 {
+		t.Error("FromBytes([]byte{0x1, 0x2}) - invalid - != nilID")
+	}
+	if err == nil {
+		t.Fatal(err)
+	}
 }
 
 func TestIDDriverScan(t *testing.T) {
 
-	// [ce0djy0s248ra7qrh140] seconds:1669388664 random:519604254 machine:[0x19, 0x11] pid:4485 time:2022-11-25 07:04:24 -0800 PST
-	// ID{0x63, 0x80, 0xd9, 0x78, 0x19, 0x11, 0x11, 0x85, 0x1e, 0xf8, 0x88, 0x48}
+	// ce7kerav4yj65mzy1rp0 seconds:1670330209 rtsig:[0x5b,0x27] random:180744370392620 | time:2022-12-06 04:36:49 -0800 PST
+	// ID{0x63,0x8f,0x37,0x61,0x5b,0x27,0xa4,0x62,0xd3,0xfe,0xe,0x2c}
 	got := ID{}
-	err := got.Scan("ce0djy0s248ra7qrh140")
+	err := got.Scan("ce7kerav4yj65mzy1rp0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := ID{0x63, 0x80, 0xd9, 0x78, 0x19, 0x11, 0x11, 0x85, 0x1e, 0xf8, 0x88, 0x48}
-
+	want := ID{0x63, 0x8f, 0x37, 0x61, 0x5b, 0x27, 0xa4, 0x62, 0xd3, 0xfe, 0xe, 0x2c}
 	if got.Compare(want) != 0 {
 		t.Errorf("Scan() = %v, want %v", got, want)
 	}
@@ -238,6 +309,22 @@ func TestSort(t *testing.T) {
 	}
 }
 
+func Test_randUint32(t *testing.T) {
+	one := randUint32()
+	another := randUint32()
+	if one == another {
+		t.Errorf("randUint32() = %v should not equal another: %v", one, another)
+	}
+}
+
+func Test_randUint64(t *testing.T) {
+	one := randUint64()
+	another := randUint64()
+	if one == another {
+		t.Errorf("randUint64() = %v should not equal another: %v", one, another)
+	}
+}
+
 func Test_runtimeSignature(t *testing.T) {
 	// should not be a nil value
 	var nilMachineID = make([]byte, 2)
@@ -247,6 +334,7 @@ func Test_runtimeSignature(t *testing.T) {
 }
 
 // Benchmarks
+// Create new ID
 func BenchmarkNew(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -290,7 +378,7 @@ func ExampleNew() {
 	fmt.Printf(`ID:
     String()  %s
     Seconds() %d
-    ProcessSignature() %v 
+    RuntimeSignature() %v 
     Random()  %d 
     Time()    %v
     Bytes()   %3v\n`, id.String(), id.Seconds(), id.RuntimeSignature(), id.Random(), id.Time().UTC(), id.Bytes())
@@ -301,17 +389,17 @@ func ExampleNewWithTimestamp() {
 	fmt.Printf(`ID:
     String()  %s
     Seconds() %d
-    ProcessSignature() %v 
+    RuntimeSignature() %v 
     Random()  %d 
     Time()    %v
     Bytes()   %3v\n`, id.String(), id.Seconds(), id.RuntimeSignature(), id.Random(), id.Time().UTC(), id.Bytes())
 }
 
 func ExampleFromString() {
-	id, err := FromString("ce0dz5gs24h2e30a74rg")
+	id, err := FromString("ce7k5pagzd2kvnrbtt60")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(id.Seconds(), id.Random())
-	// 1669390230 201996556
+	// 1670329049 76131903198860
 }
