@@ -212,6 +212,14 @@ func TestID_IsNil(t *testing.T) {
 	}
 }
 
+// is an alias function, no need to repeat above, just for coverage report
+func TestID_IsZero(t *testing.T) {
+	id := ID{}
+	if !id.IsZero() {
+		t.Errorf("ID.IsZero() = %v, want %v", id.IsZero(), true)
+	}
+}
+
 func TestNilID(t *testing.T) {
 	got := ID{}
 	if want := NilID(); !reflect.DeepEqual(got, want) {

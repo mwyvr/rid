@@ -115,6 +115,11 @@ func (id ID) IsNil() bool {
 	return id == nilID
 }
 
+// IsZero is an alias of is IsNil
+func (id ID) IsZero() bool {
+	return id.IsNil()
+}
+
 // NilID returns a zero value for `rid.ID`.
 func NilID() ID {
 	return nilID
