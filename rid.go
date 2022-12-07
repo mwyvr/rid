@@ -9,7 +9,7 @@ The 15-byte binary representation of an ID is comprised of a:
 
 - 6-byte timestamp value representing milliseconds since the Unix epoch
 - 1-byte machine+process signature, derived from a md5 hash of the machine ID + process ID
-- 6-byte random number using Go's runtime `fastrand` function. [1]
+- 8-byte uint64 random number using Go's runtime `fastrand` function. [1]
 
 15 bytes / 120 bits also lands on an even Base32 boundary, requiring no padding.
 
@@ -109,7 +109,7 @@ func NewWithTimestamp(ts uint64) ID {
 	id[5] = byte(ts)
 	// 1 byte process signature, semi-random
 	id[6] = rtsig[0]
-	// 6 byte random number
+	// 8 byte random number
 	rv := randUint64()
 	id[7] = byte(rv >> 56)
 	id[8] = byte(rv >> 48)
@@ -172,10 +172,10 @@ func (id ID) RuntimeSignature() []byte {
 	return id[6:7]
 }
 
-// Random returns the trailing random number component of the ID.
+// Random returns the trailing 8-byte uint64 random number component of the ID.
 func (id ID) Random() uint64 {
 	b := id[7:]
-	return uint64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
+	return uint64(b[0])<<56 | uint64(b[1])<<48 | uint64(b[2])<<40 | uint64(b[3])<<32 | uint64(b[4])<<24 | uint64(b[5])<<16 | uint64(b[6])<<8 | uint64(b[7])
 }
 
 // FromString returns an ID by decoding a Base32 representation of an ID
@@ -281,18 +281,18 @@ func (id *ID) UnmarshalJSON(text []byte) error {
 }
 
 // Compare makes IDs k-sortable, returning an integer comparing two IDs,
-// comparing only the first 4 bytes:
+// comparing only the first 7 bytes:
 //
-//   - 4-byte timestamp
+//   - 6-byte timestamp
+//   - 1-byte runtime signature
 //     ... while ignoring the trailing:
-//   - 2-byte runtime signature
 //   - 6-byte random value
 //
 // Otherwise, it behaves just like `bytes.Compare(b1[:], b2[:])`. The result
 // will be 0 if two IDs are identical, -1 if current id is less than
 // the other one, and 1 if current id is greater than the other.
 func (id ID) Compare(other ID) int {
-	return bytes.Compare(id[:5], other[:5])
+	return bytes.Compare(id[:7], other[:7])
 }
 
 type sorter []ID
@@ -325,9 +325,9 @@ func String64(id ID) string {
 }
 
 // FromString64 returns an ID by decoding a Base64 representation of an ID
-func FromString64(str string) (*ID, error) {
-	encoded64Len := (rawLen / 5) * 4
-	id := &ID{}
+func FromString64(str string) (ID, error) {
+	encoded64Len := (rawLen / 3) * 4
+	id := ID{}
 	if len(str) != encoded64Len {
 		return id, ErrInvalidID
 	}
