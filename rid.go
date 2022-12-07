@@ -222,11 +222,6 @@ func decode(id *ID, src []byte) (int, error) {
 	return encoding.Decode(id[:], src)
 }
 
-// decode64 - Dec 2022 experimental and may be removed
-func decode64(id *ID, src []byte) (int, error) {
-	return encoding64.Decode(id[:], src)
-}
-
 // MarshalText implements encoding.TextMarshaler.
 // https://golang.org/pkg/encoding/#TextMarshaler
 func (id ID) MarshalText() ([]byte, error) {
@@ -320,8 +315,7 @@ func Sort(ids []ID) {
 	sort.Sort(sorter(ids))
 }
 
-// Alternative Base64 encoding/decoding helpers
-
+// Alternative Base64 encoding/decoding helpers;
 // String64 returns the Base64 encoded representation of ID as a string.
 func String64(id ID) string {
 	text := make([]byte, (rawLen/3)*4)
@@ -330,43 +324,19 @@ func String64(id ID) string {
 	return *(*string)(unsafe.Pointer(&text))
 }
 
-// FromString64 returns an ID by decoding a Base32 representation of an ID
+// FromString64 returns an ID by decoding a Base64 representation of an ID
 func FromString64(str string) (*ID, error) {
 	encoded64Len := (rawLen / 5) * 4
 	id := &ID{}
 	if len(str) != encoded64Len {
 		return id, ErrInvalidID
 	}
-	if _, err := decode(id, str); err != nil {
+	if _, err := encoding64.Decode(id[:], []byte(str)); err != nil {
 		return id, ErrInvalidID
 	} else {
 		return id, err
 	}
 }
-
-// Random number generation
-// rid's are not intended to carry any meaning more than the 4-byte timestamp,
-// which is freely exposed. The 2-byte process signature is effectively random.
-//
-// Each rid has a further 6-bytes of randomness; crypto/rand is too slow. In
-// 2022 Go source includes an unexposed fastrand function that has the
-// performance and concurrency safety needed without requiring locks.
-//
-//
-// For more information see the Go source at:
-// https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go?q=fastrand
-// which include the comments:
-// Implement wyrand: https://github.com/wangyi-fudan/wyhash
-// Implement xorshift64+: 2 32-bit xorshift sequences added together.
-// Xorshift paper: https://www.jstatsoft.org/article/view/v008i14/xorshift.pdf
-// This generator passes the SmallCrush suite, part of TestU01 framework:
-// http://simul.iro.umontreal.ca/testu01/tu01.html
-
-//go:linkname randUint32 runtime.fastrand
-func randUint32() uint32
-
-//go:linkname randUint64 runtime.fastrand
-func randUint64() uint64
 
 // runtimeSignature returns the first byte of a md5 hash of (machine ID + process ID).
 // If this function fails it will cause a runtime error.
@@ -390,3 +360,30 @@ func runtimeSignature() []byte {
 	copy(sig, rs.Sum(nil))
 	return sig
 }
+
+// Random number generation
+
+// rid's are not intended to carry any meaning more than the 6-byte timestamp,
+// which is freely exposed. The 1-byte runtime signature is effectively random.
+
+// Each rid has a trailing 6-bytes of randomness; the combination of millisecond
+// time resolution and 48 bits of randomness results in no collisions detected.
+// See eval/uniqcheck in the package for a uniqueness evaluation app.
+//
+// For performance and scalability, this package uses an unexposed internal
+// Go function `fastrand` / `fastrand64`.
+//
+// For more information on fastrand see the Go source at:
+// https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go?q=fastrand
+// which include the comments:
+// Implement wyrand: https://github.com/wangyi-fudan/wyhash
+// Implement xorshift64+: 2 32-bit xorshift sequences added together.
+// Xorshift paper: https://www.jstatsoft.org/article/view/v008i14/xorshift.pdf
+// This generator passes the SmallCrush suite, part of TestU01 framework:
+// http://simul.iro.umontreal.ca/testu01/tu01.html
+
+//go:linkname randUint32 runtime.fastrand
+func randUint32() uint32
+
+//go:linkname randUint64 runtime.fastrand64
+func randUint64() uint64
