@@ -12,27 +12,37 @@ import (
 )
 
 type idParts struct {
-	id      ID
-	encoded string
-	ts      int64
-	rtsig   []byte
-	random  uint64
+	id        ID
+	encoded   string
+	encoded64 string
+	ts        int64
+	rtsig     []byte
+	random    uint64
 }
 
 var IDs = []idParts{
-	// sorted (ascending) should be IDs 1, 2, 0
-
+	// sorted (ascending) should be IDs 2, 3, 0, 1
 	{
 		// 062ektdeb6039z5masctt333 ts:1670371716697 rtsig:[0x80] random: 58259961960877 | time:2022-12-06 16:08:36.697 -0800 PST ID{0x1,0x84,0xe9,0xe9,0xae,0x59,0x80,0x34,0xfc,0xb4,0x56,0x59,0xad,0xc,0x63}
 		ID{0x1, 0x84, 0xe9, 0xe9, 0xae, 0x59, 0x80, 0x34, 0xfc, 0xb4, 0x56, 0x59, 0xad, 0xc, 0x63},
 		"062ektdeb6039z5masctt333",
+		"AYTp6a5ZgDT8tFZZrQxj",
 		1670371716697,
 		[]byte{0x80},
-		58259961960877,
+		3818124867068038243,
+	},
+	{
+		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		"zzzzzzzzzzzzzzzzzzzg0000",
+		"________________AAAA",
+		281474976710655,
+		[]byte{0xff},
+		18446744073692774400,
 	},
 	{
 		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		"000000000000000000000000",
+		"AAAAAAAAAAAAAAAAAAAA",
 		0,
 		[]byte{0x00},
 		0,
@@ -41,9 +51,10 @@ var IDs = []idParts{
 		// 062ektcmm0k3bgwxd4bceqtb ts:1670371710112 rtsig:[0x26] random: 59114275804871 | time:2022-12-06 16:08:30.112 -0800 PST ID{0x1,0x84,0xe9,0xe9,0x94,0xa0,0x26,0x35,0xc3,0x9d,0x69,0x16,0xc7,0x5f,0x4b}
 		ID{0x1, 0x84, 0xe9, 0xe9, 0x94, 0xa0, 0x26, 0x35, 0xc3, 0x9d, 0x69, 0x16, 0xc7, 0x5f, 0x4b},
 		"062ektcmm0k3bgwxd4bceqtb",
+		"AYTp6ZSgJjXDnWkWx19L",
 		1670371710112,
 		[]byte{0x26},
-		59114275804871,
+		3874113179148050251,
 	},
 }
 
@@ -120,7 +131,7 @@ func TestFromString(t *testing.T) {
 		t.Errorf("FromString() = %v, want %v", got, want)
 	}
 	// max ID
-	got, err = FromString("zzzzzzzzzzzzzzzzzzzzzzzz") // trailing z also equals due to padding
+	got, err = FromString("zzzzzzzzzzzzzzzzzzzzzzzz")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,23 +285,24 @@ func TestIDDriverScan(t *testing.T) {
 	}
 }
 
-var IDList = []ID{IDs[0].id, IDs[1].id, IDs[2].id}
+var IDList = []ID{IDs[0].id, IDs[1].id, IDs[2].id, IDs[3].id}
 
 func TestSorter_Len(t *testing.T) {
 	if got, want := sorter([]ID{}).Len(), 0; got != want {
 		t.Errorf("Len() %v, want %v", got, want)
 	}
-	if got, want := sorter(IDList).Len(), 3; got != want {
+	if got, want := sorter(IDList).Len(), 4; got != want {
 		t.Errorf("Len() %v, want %v", got, want)
 	}
 }
 
 func TestSorter_Less(t *testing.T) {
+	// sorted (ascending) should be IDs 2, 3, 0, 1
 	sorter := sorter(IDList)
-	if !sorter.Less(1, 0) {
-		t.Errorf("Less(1, 0) not true")
+	if !sorter.Less(0, 1) {
+		t.Errorf("Less(0, 1) not true")
 	}
-	if sorter.Less(2, 1) {
+	if sorter.Less(3, 2) {
 		t.Errorf("Less(2, 1) true")
 	}
 	if sorter.Less(0, 0) {
@@ -319,8 +331,42 @@ func TestSort(t *testing.T) {
 	ids := make([]ID, 0)
 	ids = append(ids, IDList...)
 	Sort(ids)
-	if got, want := ids, []ID{IDList[1], IDList[2], IDList[0]}; !reflect.DeepEqual(got, want) {
+	// sorted (ascending) should be IDs 2, 3, 0, 1
+	if got, want := ids, []ID{IDList[2], IDList[3], IDList[0], IDList[1]}; !reflect.DeepEqual(got, want) {
 		t.Fail()
+	}
+}
+
+func TestString64(t *testing.T) {
+	for _, v := range IDs {
+		if s64 := String64(v.id); s64 != v.encoded64 {
+			t.Errorf("TestString64 %v did not match FromString result %v", s64, v.encoded64)
+		}
+	}
+}
+
+func TestFromString64(t *testing.T) {
+	if _, got := FromString64("AYTuxCzTKmROjoji-Ky"); got == nil {
+		t.Errorf("Want error %v (too short) got %v", ErrInvalidID, got)
+	}
+	if _, got := FromString64("AYTuxCzTKmROjoji-KyF00"); got == nil {
+		t.Errorf("Want error %v (too long) got %v", ErrInvalidID, got)
+	}
+	if _, got := FromString64("AYTuxCzTKmROjoji-Ky("); got == nil {
+		t.Errorf("Want error %v (invalid char) got %v", ErrInvalidID, got)
+	}
+	for _, v := range IDs {
+		id, err := FromString64(v.encoded64)
+		if err != nil {
+			t.Error(err)
+		}
+		b32id, err := FromString(v.encoded)
+		if err != nil {
+			t.Error(err)
+		}
+		if !reflect.DeepEqual(id, b32id) {
+			t.Errorf("TestFromString64 %v did not match FromString result %v", id, b32id)
+		}
 	}
 }
 
@@ -412,6 +458,16 @@ func ExampleNewWithTimestamp() {
 
 func ExampleFromString() {
 	id, err := FromString("ce7k5pagzd2kvnrbtt60")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(id.Timestamp(), id.Random())
+	// 1670329049 76131903198860
+}
+
+// TODO fix example
+func ExampleFromString64() {
+	id, err := FromString64("ce7k5pagzd2kvnrbtt60")
 	if err != nil {
 		panic(err)
 	}
