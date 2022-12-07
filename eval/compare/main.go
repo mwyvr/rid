@@ -29,7 +29,7 @@ func main() {
 
 	packages := []pkg{
 		{
-			"[solutionroute/rid](https://github.com/solutionroute/rid)",
+			"[solutionroute/rid](https://github.com/solutionroute/rid)<br>Base32 (default)",
 			len(rid.New().Bytes()),
 			len(rid.New().String()),
 			true,
@@ -37,7 +37,18 @@ func main() {
 			rid.New().String(),
 			rid.New().String(),
 			"fastrand",
-			"ts(seconds) : runtime signature : random",
+			"6 byte ts(ms) : 1 byte machine/pid signature : 6 byte random",
+		},
+		{
+			"[solutionroute/rid](https://github.com/solutionroute/rid)<br>Base64 (included helper functions)",
+			len(rid.New().Bytes()),
+			len(rid.String64(rid.New())),
+			true,
+			true,
+			rid.String64(rid.New()),
+			rid.String64(rid.New()),
+			"fastrand",
+			"6 byte ts(ms) : 1 byte machine/pid signature : 6 byte random",
 		},
 		{
 			"[rs/xid](https://github.com/rs/xid)",
@@ -48,7 +59,7 @@ func main() {
 			xid.New().String(),
 			xid.New().String(),
 			"counter",
-			"ts(seconds) : machine ID : process ID : counter",
+			"4 byte ts(sec) : 2 byte mach ID : 2 byte pid : 3 byte monotonic counter",
 		},
 		{
 			"[segmentio/ksuid](https://github.com/segmentio/ksuid)",
@@ -59,7 +70,7 @@ func main() {
 			ksuid.New().String(),
 			ksuid.New().String(),
 			"random",
-			"ts(seconds) : random",
+			"4 byte ts(sec) : 16 byte random",
 		},
 		{
 			"[google/uuid](https://github.com/google/uuid)",
@@ -70,7 +81,7 @@ func main() {
 			uuid.New().String(),
 			uuid.New().String(),
 			"crypt/rand",
-			"(v4) version + variant + 122 bits random",
+			"v4: 16 bytes random with version & variant embedded",
 		},
 		{
 			"[oklog/ulid](https://github.com/oklog/ulid)",
@@ -81,18 +92,18 @@ func main() {
 			newUlid().String(),
 			newUlid().String(),
 			"crypt/rand",
-			"ts(ms) : choice of random",
+			"6 byte ts(ms) : 10 byte counter random init per ts(ms)",
 		},
 		{
 			"[kjk/betterguid](https://github.com/kjk/betterguid)",
-			8 + 12, // only available as a string
+			8 + 9, // only available as a string
 			len(betterguid.New()),
 			true,
 			true,
 			betterguid.New(),
 			betterguid.New(),
 			"counter",
-			"ts(ms) + per-ms math/rand initialized counter",
+			"8 byte ts(ms) : 9 byte counter random init per ts(ms)",
 		},
 	}
 
