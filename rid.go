@@ -37,6 +37,7 @@ import (
 	"crypto/md5"
 	"database/sql/driver"
 	"encoding/base32"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -69,7 +70,11 @@ var (
 	// ID, in effect adding another random segment
 	rtsig = runtimeSignature()
 
+	// rid default encoding is Base32 using a customized Crockford-inspired character set
 	encoding = base32.NewEncoding(charset).WithPadding(-1)
+	// Dec 7 2022 - experimental
+	encoding64 = base64.StdEncoding
+
 	// dec is the decoding map for our base32 encoding
 	dec [256]byte
 
@@ -217,6 +222,11 @@ func decode(id *ID, src []byte) (int, error) {
 	return encoding.Decode(id[:], src)
 }
 
+// decode64 - Dec 2022 experimental and may be removed
+func decode64(id *ID, src []byte) (int, error) {
+	return encoding64.Decode(id[:], src)
+}
+
 // MarshalText implements encoding.TextMarshaler.
 // https://golang.org/pkg/encoding/#TextMarshaler
 func (id ID) MarshalText() ([]byte, error) {
@@ -308,6 +318,30 @@ func (s sorter) Swap(i, j int) {
 // It works by wrapping `[]ID` and use `sort.Sort`.
 func Sort(ids []ID) {
 	sort.Sort(sorter(ids))
+}
+
+// Alternative Base64 encoding/decoding helpers
+
+// String64 returns the Base64 encoded representation of ID as a string.
+func String64(id ID) string {
+	text := make([]byte, (rawLen/3)*4)
+	encoding64.Encode(text, id[:])
+	// avoids an allocation
+	return *(*string)(unsafe.Pointer(&text))
+}
+
+// FromString64 returns an ID by decoding a Base32 representation of an ID
+func FromString64(str string) (*ID, error) {
+	encoded64Len := (rawLen / 5) * 4
+	id := &ID{}
+	if len(str) != encoded64Len {
+		return id, ErrInvalidID
+	}
+	if _, err := decode(id, str); err != nil {
+		return id, ErrInvalidID
+	} else {
+		return id, err
+	}
 }
 
 // Random number generation
