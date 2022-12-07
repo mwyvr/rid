@@ -50,7 +50,7 @@ func main() {
 			fmt.Printf("[%s] %s\n", arg, err)
 			continue
 		}
-		fmt.Printf("%s ts:%d rtsig:[%s] random:%15d | time:%v ID{%s}\n", arg,
+		fmt.Printf("%s ts:%d sig:%s rnd:%20d %v ID{%s}\n", arg,
 			id.Timestamp(), asHex(id.RuntimeSignature()), id.Random(), id.Time(), asHex(id.Bytes()))
 	}
 	if errors > 0 {
@@ -65,7 +65,6 @@ func main() {
 				fmt.Fprintf(os.Stdout, "%s\n", rid.String64(rid.New()))
 			} else {
 				fmt.Fprintf(os.Stdout, "%s\n", rid.New())
-
 			}
 		}
 	}
