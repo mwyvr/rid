@@ -10,20 +10,22 @@ import (
 	"github.com/solutionroute/rid"
 )
 
-var count int = 1
+var (
+	count  int  = 1
+	altEnc bool = false
+)
 
 func init() {
 	flag.IntVar(&count, "c", count, "Generate count number of IDs")
+	flag.BoolVar(&altEnc, "a", altEnc, "Use alternate Base64 encoding")
 }
 
 func main() {
-	flag.Usage = func() {
-		pgm := os.Args[0]
-		fmt.Fprintf(flag.CommandLine.Output(),
-			"usage: %s -c N                 # generate N rids\n", pgm)
-		fmt.Fprintf(flag.CommandLine.Output(),
-			"       %s cdym59rs24a5g86efepg # decode one or more rid(s)\n", pgm)
-	}
+	var (
+		id  rid.ID
+		err error
+	)
+
 	flag.Parse()
 	args := flag.Args()
 
@@ -35,9 +37,14 @@ func main() {
 	}
 
 	errors := 0
-	// If args, attempt to decode as an rid
+	// If args, attempt to decode as an rid; can't mix Base32 and alt Base64
 	for _, arg := range args {
-		id, err := rid.FromString(arg)
+		err = nil
+		if !altEnc {
+			id, err = rid.FromString(arg)
+		} else {
+			id, err = rid.FromString64(arg)
+		}
 		if err != nil {
 			errors++
 			fmt.Printf("[%s] %s\n", arg, err)
@@ -54,7 +61,12 @@ func main() {
 	// if -c N, generate one rid
 	if len(args) == 0 {
 		for c := 0; c < count; c++ {
-			fmt.Fprintf(os.Stdout, "%s\n", rid.New())
+			if altEnc {
+				fmt.Fprintf(os.Stdout, "%s\n", rid.String64(rid.New()))
+			} else {
+				fmt.Fprintf(os.Stdout, "%s\n", rid.New())
+
+			}
 		}
 	}
 }
