@@ -40,7 +40,7 @@ func main() {
 			"6 byte ts(ms) : 1 byte machine/pid signature : 6 byte random",
 		},
 		{
-			"[solutionroute/rid](https://github.com/solutionroute/rid)<br>Base64 (included helper functions)",
+			"[solutionroute/rid](https://github.com/solutionroute/rid)<br>Base64 (helper functions)",
 			len(rid.New().Bytes()),
 			len(rid.String64(rid.New())),
 			true,
