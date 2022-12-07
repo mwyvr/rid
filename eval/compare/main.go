@@ -37,10 +37,10 @@ func main() {
 			rid.New().String(),
 			rid.New().String(),
 			"fastrand",
-			"6 byte ts(ms) : 1 byte machine/pid signature : 6 byte random",
+			"6 byte ts(ms) : 1 byte machine/pid signature : 8 byte random",
 		},
 		{
-			"[solutionroute/rid](https://github.com/solutionroute/rid)<br>Base64 (helper functions)",
+			"[solutionroute/rid](https://github.com/solutionroute/rid)<br>Base64 (optional)",
 			len(rid.New().Bytes()),
 			len(rid.String64(rid.New())),
 			true,
@@ -48,7 +48,7 @@ func main() {
 			rid.String64(rid.New()),
 			rid.String64(rid.New()),
 			"fastrand",
-			"6 byte ts(ms) : 1 byte machine/pid signature : 6 byte random",
+			"6 byte ts(ms) : 1 byte machine/pid signature : 8 byte random",
 		},
 		{
 			"[rs/xid](https://github.com/rs/xid)",
