@@ -72,8 +72,8 @@ var (
 
 	// rid default encoding is Base32 using a customized Crockford-inspired character set
 	encoding = base32.NewEncoding(charset).WithPadding(-1)
-	// Dec 7 2022 - experimental
-	encoding64 = base64.StdEncoding
+	// used by String64 and FromString64 helper functions
+	encoding64 = base64.URLEncoding
 
 	// dec is the decoding map for our base32 encoding
 	dec [256]byte
