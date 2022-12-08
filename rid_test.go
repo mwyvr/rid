@@ -142,13 +142,13 @@ func TestFromString(t *testing.T) {
 }
 
 func TestFromStringInvalid(t *testing.T) {
-	_, err := FromString("invalid")
+	_, err := FromString("012345")
 	if err != ErrInvalidID {
-		t.Errorf("FromString(invalid) err=%v, want %v", err, ErrInvalidID)
+		t.Errorf("FromString(invalid length) err=%v, want %v", err, ErrInvalidID)
 	}
-	id, err := FromString("ce0cnw0s25j1ksgsilou") // i, l, o, u never in our IDs
+	id, err := FromString("062ez870acdtzd2y3qajilou") // i, l, o, u never in our IDs
 	if err != ErrInvalidID {
-		t.Errorf("FromString(ce0cnw0s25j1ksgsilou - invalid chars) err=%v, want %v", err, ErrInvalidID)
+		t.Errorf("FromString(062ez870acdtzd2y3qajilou - invalid chars) err=%v, want %v", err, ErrInvalidID)
 	}
 	if id != nilID {
 		t.Errorf("FromString() =%v, there want %v", id, nilID)
@@ -271,9 +271,8 @@ func TestFromBytes_Invariant(t *testing.T) {
 }
 
 func TestIDDriverScan(t *testing.T) {
-
-	// ce7kerav4yj65mzy1rp0 timestamp:1670330209 rtsig:[0x5b,0x27] random:180744370392620 | time:2022-12-06 04:36:49 -0800 PST
-	// ID{0x63,0x8f,0x37,0x61,0x5b,0x27,0xa4,0x62,0xd3,0xfe,0xe,0x2c}
+	// 062ektcmm0k3bgwxd4bceqtb ts:1670371710112 sig:0x26 rnd: 3874113179148050251 2022-12-06 16:08:30.112 -0800 PST
+	// ID{0x1,0x84,0xe9,0xe9,0x94,0xa0,0x26,0x35,0xc3,0x9d,0x69,0x16,0xc7,0x5f,0x4b}
 	got := ID{}
 	err := got.Scan("062ektcmm0k3bgwxd4bceqtb")
 	if err != nil {
@@ -388,7 +387,7 @@ func Test_randUint64(t *testing.T) {
 
 func Test_runtimeSignature(t *testing.T) {
 	// should not be a nil value
-	var nilMachineID = make([]byte, 2)
+	var nilMachineID = make([]byte, 1)
 	if got := runtimeSignature(); reflect.DeepEqual(got, nilMachineID) {
 		t.Errorf("randomMachineId() = %v, want %v, shouldn't be nil", got, nilMachineID)
 	}
@@ -425,7 +424,11 @@ func BenchmarkString(b *testing.B) {
 
 // decoding performance
 func BenchmarkFromString(b *testing.B) {
-	str := "ce1tcars24hcmnsc8jvg"
+	str := "062ez6ecmaky7yksap0arnr6"
+	_, err := FromString(str)
+	if err != nil {
+		b.Error(err)
+	}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			_, _ = FromString(str)
@@ -446,7 +449,7 @@ func ExampleNew() {
 }
 
 func ExampleNewWithTimestamp() {
-	id := NewWithTimestamp(uint64(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()))
+	id := NewWithTimestamp(uint64(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC).UnixMilli()))
 	fmt.Printf(`ID:
     String()  %s
     Timestamp() %d
@@ -457,20 +460,18 @@ func ExampleNewWithTimestamp() {
 }
 
 func ExampleFromString() {
-	id, err := FromString("ce7k5pagzd2kvnrbtt60")
+	id, err := FromString("062ez6ecmaky7yksap0arnr6")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(id.Timestamp(), id.Random())
-	// 1670329049 76131903198860
 }
 
-// TODO fix example
 func ExampleFromString64() {
-	id, err := FromString64("ce7k5pagzd2kvnrbtt60")
+	id, err := FromString64("AYTvnJruiHfR9aMD96d7")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(id.Timestamp(), id.Random())
-	// 1670329049 76131903198860
+	// 1670467328750 8633952041140987771
 }
