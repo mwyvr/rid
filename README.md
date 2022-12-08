@@ -13,7 +13,7 @@ binary representation of an ID is comprised of a:
 
 - 6-byte timestamp value representing milliseconds since the Unix epoch
 - 1-byte machine+process signature, derived from md5(machine ID + process ID)
-- 6-byte random number using Go's runtime `fastrand` function. [1]
+- 8-byte random number using Go's runtime `fastrand` function. [1]
 
 `rid` also implements a number of well-known interfaces to make use with JSON
 and databases more convenient.
@@ -26,7 +26,7 @@ Where this package differs, rid (15 bytes) | xid (12 bytes):
 
 - 6-bytes of time, millisecond resolution | 4 bytes, second resolution
 - 1-byte machine+process signature | 3 bytes machine ID, 2 bytes process ID
-- 6-byte random number | 3-byte monotonic counter randomly initialized once 
+- 8-byte random number | 3-byte monotonic counter randomly initialized once 
 
 ## Usage
 
@@ -60,10 +60,10 @@ and inspection. To install: `go install github.com/solutionroute/rid/cmd/...`
 
     # produce 4 and inspect
     $rid `rid -c 4`
-    062ekjn39b2g7mvzwsxk2mx9 ts:1670369682250 rtsig:[0xc5] random:  4206918794033 | time:2022-12-06 15:34:42.25 -0800 PST ID{0x1,0x84,0xe9,0xca,0xa3,0x4a,0xc5,0x3,0xd3,0x7f,0xe6,0x7b,0x31,0x53,0xa9}
-    062ekjn39b2tex8f39ht2vxk ts:1670369682250 rtsig:[0xc5] random:184121206399905 | time:2022-12-06 15:34:42.25 -0800 PST ID{0x1,0x84,0xe9,0xca,0xa3,0x4a,0xc5,0xa7,0x75,0xf,0x1a,0x63,0xa1,0x6f,0xb3}
-    062ekjn39b2n2km1wn6qzaty ts:1670369682250 rtsig:[0xc5] random: 89397628587391 | time:2022-12-06 15:34:42.25 -0800 PST ID{0x1,0x84,0xe9,0xca,0xa3,0x4a,0xc5,0x51,0x4e,0x81,0xe5,0x4d,0x7f,0xab,0x5e}
-    062ekjn39b2vxg1h326m5z9w ts:1670369682250 rtsig:[0xc5] random:209732666690882 | time:2022-12-06 15:34:42.25 -0800 PST ID{0x1,0x84,0xe9,0xca,0xa3,0x4a,0xc5,0xbe,0xc0,0x31,0x18,0x8d,0x42,0xfd,0x3c}
+		062ey610br9bzwj8gy5bm31q ts:1670458646622 sig:0x12 rnd:13831197152593447991 2022-12-07 16:17:26.622 -0800 PST ID{0x1,0x84,0xef,0x18,0x20,0x5e,0x12,0xbf,0xf2,0x48,0x87,0x8a,0xba,0xc,0x37}
+		062ey610br97ky1yrmza3jkv ts:1670458646622 sig:0x12 rnd: 8788843689693792891 2022-12-07 16:17:26.622 -0800 PST ID{0x1,0x84,0xef,0x18,0x20,0x5e,0x12,0x79,0xf8,0x3e,0xc5,0x3e,0xa1,0xca,0x7b}
+		062ey610br9dyxwn40wgjf7e ts:1670458646622 sig:0x12 rnd:16102502958314896622 2022-12-07 16:17:26.622 -0800 PST ID{0x1,0x84,0xef,0x18,0x20,0x5e,0x12,0xdf,0x77,0x95,0x20,0x39,0x9,0x3c,0xee}
+		062ey610br99fh15ef4p1zj7 ts:1670458646622 sig:0x12 rnd:10935906974392450631 2022-12-07 16:17:26.622 -0800 PST ID{0x1,0x84,0xef,0x18,0x20,0x5e,0x12,0x97,0xc4,0x25,0x73,0xc9,0x60,0xfe,0x47}
 
 ## Random Source
 
