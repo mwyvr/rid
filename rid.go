@@ -11,7 +11,7 @@ The 15-byte binary representation of an ID is comprised of a:
 - 1-byte machine+process signature, derived from a md5 hash of the machine ID + process ID
 - 8-byte uint64 random number using Go's runtime `fastrand` function. [1]
 
-15 bytes / 120 bits also lands on an even Base32 boundary, requiring no padding.
+15 bytes / 120 bits lands on an even Base32 boundary.
 
 rid implements a number of well-known interfaces to make interacting with json
 and databases more convenient.  The String() representation of ID is Base32
@@ -20,15 +20,11 @@ encoded using a modified Crockford-inspired alphabet.
 Example:
 
 	id := rid.New()
-	fmt.Printf("%s", id) 			      //  cdym59rs24a5g86efepg
 	fmt.Printf("%s", id.String()) 	//  cdym59rs24a5g86efepg
 
 Acknowledgement: This package borrows heavily from rs/xid
 (https://github.com/rs/xid), a capable globally-unique ID package which itself
 levers ideas from MongoDB (https://docs.mongodb.com/manual/reference/method/ObjectId/).
-
-Where rid differs from xid is in the use of random number generation as opposed
-to a trailing counter to produce unique IDs.
 */
 package rid
 
@@ -38,6 +34,7 @@ import (
 	"database/sql/driver"
 	"encoding/base32"
 	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"os"
@@ -47,17 +44,17 @@ import (
 	"unsafe"
 )
 
-// ID represents a locally unique, random-enough yet chronologically sortable identifier
+// ID represents a unique identifier
 type ID [rawLen]byte
 
 const (
-	rawLen     = 15 // binary representation
+	rawLen     = 15 // binary
 	encodedLen = 24 // base32 representation
 	// charset stores the character set for a custom Base32 charset
 	// inspired by Crockford: i, l, o, u removed and w, x, y, z added.
 	//
 	// charset/Base32 charset for comparison:
-	//         "0123456789abcdefghijklmnopqrstuv"
+	//        "0123456789abcdefghijklmnopqrstuv"
 	charset = "0123456789abcdefghjkmnpqrstvwxyz"
 )
 
@@ -70,19 +67,19 @@ var (
 	// ID, in effect adding another random segment
 	rtsig = runtimeSignature()
 
-	// rid default encoding is Base32 using a customized Crockford-inspired character set
+	// rid default encoding
 	encoding = base32.NewEncoding(charset).WithPadding(-1)
 	// used by String64 and FromString64 helper functions
 	encoding64 = base64.URLEncoding
 
-	// dec is the decoding map for our base32 encoding
+	// dec is a decoding map, used only for Base32 validity checking
 	dec [256]byte
 
 	ErrInvalidID = errors.New("rid: invalid id")
 )
 
 func init() {
-	// initialize the base32 decoding table, used only for error checking
+	// initialize the base32 decoding table
 	for i := 0; i < len(dec); i++ {
 		dec[i] = 0xFF
 	}
@@ -96,29 +93,21 @@ func New() ID {
 	return NewWithTimestamp(uint64(time.Now().UnixMilli()))
 }
 
-// NewWithTime returns a new ID based upon the supplied Time value.
+// NewWithTimestamp returns a new ID using the supplied timestamp
 func NewWithTimestamp(ts uint64) ID {
 	var id ID
 
-	// 6 byte timestamp (milliseconds since epoch)
+	// 6 byte timestamp (milliseconds since Unix epoch)
 	id[0] = byte(ts >> 40)
 	id[1] = byte(ts >> 32)
 	id[2] = byte(ts >> 24)
 	id[3] = byte(ts >> 16)
 	id[4] = byte(ts >> 8)
 	id[5] = byte(ts)
-	// 1 byte process signature, semi-random
+	// 1 byte runtime signature, semi-random
 	id[6] = rtsig[0]
-	// 8 byte random number
-	rv := randUint64()
-	id[7] = byte(rv >> 56)
-	id[8] = byte(rv >> 48)
-	id[9] = byte(rv >> 40)
-	id[10] = byte(rv >> 32)
-	id[11] = byte(rv >> 24)
-	id[12] = byte(rv >> 16)
-	id[13] = byte(rv >> 8)
-	id[14] = byte(rv)
+	// 8 bytes of randomnesss
+	binary.BigEndian.PutUint64(id[7:], randUint64())
 	return id
 }
 
@@ -145,40 +134,40 @@ func (id ID) String() string {
 	return *(*string)(unsafe.Pointer(&text))
 }
 
-// encode as Base32 using our custom character set
+// encode bytes as Base32 using our custom character set
 func encode(dst, id []byte) {
 	encoding.Encode(dst, id[:])
 }
 
-// Bytes returns by value the byte slice representation of ID.
+// Bytes returns by value the binary representation of ID.
 func (id ID) Bytes() []byte {
 	return id[:]
 }
 
-// Timestamp returns the ID timestamp component as milliseconds since the Unix epoch.
+// Timestamp returns the ID's timestamp component.
 func (id ID) Timestamp() int64 {
 	b := id[0:6]
+	// Big Endian
 	return int64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
 }
 
-// Time returns the ID's timestamp component as a Time value with millisecond
-// resolution.
+// Time returns the ID's timestamp component as a Time value
 func (id ID) Time() time.Time {
 	return time.UnixMilli(id.Timestamp())
 }
 
-// RuntimeSignature returns the signature, derived from the first byte of a md5 hash of (machine ID + process ID).
+// RuntimeSignature returns a signature derived from the first byte of a md5
+// hash of (machine ID + process ID).
 func (id ID) RuntimeSignature() []byte {
 	return id[6:7]
 }
 
 // Random returns the trailing 8-byte uint64 random number component of the ID.
 func (id ID) Random() uint64 {
-	b := id[7:]
-	return uint64(b[0])<<56 | uint64(b[1])<<48 | uint64(b[2])<<40 | uint64(b[3])<<32 | uint64(b[4])<<24 | uint64(b[5])<<16 | uint64(b[6])<<8 | uint64(b[7])
+	return binary.BigEndian.Uint64(id[7:])
 }
 
-// FromString returns an ID by decoding a Base32 representation of an ID
+// FromString returns an ID by decoding the supplied Base32 representation of an ID
 func FromString(str string) (ID, error) {
 	id := &ID{}
 	err := id.UnmarshalText([]byte(str))
@@ -315,8 +304,8 @@ func Sort(ids []ID) {
 	sort.Sort(sorter(ids))
 }
 
-// Alternative Base64 encoding/decoding helpers;
-// String64 returns the Base64 encoded representation of ID as a string.
+// Alternative Base64 encoding/decoding helpers
+// String64 returns a Base64 encoded representation of ID as a string.
 func String64(id ID) string {
 	text := make([]byte, (rawLen/3)*4)
 	encoding64.Encode(text, id[:])
@@ -326,7 +315,7 @@ func String64(id ID) string {
 
 // FromString64 returns an ID by decoding a Base64 representation of an ID
 func FromString64(str string) (ID, error) {
-	encoded64Len := (rawLen / 3) * 4
+	encoded64Len := (rawLen / 3) * 4 // 20
 	id := ID{}
 	if len(str) != encoded64Len {
 		return id, ErrInvalidID
@@ -361,26 +350,19 @@ func runtimeSignature() []byte {
 	return sig
 }
 
-// Random number generation
-
-// rid's are not intended to carry any meaning more than the 6-byte timestamp,
-// which is freely exposed. The 1-byte runtime signature is effectively random.
-
-// Each rid has a trailing 6-bytes of randomness; the combination of millisecond
-// time resolution and 48 bits of randomness results in no collisions detected.
-// See eval/uniqcheck in the package for a uniqueness evaluation app.
-//
+// [1] Random number generation:
 // For performance and scalability, this package uses an unexposed internal
-// Go function `fastrand` / `fastrand64`.
+// Go function `fastrand` / `fastrand64`. See eval/uniqcheck/main.go.
 //
 // For more information on fastrand see the Go source at:
 // https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go?q=fastrand
 // which include the comments:
-// Implement wyrand: https://github.com/wangyi-fudan/wyhash
-// Implement xorshift64+: 2 32-bit xorshift sequences added together.
-// Xorshift paper: https://www.jstatsoft.org/article/view/v008i14/xorshift.pdf
-// This generator passes the SmallCrush suite, part of TestU01 framework:
-// http://simul.iro.umontreal.ca/testu01/tu01.html
+//
+// 	Implement wyrand: https://github.com/wangyi-fudan/wyhash
+// 	Implement xorshift64+: 2 32-bit xorshift sequences added together.
+// 	Xorshift paper: https://www.jstatsoft.org/article/view/v008i14/xorshift.pdf
+// 	This generator passes the SmallCrush suite, part of TestU01 framework:
+// 	http://simul.iro.umontreal.ca/testu01/tu01.html
 
 //go:linkname randUint32 runtime.fastrand
 func randUint32() uint32
