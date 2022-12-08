@@ -115,7 +115,7 @@ A comparison with the above noted packages can be found in [eval/bench/bench_tes
     BenchmarkRid            	27007984	        41.90 ns/op	       0 B/op	       0 allocs/op
     BenchmarkRid-2          	54439544	        22.19 ns/op	       0 B/op	       0 allocs/op
     BenchmarkRid-4          	86903547	        13.66 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkRid-8             132959510	         8.965 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-8     	       132959510	         8.965 ns/op	       0 B/op	       0 allocs/op
     BenchmarkXid            	31221853	        37.28 ns/op	       0 B/op	       0 allocs/op
     BenchmarkXid-2          	35561181	        33.30 ns/op	       0 B/op	       0 allocs/op
     BenchmarkXid-4          	55113584	        27.53 ns/op	       0 B/op	       0 allocs/op
@@ -147,8 +147,8 @@ A comparison with the above noted packages can be found in [eval/bench/bench_tes
     BenchmarkRid              	19931982	        59.28 ns/op	       0 B/op	       0 allocs/op
     BenchmarkRid-2            	39499843	        29.90 ns/op	       0 B/op	       0 allocs/op
     BenchmarkRid-4            	78571719	        15.08 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkRid-8             154435864	         7.715 ns/op	       0 B/op	       0 allocs/op
-    BenchmarkRid-16            279988606	         4.317 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-8     	       154435864	         7.715 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-16    	       279988606	         4.317 ns/op	       0 B/op	       0 allocs/op
     BenchmarkXid              	22248019	        52.32 ns/op	       0 B/op	       0 allocs/op
     BenchmarkXid-2            	37339971	       100.9 ns/op	       0 B/op	       0 allocs/op
     BenchmarkXid-4            	22793754	        52.99 ns/op	       0 B/op	       0 allocs/op
