@@ -114,7 +114,7 @@ func NewWithTimestamp(ts uint64) ID {
 	// 1 byte runtime signature, semi-random
 	id[6] = rtsig[0]
 	// 8 bytes of randomnesss
-	binary.BigEndian.PutUint64(id[7:], randUint64())
+	binary.BigEndian.PutUint64(id[7:], runtime_randUint64())
 	return id
 }
 
@@ -247,7 +247,7 @@ func (id *ID) Scan(value interface{}) (err error) {
 		*id = nilID
 		return nil
 	default:
-		return fmt.Errorf("rid: unsupported type: %T, value: %#v", value, value)
+		return fmt.Errorf("rid: scanning unsupported type: %T", value)
 	}
 }
 
@@ -349,7 +349,7 @@ func runtimeSignature() []byte {
 	if err != nil {
 		// Fallback to rand number if both machine ID (common possibility) AND
 		// hostname (uncommon possibility) can't be read.
-		hwid = strconv.Itoa(int(randUint64()))
+		hwid = strconv.Itoa(int(runtime_randUint64()))
 	}
 	pid := strconv.Itoa(os.Getpid())
 	rs := md5.New()
@@ -362,7 +362,7 @@ func runtimeSignature() []byte {
 }
 
 // [1] Random number generation:
-// For performance and scalability, this package uses an unexposed internal
+// For performance and scalability, this package uses an internal
 // Go function `fastrand` / `fastrand64`. See eval/uniqcheck/main.go.
 //
 // For more information on fastrand see the Go source at:
@@ -375,5 +375,5 @@ func runtimeSignature() []byte {
 // 	This generator passes the SmallCrush suite, part of TestU01 framework:
 // 	http://simul.iro.umontreal.ca/testu01/tu01.html
 
-//go:linkname randUint64 runtime.fastrand64
-func randUint64() uint64
+//go:linkname runtime_randUint64 runtime.fastrand64
+func runtime_randUint64() uint64
