@@ -7,20 +7,28 @@ configuration-free, unique ID generator.  Binary IDs Base-32 encode as a
 
 The 15-byte binary representation of an ID is comprised of a:
 
-- 6-byte timestamp value representing milliseconds since the Unix epoch
-- 1-byte machine+process signature, derived from a md5 hash of the machine ID + process ID
-- 8-byte uint64 random number using Go's runtime `fastrand` function. [1]
+  - 6-byte timestamp value representing milliseconds since the Unix epoch
+  - 1-byte machine+process signature, derived from a md5 hash of the machine ID + process ID
+  - 8-byte random number provided by Go's runtime `fastrand64` function. [1]
 
-15 bytes / 120 bits lands on an even Base32 boundary.
+Features:
 
-rid implements a number of well-known interfaces to make interacting with json
-and databases more convenient.  The String() representation of ID is Base32
-encoded using a modified Crockford-inspired alphabet.
+  - Size: 15 bytes, larger than xid, smaller than UUID
+  - Base32 encoded by default, case insensitive and URL-friendly
+  - Base32 aligns to multiples of 5 bytes
+  - K-orderable in both binary and string representations
+  - Embedded time, having millisecond prescision
+  - 1 byte representing machine+pid
+  - 48 bits of randomness
+  - scalable performance
+
+rid also implements a number of well-known interfaces to make interacting with json
+and databases more convenient.
 
 Example:
 
 	id := rid.New()
-	fmt.Printf("%s", id.String()) 	//  cdym59rs24a5g86efepg
+	fmt.Printf("%s", id.String()) 	// 062f00pexapx8rzhnyefnj2w
 
 Acknowledgement: This package borrows heavily from rs/xid
 (https://github.com/rs/xid), a capable globally-unique ID package which itself
@@ -50,12 +58,12 @@ type ID [rawLen]byte
 const (
 	rawLen     = 15 // binary
 	encodedLen = 24 // base32 representation
-	// charset stores the character set for a custom Base32 charset
+	// crockford stores the character set for a custom Base32 character set
 	// inspired by Crockford: i, l, o, u removed and w, x, y, z added.
 	//
-	// charset/Base32 charset for comparison:
+	// crockford/Base32 crockford for comparison:
 	//        "0123456789abcdefghijklmnopqrstuv"
-	charset = "0123456789abcdefghjkmnpqrstvwxyz"
+	crockford = "0123456789abcdefghjkmnpqrstvwxyz"
 )
 
 var (
@@ -63,12 +71,11 @@ var (
 	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
-	// rtsig is derived from the md5 hash of the machine identifier and process
-	// ID, in effect adding another random segment
+	// md5 hash of the machine identifier and process ID
 	rtsig = runtimeSignature()
 
 	// rid default encoding
-	encoding = base32.NewEncoding(charset).WithPadding(-1)
+	encoding = base32.NewEncoding(crockford).WithPadding(-1)
 	// used by String64 and FromString64 helper functions
 	encoding64 = base64.URLEncoding
 
@@ -83,8 +90,8 @@ func init() {
 	for i := 0; i < len(dec); i++ {
 		dec[i] = 0xFF
 	}
-	for i := 0; i < len(charset); i++ {
-		dec[charset[i]] = byte(i)
+	for i := 0; i < len(crockford); i++ {
+		dec[crockford[i]] = byte(i)
 	}
 }
 
@@ -151,30 +158,29 @@ func (id ID) Timestamp() int64 {
 	return int64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
 }
 
-// Time returns the ID's timestamp component as a Time value
+// Time returns the ID's timestamp as a Time value
 func (id ID) Time() time.Time {
 	return time.UnixMilli(id.Timestamp())
 }
 
-// RuntimeSignature returns a signature derived from the first byte of a md5
-// hash of (machine ID + process ID).
+// RuntimeSignature returns the ID's machine id/pid signature
 func (id ID) RuntimeSignature() []byte {
 	return id[6:7]
 }
 
-// Random returns the trailing 8-byte uint64 random number component of the ID.
+// Random returns the random number component of the ID
 func (id ID) Random() uint64 {
 	return binary.BigEndian.Uint64(id[7:])
 }
 
-// FromString returns an ID by decoding the supplied Base32 representation of an ID
+// FromString decodes the supplied Base32 representation
 func FromString(str string) (ID, error) {
 	id := &ID{}
 	err := id.UnmarshalText([]byte(str))
 	return *id, err
 }
 
-// FromBytes copies []bytes into an ID value.
+// FromBytes copies []bytes into an ID value
 func FromBytes(b []byte) (ID, error) {
 	var id ID
 	if len(b) != rawLen {
@@ -184,7 +190,7 @@ func FromBytes(b []byte) (ID, error) {
 	return id, nil
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
+// UnmarshalText implements encoding.TextUnmarshaler
 // https://golang.org/pkg/encoding/#TextUnmarshaler
 // All decoding is called from here.
 func (id *ID) UnmarshalText(text []byte) error {
@@ -211,7 +217,7 @@ func decode(id *ID, src []byte) (int, error) {
 	return encoding.Decode(id[:], src)
 }
 
-// MarshalText implements encoding.TextMarshaler.
+// MarshalText implements encoding.TextMarshaler
 // https://golang.org/pkg/encoding/#TextMarshaler
 func (id ID) MarshalText() ([]byte, error) {
 	text := make([]byte, encodedLen)
@@ -219,7 +225,7 @@ func (id ID) MarshalText() ([]byte, error) {
 	return text, nil
 }
 
-// Value implements package sql's driver.Valuer.
+// Value implements package sql's driver.Valuer
 // https://golang.org/pkg/database/sql/driver/#Valuer
 func (id ID) Value() (driver.Value, error) {
 	if id.IsNil() {
@@ -229,7 +235,7 @@ func (id ID) Value() (driver.Value, error) {
 	return string(b), err
 }
 
-// Scan implements the sql.Scanner interface.
+// Scan implements the sql.Scanner interface
 // https://golang.org/pkg/database/sql/#Scanner
 func (id *ID) Scan(value interface{}) (err error) {
 	switch val := value.(type) {
@@ -245,7 +251,7 @@ func (id *ID) Scan(value interface{}) (err error) {
 	}
 }
 
-// MarshalJSON implements the json.Marshaler interface.
+// MarshalJSON implements the json.Marshaler interface
 // https://golang.org/pkg/encoding/json/#Marshaler
 func (id ID) MarshalJSON() ([]byte, error) {
 	// endless loop if merely return json.Marshal(id)
@@ -258,15 +264,19 @@ func (id ID) MarshalJSON() ([]byte, error) {
 	return text, nil
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface.
+// UnmarshalJSON implements the json.Unmarshaler interface
 // https://golang.org/pkg/encoding/json/#Unmarshaler
-func (id *ID) UnmarshalJSON(text []byte) error {
-	str := string(text)
+func (id *ID) UnmarshalJSON(b []byte) error {
+	str := string(b)
 	if str == "null" {
 		*id = nilID
 		return nil
 	}
-	return id.UnmarshalText(text[1 : len(text)-1])
+	// Check the slice length to prevent panic on passing it to UnmarshalText()
+	if len(b) < 2 {
+		return ErrInvalidID
+	}
+	return id.UnmarshalText(b[1 : len(b)-1])
 }
 
 // Compare makes IDs k-sortable, returning an integer comparing two IDs,
@@ -337,8 +347,9 @@ func runtimeSignature() []byte {
 		hwid, err = os.Hostname()
 	}
 	if err != nil {
-		// Fallback to rand number if both machine ID hostname can't be read
-		hwid = strconv.Itoa(int(randUint32()))
+		// Fallback to rand number if both machine ID (common possibility) AND
+		// hostname (uncommon possibility) can't be read.
+		hwid = strconv.Itoa(int(randUint64()))
 	}
 	pid := strconv.Itoa(os.Getpid())
 	rs := md5.New()
@@ -363,9 +374,6 @@ func runtimeSignature() []byte {
 // 	Xorshift paper: https://www.jstatsoft.org/article/view/v008i14/xorshift.pdf
 // 	This generator passes the SmallCrush suite, part of TestU01 framework:
 // 	http://simul.iro.umontreal.ca/testu01/tu01.html
-
-//go:linkname randUint32 runtime.fastrand
-func randUint32() uint32
 
 //go:linkname randUint64 runtime.fastrand64
 func randUint64() uint64
