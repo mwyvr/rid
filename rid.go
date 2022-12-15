@@ -1,14 +1,14 @@
 /*
 Package rid provides a k-sortable configuration-free, unique ID generator.
 
-Package rid provides a [k-sortable](https://en.wikipedia.org/wiki/K-sorted_sequence),
-configuration-free, unique ID generator.  Binary IDs Base-32 encode as a
-20-character URL-friendly representation like: `ce0e7egs24nkzkn6egfg`.
+Binary IDs Base-32 encode as a 20-character URL-friendly representation like:
+`ce0e7egs24nkzkn6egfg`.
 
 The 15-byte binary representation of an ID is comprised of a:
 
   - 6-byte timestamp value representing milliseconds since the Unix epoch
-  - 1-byte machine+process signature, derived from a md5 hash of the machine ID + process ID
+  - 1-byte machine+process signature, derived from a md5 hash of the machine ID
+  - process ID
   - 8-byte random number provided by Go's runtime `fastrand64` function. [1]
 
 Features:
@@ -22,8 +22,8 @@ Features:
   - 48 bits of randomness
   - scalable performance
 
-rid also implements a number of well-known interfaces to make interacting with json
-and databases more convenient.
+rid also implements a number of well-known interfaces to make interacting with
+json and databases more convenient.
 
 Example:
 
@@ -133,11 +133,10 @@ func NilID() ID {
 	return nilID
 }
 
-// String returns the custom base32 encoded representation of ID as a string.
+// String returns a Base32 encoded representation of ID as a string.
 func (id ID) String() string {
 	text := make([]byte, encodedLen)
 	encode(text, id[:])
-	// avoids an allocation
 	return *(*string)(unsafe.Pointer(&text))
 }
 
@@ -319,7 +318,6 @@ func Sort(ids []ID) {
 func String64(id ID) string {
 	text := make([]byte, (rawLen/3)*4)
 	encoding64.Encode(text, id[:])
-	// avoids an allocation
 	return *(*string)(unsafe.Pointer(&text))
 }
 
@@ -337,8 +335,9 @@ func FromString64(str string) (ID, error) {
 	}
 }
 
-// runtimeSignature returns the first byte of a md5 hash of (machine ID + process ID).
-// If this function fails it will cause a runtime error.
+// runtimeSignature returns the first byte of a md5 hash of (machine ID +
+// process ID), in essence adding another 8 butes of randomness. If this
+// function fails it will cause a runtime error.
 func runtimeSignature() []byte {
 	sig := make([]byte, 1)
 	hwid, err := readPlatformMachineID()
@@ -361,9 +360,8 @@ func runtimeSignature() []byte {
 	return sig
 }
 
-// [1] Random number generation:
-// For performance and scalability, this package uses an internal
-// Go function `fastrand` / `fastrand64`. See eval/uniqcheck/main.go.
+// [1] Random number generation: For performance and scalability, this package
+// uses an internal Go function `fastrand64`. See eval/uniqcheck/main.go.
 //
 // For more information on fastrand see the Go source at:
 // https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go?q=fastrand
