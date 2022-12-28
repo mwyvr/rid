@@ -1,6 +1,8 @@
 # executable
 cmd/rid/rid
-cmd/rid/main
+
+# go.sum as there are no non-stdlib dependencies for the core package
+go.sum
 
 # Test binary, built with `go test -c`
 *.test

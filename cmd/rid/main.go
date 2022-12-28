@@ -17,7 +17,6 @@ var (
 
 func init() {
 	flag.IntVar(&count, "c", count, "Generate count number of IDs")
-	flag.BoolVar(&altEnc, "a", altEnc, "Use alternate Base64 encoding")
 }
 
 func main() {
@@ -40,18 +39,14 @@ func main() {
 	// If args, attempt to decode as an rid; can't mix Base32 and alt Base64
 	for _, arg := range args {
 		err = nil
-		if !altEnc {
-			id, err = rid.FromString(arg)
-		} else {
-			id, err = rid.FromString64(arg)
-		}
+		id, err = rid.FromString(arg)
 		if err != nil {
 			errors++
 			fmt.Printf("[%s] %s\n", arg, err)
 			continue
 		}
-		fmt.Printf("%s ts:%d sig:%s rnd:%20d %v ID{%s}\n", arg,
-			id.Timestamp(), asHex(id.RuntimeSignature()), id.Random(), id.Time(), asHex(id.Bytes()))
+		fmt.Printf("%s ts:%d rnd:%15d %s ID{%s}\n", arg,
+			id.Timestamp(), id.Random(), id.Time(), asHex(id.Bytes()))
 	}
 	if errors > 0 {
 		fmt.Printf("%d error(s)\n", errors)
@@ -61,11 +56,7 @@ func main() {
 	// if -c N, generate one rid
 	if len(args) == 0 {
 		for c := 0; c < count; c++ {
-			if altEnc {
-				fmt.Fprintf(os.Stdout, "%s\n", rid.String64(rid.New()))
-			} else {
-				fmt.Fprintf(os.Stdout, "%s\n", rid.New())
-			}
+			fmt.Fprintf(os.Stdout, "%s\n", rid.New())
 		}
 	}
 }

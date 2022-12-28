@@ -1,53 +1,45 @@
 /*
-Package rid provides a k-sortable configuration-free, unique ID generator.
+Package rid provides a performant, k-sortable, scalable unique ID generator
+suitable for single process applications or situations where inter-process ID
+generation coordination is not required.
 
-Binary IDs Base-32 encode as a 20-character URL-friendly representation like:
-`ce0e7egs24nkzkn6egfg`.
+Binary IDs Base-32 encode as a 16-character URL-friendly representation like
+dfp7qt0v2pwt0v2x.
 
-The 15-byte binary representation of an ID is comprised of a:
+The 10-byte binary representation of an ID is comprised of:
 
-  - 6-byte timestamp value representing milliseconds since the Unix epoch
-  - 1-byte machine+process signature, derived from a md5 hash of the machine ID
-  - process ID
-  - 8-byte random number provided by Go's runtime `fastrand64` function. [1]
+  - 4-byte timestamp value representing seconds since the Unix epoch
+  - 6-byte random value; see fastrandUint64 [1]
 
-Features:
+Key features:
 
-  - Size: 15 bytes, larger than xid, smaller than UUID
-  - Base32 encoded by default, case insensitive and URL-friendly
-  - Base32 aligns to multiples of 5 bytes
   - K-orderable in both binary and string representations
-  - Embedded time, having millisecond prescision
-  - 1 byte representing machine+pid
-  - 48 bits of randomness
-  - scalable performance
-
-rid also implements a number of well-known interfaces to make interacting with
-json and databases more convenient.
+  - Encoded IDs are short (16 characters)
+  - Automatic (de)serialization for SQL dbs and JSON
+  - Scalable performance as cores are added; ID generation is way faster than it needs to be
+  - URL-friendly Base32 encoding using a custom character set to help avoid unintended rude words
 
 Example:
 
 	id := rid.New()
-	fmt.Printf("%s", id.String()) 	// 062f00pexapx8rzhnyefnj2w
+	fmt.Printf("%s", id.String())
+	// Output: dfp7qt97menfv8ll
 
 Acknowledgement: This package borrows heavily from rs/xid
-(https://github.com/rs/xid), a capable globally-unique ID package which itself
-levers ideas from MongoDB (https://docs.mongodb.com/manual/reference/method/ObjectId/).
+(https://github.com/rs/xid), a capable zero-configuration globally-unique ID
+package which itself levers ideas from MongoDB
+(https://docs.mongodb.com/manual/reference/method/ObjectId/). Use rs/xid if you
+need to scale your app beyond one process, one machine.
 */
 package rid
 
 import (
 	"bytes"
-	"crypto/md5"
 	"database/sql/driver"
 	"encoding/base32"
-	"encoding/base64"
-	"encoding/binary"
 	"errors"
 	"fmt"
-	"os"
 	"sort"
-	"strconv"
 	"time"
 	"unsafe"
 )
@@ -56,65 +48,47 @@ import (
 type ID [rawLen]byte
 
 const (
-	rawLen     = 15 // binary
-	encodedLen = 24 // base32 representation
-	// crockford stores the character set for a custom Base32 character set
-	// inspired by Crockford: i, l, o, u removed and w, x, y, z added.
-	//
-	// crockford/Base32 crockford for comparison:
-	//        "0123456789abcdefghijklmnopqrstuv"
-	crockford = "0123456789abcdefghjkmnpqrstvwxyz"
+	rawLen     = 10                                 // binary
+	encodedLen = 16                                 // base32 representation
+	charset    = "0123456789bcdefghkjlmnpqrstvwxyz" // fewer vowels to avoid random rudeness
 )
 
 var (
 	// nilID represents the zero-value of an ID
-	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
-	// md5 hash of the machine identifier and process ID
-	rtsig = runtimeSignature()
-
-	// rid default encoding
-	encoding = base32.NewEncoding(crockford).WithPadding(-1)
-	// used by String64 and FromString64 helper functions
-	encoding64 = base64.URLEncoding
-
-	// dec is a decoding map, used only for Base32 validity checking
-	dec [256]byte
+	encoding = base32.NewEncoding(charset).WithPadding(-1)
 
 	ErrInvalidID = errors.New("rid: invalid id")
 )
 
-func init() {
-	// initialize the base32 decoding table
-	for i := 0; i < len(dec); i++ {
-		dec[i] = 0xFF
-	}
-	for i := 0; i < len(crockford); i++ {
-		dec[crockford[i]] = byte(i)
-	}
-}
-
-// New returns a new ID using the current time;
+// New returns a new ID using the current timestamp, with seconds resolution;
 func New() ID {
-	return NewWithTimestamp(uint64(time.Now().UnixMilli()))
+	return NewWithTimestamp(uint64(time.Now().Unix()))
 }
 
 // NewWithTimestamp returns a new ID using the supplied timestamp
 func NewWithTimestamp(ts uint64) ID {
-	var id ID
+	var (
+		id  ID
+		rnd uint64
+	)
 
-	// 6 byte timestamp (milliseconds since Unix epoch)
-	id[0] = byte(ts >> 40)
-	id[1] = byte(ts >> 32)
-	id[2] = byte(ts >> 24)
-	id[3] = byte(ts >> 16)
-	id[4] = byte(ts >> 8)
-	id[5] = byte(ts)
-	// 1 byte runtime signature, semi-random
-	id[6] = rtsig[0]
-	// 8 bytes of randomnesss
-	binary.BigEndian.PutUint64(id[7:], runtime_randUint64())
+	// 4 bytes of time, representing seconds since Unix epoch
+	id[0] = byte(ts >> 24)
+	id[1] = byte(ts >> 16)
+	id[2] = byte(ts >> 8)
+	id[3] = byte(ts)
+	// take 8 byte random and cap at max value for 6 bytes
+	rnd = fastrandUint64() * 0xffffffffffff >> 16 // equiv but slightly faster than fastrandUint64() % 0xffffffffffff
+	id[4] = byte(rnd >> 40)
+	id[5] = byte(rnd >> 32)
+	id[6] = byte(rnd >> 24)
+	id[7] = byte(rnd >> 16)
+	id[8] = byte(rnd >> 8)
+	id[9] = byte(rnd)
+
 	return id
 }
 
@@ -150,29 +124,26 @@ func (id ID) Bytes() []byte {
 	return id[:]
 }
 
-// Timestamp returns the ID's timestamp component.
+// Timestamp returns the ID's timestamp component as seconds since the Unix epoch.
 func (id ID) Timestamp() int64 {
-	b := id[0:6]
+	b := id[0:4]
 	// Big Endian
-	return int64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
+	return int64(uint64(b[0])<<24 | uint64(b[1])<<16 | uint64(b[2])<<8 | uint64(b[3]))
 }
 
 // Time returns the ID's timestamp as a Time value
 func (id ID) Time() time.Time {
-	return time.UnixMilli(id.Timestamp())
-}
-
-// RuntimeSignature returns the ID's machine id/pid signature
-func (id ID) RuntimeSignature() []byte {
-	return id[6:7]
+	return time.Unix(id.Timestamp(), 0)
 }
 
 // Random returns the random number component of the ID
 func (id ID) Random() uint64 {
-	return binary.BigEndian.Uint64(id[7:])
+	b := id[4:]
+	// Big Endian
+	return uint64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
 }
 
-// FromString decodes the supplied Base32 representation
+// FromString decodes the supplied Base32 encoded representation
 func FromString(str string) (ID, error) {
 	id := &ID{}
 	err := id.UnmarshalText([]byte(str))
@@ -197,13 +168,7 @@ func (id *ID) UnmarshalText(text []byte) error {
 		*id = nilID
 		return ErrInvalidID
 	}
-	for _, c := range text {
-		// invalid characters (not in encoding)
-		if dec[c] == 0xFF {
-			*id = nilID
-			return ErrInvalidID
-		}
-	}
+	// invalid characters will return an error
 	if _, err := decode(id, text); err != nil {
 		*id = nilID
 		return ErrInvalidID
@@ -211,7 +176,7 @@ func (id *ID) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// decode a Base32 representation of an ID
+// decode a Base32 encoded ID
 func decode(id *ID, src []byte) (int, error) {
 	return encoding.Decode(id[:], src)
 }
@@ -281,16 +246,14 @@ func (id *ID) UnmarshalJSON(b []byte) error {
 // Compare makes IDs k-sortable, returning an integer comparing two IDs,
 // comparing only the first 7 bytes:
 //
-//   - 6-byte timestamp
-//   - 1-byte runtime signature
-//     ... while ignoring the trailing:
+//   - 4-byte timestamp
 //   - 6-byte random value
 //
 // Otherwise, it behaves just like `bytes.Compare(b1[:], b2[:])`. The result
 // will be 0 if two IDs are identical, -1 if current id is less than
 // the other one, and 1 if current id is greater than the other.
 func (id ID) Compare(other ID) int {
-	return bytes.Compare(id[:7], other[:7])
+	return bytes.Compare(id[:5], other[:5])
 }
 
 type sorter []ID
@@ -313,55 +276,9 @@ func Sort(ids []ID) {
 	sort.Sort(sorter(ids))
 }
 
-// Alternative Base64 encoding/decoding helpers
-// String64 returns a Base64 encoded representation of ID as a string.
-func String64(id ID) string {
-	text := make([]byte, (rawLen/3)*4)
-	encoding64.Encode(text, id[:])
-	return *(*string)(unsafe.Pointer(&text))
-}
-
-// FromString64 returns an ID by decoding a Base64 representation of an ID
-func FromString64(str string) (ID, error) {
-	encoded64Len := (rawLen / 3) * 4 // 20
-	id := ID{}
-	if len(str) != encoded64Len {
-		return id, ErrInvalidID
-	}
-	if _, err := encoding64.Decode(id[:], []byte(str)); err != nil {
-		return id, ErrInvalidID
-	} else {
-		return id, err
-	}
-}
-
-// runtimeSignature returns the first byte of a md5 hash of (machine ID +
-// process ID), in essence adding another 8 butes of randomness. If this
-// function fails it will cause a runtime error.
-func runtimeSignature() []byte {
-	sig := make([]byte, 1)
-	hwid, err := readPlatformMachineID()
-	if err != nil || len(hwid) == 0 {
-		// fallback to hostname (common)
-		hwid, err = os.Hostname()
-	}
-	if err != nil {
-		// Fallback to rand number if both machine ID (common possibility) AND
-		// hostname (uncommon possibility) can't be read.
-		hwid = strconv.Itoa(int(runtime_randUint64()))
-	}
-	pid := strconv.Itoa(os.Getpid())
-	rs := md5.New()
-	_, err = rs.Write([]byte(hwid + pid))
-	if err != nil {
-		panic(fmt.Errorf("rid: cannot produce signature hash: %v", err))
-	}
-	copy(sig, rs.Sum(nil))
-	return sig
-}
-
 // [1] Random number generation: For performance and scalability, this package
-// uses an internal Go function `fastrand64`. See eval/uniqcheck/main.go.
+// uses an internal Go function `fastrand64`. See eval/uniqcheck/main.go for
+// a proof of utility.
 //
 // For more information on fastrand see the Go source at:
 // https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go?q=fastrand
@@ -373,5 +290,5 @@ func runtimeSignature() []byte {
 // 	This generator passes the SmallCrush suite, part of TestU01 framework:
 // 	http://simul.iro.umontreal.ca/testu01/tu01.html
 
-//go:linkname runtime_randUint64 runtime.fastrand64
-func runtime_randUint64() uint64
+//go:linkname fastrandUint64 runtime.fastrand64
+func fastrandUint64() uint64
