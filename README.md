@@ -74,10 +74,12 @@ You may enjoy reading [Fast thread-safe randomness in Go](https://qqq.ninja/blog
 [1] For more information on fastrand (wyrand) see: https://github.com/wangyi-fudan/wyhash
  and [Go's sources for runtime/stubs.go](https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go;bpv=1;bpt=1?q=fastrand&ss=go%2Fgo:src%2Fruntime%2F).
 
-## Major Changes
+## Change Log
 
-- 2022-12-28 Breaking change: `rid` has now has 10byte and 15byte branches; 10byte
-  branch will shortly become master; I've opted for short and simple for this package.
+- 2022-12-28 The "10byte" branch was merged to master; the "15byte-historical"
+  branch will be left dormant. No major changes are now expected to this
+  package; updates will focus on rounding out test coverage, addressing bugs,
+  and clean up.
 
 ## Contributing
 
