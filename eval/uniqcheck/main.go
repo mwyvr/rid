@@ -35,26 +35,29 @@ package main
 
 import (
 	"sync"
+	"time"
 
 	"github.com/solutionroute/rid"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
 
+const rawLen = 10 // make large enough for the package being checked - xid, ksid are larger
+
+var (
+	genPerRoutine = 1000000 // 64 million (8m * 8) or (1m * 16) takes ~25 seconds
+	numRoutines   = 20
+	dupes         = 0
+	exists        = check{lastTick: 0, keys: make(map[[rawLen]byte]bool)} // arrays can be map keys, not slices
+	fmt           = message.NewPrinter(language.English)
+)
+
 type check struct {
-	keys      map[[15]byte]bool
+	keys      map[[rawLen]byte]bool
 	lastTick  int64 // millisecond for rid, ksuid, second for xid
 	totalKeys int
 	mu        sync.RWMutex
 }
-
-var (
-	genPerRoutine = 1000000 // 64 million (8m * 8) or (1m * 16) takes ~25 seconds
-	numRoutines   = 64
-	dupes         = 0
-	exists        = check{lastTick: 0, keys: make(map[[15]byte]bool)} // arrays can be map keys, not slices
-	fmt           = message.NewPrinter(language.English)
-)
 
 func main() {
 	var wg sync.WaitGroup
@@ -73,19 +76,17 @@ func main() {
 }
 
 func generate() {
-	var id [15]byte
+	var id [rawLen]byte
 	for i := 0; i < genPerRoutine; i++ {
 		tmp := rid.New()
 		// TODO - run other compared packages through the gauntlet.
-		// tmp := xid.New()
-		// tmp := ksuid.New()
 		copy(id[:], tmp[:])
-		tmpTimestamp := tmp.Time().UnixMilli() // milliseconds will be 000 for pkgs using second resolution, works for this
+		tmpTimestamp := time.Now().Unix() // milliseconds will be 000 for pkgs using second resolution, works for this
 		exists.mu.Lock()
-		// crude - we clear per new millisecond (or per second for pkg like xid)
+		// crude - we clear per new second
 		if exists.lastTick != tmpTimestamp {
 			exists.lastTick = tmpTimestamp
-			exists.keys = make(map[[15]byte]bool)
+			exists.keys = make(map[[rawLen]byte]bool)
 		}
 		if !exists.keys[id] {
 			exists.keys[id] = true
