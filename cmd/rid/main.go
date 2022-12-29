@@ -1,4 +1,4 @@
-// Package main - the `rid` command - generate or inspect rids.
+// A utility to generate or inspect rids.
 package main
 
 import (
