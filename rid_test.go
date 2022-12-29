@@ -510,8 +510,8 @@ func ExampleNew() {
     Bytes()   %3v\n`, id.String(), id.Timestamp(), id.Random(), id.Time().UTC(), id.Bytes())
 }
 
-func ExampleNewWithTimestamp() {
-	id := NewWithTimestamp(uint64(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()))
+func ExampleNewWithTime() {
+	id := NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
 	fmt.Printf(`ID: Timestamp() %d Time() %v`, id.Timestamp(), id.Time().UTC())
 	// Output: ID: Timestamp() 1577836800 Time() 2020-01-01 00:00:00 +0000 UTC
 }
