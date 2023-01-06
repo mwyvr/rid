@@ -68,7 +68,7 @@ func TestIDPartsExtraction(t *testing.T) {
 func TestNew(t *testing.T) {
 	// Generate N ids, see if all unique
 	// TODO add parallel test
-	var numIDS = 10000
+	numIDS := 10000
 	ids := make([]ID, numIDS)
 	for i := 0; i < numIDS; i++ {
 		ids[i] = New()
@@ -92,6 +92,7 @@ func TestNew(t *testing.T) {
 		}
 	}
 }
+
 func TestIDString(t *testing.T) {
 	for _, v := range IDs {
 		if got, want := v.encoded, v.id.String(); got != want {
@@ -191,7 +192,6 @@ func TestID_UnmarshalText(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestID_UnmarshalTextError(t *testing.T) {
