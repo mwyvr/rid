@@ -1,24 +1,41 @@
 /*
-Package rid provides a k-sortable unique ID generator suitable for situations
-where inter-process coordination of ID generation is not required.
+Package rid provides a performant, k-sortable, scalable unique ID generator
+suitable for single process applications or situations where inter-process ID
+generation coordination is not required.
 
-IDs encode as a 16-character URL-friendly representation like
+Binary IDs Base-32 encode as a 16-character URL-friendly representation like
 dfp7qt0v2pwt0v2x.
 
-The 10-byte binary representation of an rid.ID is comprised of:
+The 10-byte binary representation of an ID is comprised of:
 
   - 4-byte timestamp value representing seconds since the Unix epoch
-  - 6-byte (48 bits) random value (per second)
+  - 6-byte random value; see fastrandUint64 [1]
 
-Method String() base32 encodes ID using a custom character set missing
-characters "a,i,o,u" to reduce unintentional random rudeness.
+Key features:
+
+  - K-orderable in both binary and string representations
+  - Encoded IDs are short (16 characters)
+  - Automatic (de)serialization for SQL dbs and JSON
+  - Scalable performance as cores are added; ID generation is way faster than it needs to be
+  - URL-friendly Base32 encoding using a custom character set to help avoid unintended rude words
+
+Example:
+
+	id := rid.New()
+	fmt.Printf("%s", id.String())
+	// Output: dfp7qt97menfv8ll
+
+Acknowledgement: This package borrows heavily from rs/xid
+(https://github.com/rs/xid), a capable zero-configuration globally-unique ID
+package which itself levers ideas from MongoDB
+(https://docs.mongodb.com/manual/reference/method/ObjectId/). Use rs/xid if you
+need to scale your app beyond one process, one machine.
 */
 package rid
 
 import (
 	"bytes"
 	"database/sql/driver"
-	"encoding/base32"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -31,22 +48,31 @@ import (
 type ID [rawLen]byte
 
 const (
-	rawLen     = 10 // binary length in bytes
-	encodedLen = 16 // string encoded length in bytes
-
-	// A modifed "Crockford" approach, this 32 character encoding map has no
-	// "a,i,o,u" to greatly reduce random rudeness for cases where humans see IDs
-	charset = "0123456789bcdefghkjlmnpqrstvwxyz"
+	rawLen     = 10                                 // binary
+	encodedLen = 16                                 // base32 representation
+	charset    = "0123456789bcdefghkjlmnpqrstvwxyz" // fewer vowels to avoid random rudeness
 )
 
 var (
+	// nilID represents the zero-value of an ID
+	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
-	// customized base32 encoder/decoder
-	encoding = base32.NewEncoding(charset)
+	// encoding = base32.NewEncoding(charset).WithPadding(-1)
+	// dec is the decoding map for base32 encoding
+	dec [256]byte
 
 	ErrInvalidID = errors.New("rid: invalid id")
 )
+
+func init() {
+	for i := 0; i < len(dec); i++ {
+		dec[i] = 0xFF
+	}
+	for i := 0; i < len(charset); i++ {
+		dec[charset[i]] = byte(i)
+	}
+}
 
 // New returns a new ID using the current time.
 func New() ID {
@@ -74,20 +100,6 @@ func NewWithTime(t time.Time) ID {
 	return id
 }
 
-// FromString reads an ID from its string represetnation
-func FromString(str string) (ID, error) {
-	id := &ID{}
-	err := id.UnmarshalText([]byte(str))
-	return *id, err
-}
-
-// String returns ID as a string representation, encoded as base32 using a custom charset
-func (id ID) String() string {
-	text := make([]byte, encodedLen)
-	encode(text, id[:])
-	return *(*string)(unsafe.Pointer(&text))
-}
-
 // IsNil returns true if ID == nilID
 func (id ID) IsNil() bool {
 	return id == nilID
@@ -103,6 +115,36 @@ func NilID() ID {
 	return nilID
 }
 
+// String returns a Base32 encoded representation of ID as a string.
+func (id ID) String() string {
+	text := make([]byte, encodedLen)
+	encode(text, id[:])
+	return *(*string)(unsafe.Pointer(&text))
+}
+
+// encode bytes as Base32 using our custom character set, by unrolling the
+// stdlib base32 algorithm. Base32 aligns on 5-byte boundaries therefore there
+// is no padding actual or implied.
+func encode(dst, id []byte) {
+	// encoding is not significantly faster than the stdlib Base32; decoding is.
+	dst[15] = charset[id[9]&0x1F]
+	dst[14] = charset[(id[9]>>5)|(id[8]<<3)&0x1F]
+	dst[13] = charset[(id[8]>>2)&0x1F]
+	dst[12] = charset[id[8]>>7|(id[7]<<1)&0x1F]
+	dst[11] = charset[(id[7]>>4)&0x1F|(id[6]<<4)&0x1F]
+	dst[10] = charset[(id[6]>>1)&0x1F]
+	dst[9] = charset[(id[6]>>6)&0x1F|(id[5]<<2)&0x1F]
+	dst[8] = charset[id[5]>>3]
+	dst[7] = charset[id[4]&0x1F]
+	dst[6] = charset[id[4]>>5|(id[3]<<3)&0x1F]
+	dst[5] = charset[(id[3]>>2)&0x1F]
+	dst[4] = charset[id[3]>>7|(id[2]<<1)&0x1F]
+	dst[3] = charset[(id[2]>>4)&0x1F|(id[1]<<4)&0x1F]
+	dst[2] = charset[(id[1]>>1)&0x1F]
+	dst[1] = charset[(id[1]>>6)&0x1F|(id[0]<<2)&0x1F]
+	dst[0] = charset[id[0]>>3]
+}
+
 // Bytes returns by value the binary representation of ID.
 func (id ID) Bytes() []byte {
 	return id[:]
@@ -110,7 +152,9 @@ func (id ID) Bytes() []byte {
 
 // Timestamp returns the ID's timestamp component as seconds since the Unix epoch.
 func (id ID) Timestamp() int64 {
-	return int64(binary.BigEndian.Uint32(id[0:4]))
+	b := id[0:4]
+	// Big Endian
+	return int64(uint64(b[0])<<24 | uint64(b[1])<<16 | uint64(b[2])<<8 | uint64(b[3]))
 }
 
 // Time returns the ID's timestamp as a Time value
@@ -121,8 +165,15 @@ func (id ID) Time() time.Time {
 // Random returns the random number component of the ID
 func (id ID) Random() uint64 {
 	b := id[4:]
-	// Random is stored as a six-byte big endian value
+	// Big Endian
 	return uint64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
+}
+
+// FromString decodes the supplied Base32 encoded representation
+func FromString(str string) (ID, error) {
+	id := &ID{}
+	err := id.UnmarshalText([]byte(str))
+	return *id, err
 }
 
 // FromBytes copies []bytes into an ID value
@@ -144,16 +195,33 @@ func (id *ID) UnmarshalText(text []byte) error {
 		return ErrInvalidID
 	}
 	// invalid characters will return an error
-	if _, err := decode(id, text); err != nil {
+	for _, c := range text {
+		if dec[c] == 0xFF {
+			return ErrInvalidID
+		}
+	}
+	if !decode(id, text) {
 		*id = nilID
 		return ErrInvalidID
 	}
 	return nil
 }
 
-// decode a Base32 encoded ID
-func decode(id *ID, src []byte) (int, error) {
-	return encoding.Decode(id[:], src)
+// decode a Base32 encoded ID by unrolling the stdlib Base32 algorithm.
+func decode(id *ID, src []byte) bool {
+	// this is just shy of 10x faster than the stdlib; For some sql Scanner and
+	// other use cases, decoding could be a frequent operation.
+	id[9] = dec[src[14]]<<5 | dec[src[15]]
+	id[8] = dec[src[12]]<<7 | dec[src[13]]<<2 | dec[src[14]]>>3
+	id[7] = dec[src[11]]<<4 | dec[src[12]]>>1
+	id[6] = dec[src[9]]<<6 | dec[src[10]]<<1 | dec[src[11]]>>4
+	id[5] = dec[src[8]]<<3 | dec[src[9]]>>2
+	id[4] = dec[src[6]]<<5 | dec[src[7]]
+	id[3] = dec[src[4]]<<7 | dec[src[5]]<<2 | dec[src[6]]>>3
+	id[2] = dec[src[3]]<<4 | dec[src[4]]>>1
+	id[1] = dec[src[1]]<<6 | dec[src[2]]<<1 | dec[src[3]]>>4
+	id[0] = dec[src[0]]<<3 | dec[src[1]]>>2
+	return true
 }
 
 // MarshalText implements encoding.TextMarshaler
@@ -162,11 +230,6 @@ func (id ID) MarshalText() ([]byte, error) {
 	text := make([]byte, encodedLen)
 	encode(text, id[:])
 	return text, nil
-}
-
-// encode id using the customized base32 encoding
-func encode(dst, id []byte) {
-	encoding.Encode(dst, id[:])
 }
 
 // Value implements package sql's driver.Valuer
@@ -224,7 +287,7 @@ func (id *ID) UnmarshalJSON(b []byte) error {
 }
 
 // Compare makes IDs k-sortable, returning an integer comparing two IDs,
-// comparing only the first 4 bytes:
+// comparing only the first 7 bytes:
 //
 //   - 4-byte timestamp
 //   - 6-byte random value
@@ -269,9 +332,6 @@ func Sort(ids []ID) {
 // 	Xorshift paper: https://www.jstatsoft.org/article/view/v008i14/xorshift.pdf
 // 	This generator passes the SmallCrush suite, part of TestU01 framework:
 // 	http://simul.iro.umontreal.ca/testu01/tu01.html
-//
-// Note: importing unexported functions requires a module import package
-// unsafe; this package already does, so...
 
 //go:linkname fastrandUint64 runtime.fastrand64
 func fastrandUint64() uint64
