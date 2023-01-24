@@ -79,7 +79,8 @@ func TestNew(t *testing.T) {
 		// Test for uniqueness among all other generated ids
 		for j, tid := range ids {
 			if j != i {
-				// can't use ID.Compare for this test, need to compare entire ID[:]
+				// can't use ID.Compare for this test as it compares only the time
+				// component of IDs
 				if bytes.Equal(id[:], tid[:]) {
 					t.Errorf("generated ID is not unique (%d/%d)\n%v", i, j, ids)
 				}
@@ -259,12 +260,12 @@ func TestFromBytes_Invariant(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Compare(want) != 0 {
+	if bytes.Compare(got[:], want[:]) != 0 {
 		t.Error("FromBytes(id.Bytes()) != id")
 	}
 	// invalid
 	got, err = FromBytes([]byte{0x1, 0x2})
-	if got.Compare(nilID) != 0 {
+	if bytes.Compare(got[:], nilID[:]) != 0 {
 		t.Error("FromBytes([]byte{0x1, 0x2}) - invalid - != nilID")
 	}
 	if err == nil {
@@ -299,7 +300,7 @@ func TestIDJSONUnmarshaling(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
-	if got := *v.ID; got.Compare(want) != 0 {
+	if got := *v.ID; bytes.Compare(got[:], want[:]) != 0 {
 		t.Errorf("json.Unmarshal() = %v, want %v", got, want)
 	}
 	// should not fail
@@ -354,7 +355,7 @@ func TestIDDriverScan(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
-	if got.Compare(want) != 0 {
+	if bytes.Compare(got[:], want[:]) != 0 {
 		t.Errorf("Scan() = %v, want %v", got, want)
 	}
 }
@@ -381,8 +382,29 @@ func TestIDDriverScanByteFromDatabase(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
-	if got.Compare(want) != 0 {
+	if bytes.Compare(got[:], want[:]) != 0 {
 		t.Errorf("Scan() = %v, want %v", got, want)
+	}
+}
+
+func TestCompare(t *testing.T) {
+	pairs := []struct {
+		left     ID
+		right    ID
+		expected int
+	}{
+		{IDs[1].id, IDs[0].id, 1},
+		{ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, IDs[2].id, 0},
+		{IDs[0].id, IDs[0].id, 0},
+		{IDs[2].id, IDs[1].id, -1},
+	}
+	for _, p := range pairs {
+		if p.expected != p.left.Compare(p.right) {
+			t.Errorf("%s Compare to %s should return %d", p.left, p.right, p.expected)
+		}
+		if -1*p.expected != p.right.Compare(p.left) {
+			t.Errorf("%s Compare to %s should return %d", p.right, p.left, -1*p.expected)
+		}
 	}
 }
 
@@ -439,7 +461,6 @@ func TestSort(t *testing.T) {
 }
 
 func Test_fastrandUint64(t *testing.T) {
-	// FIXME
 	// On a test machine generating 100,000,000 numbers took 24s (4.167 million per second),
 	// with zero collisions. 24 seconds = 24,000 milliseconds; 100,000,000/24,000
 	// equals ~4,167 unique random generations per millisecond are required.
