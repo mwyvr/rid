@@ -1,6 +1,9 @@
 # executable
 cmd/rid/rid
 
+# compiled files for bounds checking
+*.o
+
 # go.sum as there are no non-stdlib dependencies for the core package
 go.sum
 
