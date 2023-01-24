@@ -58,14 +58,14 @@ var (
 	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
-	// encoding = base32.NewEncoding(charset).WithPadding(-1)
-	// dec is the decoding map for base32 encoding
+	// dec provides a decoding map
 	dec [256]byte
 
 	ErrInvalidID = errors.New("rid: invalid id")
 )
 
 func init() {
+	// initialize the decoding map; this is also used for sanity checking input
 	for i := 0; i < len(dec); i++ {
 		dec[i] = 0xFF
 	}
@@ -81,9 +81,9 @@ func New() ID {
 
 // NewWithTime returns a new ID using the supplied Time.
 //
-// Note: The time value component of an ID is a Unix timestamp; in Go,
-// timestamp values are identical regardless of the Time value's location,
-// i.e.: time.Now().Unix() == time.Now().UTC().Unix()
+// The time value component of an ID is a Unix timestamp with seconds
+// resolution. Note: In Go, timestamp values are identical regardless of the
+// Time value's location, i.e.: time.Now().Unix() == time.Now().UTC().Unix()
 func NewWithTime(t time.Time) ID {
 	var id ID
 
@@ -122,11 +122,15 @@ func (id ID) String() string {
 	return *(*string)(unsafe.Pointer(&text))
 }
 
-// encode bytes as Base32 using our custom character set, by unrolling the
-// stdlib base32 algorithm. Base32 aligns on 5-byte boundaries therefore there
-// is no padding actual or implied.
+// encode id bytes as Base32 by unrolling for performance the stdlib base32 algorithm.
 func encode(dst, id []byte) {
-	// encoding is not significantly faster than the stdlib Base32; decoding is.
+	// bounds checking; Go 1.19x simply moves the check; None are eliminated on
+	// charset variable indexes.
+	// go tool compile -d=ssa/check_bce/debug=1 rid.go
+	_ = id[9]
+	_ = dst[15]
+
+	// No padding as Base32 aligns on 5-byte boundaries (ID is 10 bytes)
 	dst[15] = charset[id[9]&0x1F]
 	dst[14] = charset[(id[9]>>5)|(id[8]<<3)&0x1F]
 	dst[13] = charset[(id[8]>>2)&0x1F]
@@ -145,7 +149,7 @@ func encode(dst, id []byte) {
 	dst[0] = charset[id[0]>>3]
 }
 
-// Bytes returns by value the binary representation of ID.
+// Bytes returns the binary representation of ID.
 func (id ID) Bytes() []byte {
 	return id[:]
 }
@@ -169,7 +173,7 @@ func (id ID) Random() uint64 {
 	return uint64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
 }
 
-// FromString decodes the supplied Base32 encoded representation
+// FromString decodes a Base32 encoded ID, returning an ID.
 func FromString(str string) (ID, error) {
 	id := &ID{}
 	err := id.UnmarshalText([]byte(str))
@@ -194,7 +198,7 @@ func (id *ID) UnmarshalText(text []byte) error {
 		*id = nilID
 		return ErrInvalidID
 	}
-	// invalid characters will return an error
+	// characters not in the decoding map will return an error
 	for _, c := range text {
 		if dec[c] == 0xFF {
 			return ErrInvalidID
@@ -209,8 +213,11 @@ func (id *ID) UnmarshalText(text []byte) error {
 
 // decode a Base32 encoded ID by unrolling the stdlib Base32 algorithm.
 func decode(id *ID, src []byte) bool {
-	// this is just shy of 10x faster than the stdlib; For some sql Scanner and
-	// other use cases, decoding could be a frequent operation.
+	// bounds checking, in Go 1.19x eliminates only one
+	// go tool compile -d=ssa/check_bce/debug=1 rid.go
+	_ = src[15]
+
+	// this is ~4 to 6x faster than stdlib Base32 decoding
 	id[9] = dec[src[14]]<<5 | dec[src[15]]
 	id[8] = dec[src[12]]<<7 | dec[src[13]]<<2 | dec[src[14]]>>3
 	id[7] = dec[src[11]]<<4 | dec[src[12]]>>1
@@ -279,7 +286,7 @@ func (id *ID) UnmarshalJSON(b []byte) error {
 		*id = nilID
 		return nil
 	}
-	// Check the slice length to prevent panic on passing it to UnmarshalText()
+	// Check the slice length to prevent runtime bounds check panic in UnmarshalText()
 	if len(b) < 2 {
 		return ErrInvalidID
 	}
@@ -292,8 +299,9 @@ func (id *ID) UnmarshalJSON(b []byte) error {
 //   - 4-byte timestamp
 //   - 6-byte random value
 //
-// Otherwise, it behaves just like `bytes.Compare(b1[:], b2[:])`. The result
-// will be 0 if two IDs are identical, -1 if current id is less than
+// Otherwise, it behaves just like `bytes.Compare(b1[:], b2[:])`.
+//
+// The result will be 0 if two IDs are identical, -1 if current id is less than
 // the other one, and 1 if current id is greater than the other.
 func (id ID) Compare(other ID) int {
 	return bytes.Compare(id[:5], other[:5])
@@ -313,8 +321,7 @@ func (s sorter) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-// Sort sorts an array of IDs inplace.
-// It works by wrapping `[]ID` and use `sort.Sort`.
+// Sort sorts an array of IDs in place.
 func Sort(ids []ID) {
 	sort.Sort(sorter(ids))
 }
