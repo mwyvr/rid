@@ -67,8 +67,8 @@ func TestIDPartsExtraction(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	// Generate N ids, see if all unique
-	// TODO add parallel test
-	numIDS := 10000
+	// Parallel generation test is in ./cmd/eval/uniqcheck/main.go
+	numIDS := 1000
 	ids := make([]ID, numIDS)
 	for i := 0; i < numIDS; i++ {
 		ids[i] = New()
@@ -99,6 +99,14 @@ func TestIDString(t *testing.T) {
 		if got, want := v.encoded, v.id.String(); got != want {
 			t.Errorf("String() = %v, want %v", got, want)
 		}
+	}
+}
+
+func TestIDEncode(t *testing.T) {
+	id := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
+	text := make([]byte, encodedLen)
+	if got, want := string(id.Encode(text)), "dfp7emzzzzy30ey2"; got != want {
+		t.Errorf("Encode() = %v, want %v", got, want)
 	}
 }
 
@@ -384,6 +392,24 @@ func TestIDDriverScanByteFromDatabase(t *testing.T) {
 	want := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
 	if bytes.Compare(got[:], want[:]) != 0 {
 		t.Errorf("Scan() = %v, want %v", got, want)
+	}
+}
+
+func TestFromBytes_InvalidBytes(t *testing.T) {
+	cases := []struct {
+		length     int
+		shouldFail bool
+	}{
+		{rawLen - 1, true},
+		{rawLen, false},
+		{rawLen + 1, true},
+	}
+	for _, c := range cases {
+		b := make([]byte, c.length)
+		_, err := FromBytes(b)
+		if got, want := err != nil, c.shouldFail; got != want {
+			t.Errorf("FromBytes() error got %v, want %v", got, want)
+		}
 	}
 }
 

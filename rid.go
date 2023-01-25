@@ -115,11 +115,18 @@ func NilID() ID {
 	return nilID
 }
 
-// String returns a Base32 encoded representation of ID as a string.
+// String returns id as a customized Base32 encoded string.
 func (id ID) String() string {
 	text := make([]byte, encodedLen)
 	encode(text, id[:])
 	return *(*string)(unsafe.Pointer(&text))
+}
+
+// Encode encodes the id as a customized Base32 encoding, writing 10 bytes to dst
+// and returning it.
+func (id ID) Encode(dst []byte) []byte {
+	encode(dst, id[:])
+	return dst
 }
 
 // encode id bytes as Base32 by unrolling for performance the stdlib base32 algorithm.
