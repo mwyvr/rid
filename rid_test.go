@@ -18,7 +18,7 @@ type idParts struct {
 }
 
 var IDs = []idParts{
-	// sorted (ascending) should be IDs 2, 3, 0, 1
+	// sorted (ascending) should be IDs 2, 3, 0, 5, 4, 1
 	{
 		// dfp7emzzzzy30ey2 ts:1672246995 rnd:281474912761794 2022-12-28 09:03:15 -0800 PST ID{0x63,0xac,0x76,0xd3,0xff,0xff,0xfc,0x30,0x37,0xc2}
 		ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2},
@@ -46,6 +46,20 @@ var IDs = []idParts{
 		"dfp7em00001p0t5j",
 		1672246992,
 		56649906,
+	},
+	{
+		// dgb58zr000000000 ts:1674859647 rnd:              0 2023-01-27 14:47:27 -0800 PST ID{0x63,0xd4,0x54,0x7f,0x0,0x0,0x0,0x0,0x0,0x0}
+		ID{0x63, 0xd4, 0x54, 0x7f, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
+		"dgb58zr000000000",
+		1674859647,
+		0,
+	},
+	{
+		// dgb53lewel4ndk94 ts:1674858957 rnd:207175420364068 2023-01-27 14:35:57 -0800 PST ID{0x63,0xd4,0x51,0xcd,0xbc,0x6c,0xc9,0x56,0x45,0x24}
+		ID{0x63, 0xd4, 0x51, 0xcd, 0xbc, 0x6c, 0xc9, 0x56, 0x45, 0x24},
+		"dgb53lewel4ndk94",
+		1674858957,
+		207175420364068,
 	},
 }
 
@@ -423,6 +437,7 @@ func TestCompare(t *testing.T) {
 		{ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, IDs[2].id, 0},
 		{IDs[0].id, IDs[0].id, 0},
 		{IDs[2].id, IDs[1].id, -1},
+		{IDs[5].id, IDs[4].id, -1},
 	}
 	for _, p := range pairs {
 		if p.expected != p.left.Compare(p.right) {
@@ -434,13 +449,13 @@ func TestCompare(t *testing.T) {
 	}
 }
 
-var IDList = []ID{IDs[0].id, IDs[1].id, IDs[2].id, IDs[3].id}
+var IDList = []ID{IDs[0].id, IDs[1].id, IDs[2].id, IDs[3].id, IDs[4].id, IDs[5].id}
 
 func TestSorter_Len(t *testing.T) {
 	if got, want := sorter([]ID{}).Len(), 0; got != want {
 		t.Errorf("Len() %v, want %v", got, want)
 	}
-	if got, want := sorter(IDList).Len(), 4; got != want {
+	if got, want := sorter(IDList).Len(), 6; got != want {
 		t.Errorf("Len() %v, want %v", got, want)
 	}
 }
@@ -480,9 +495,9 @@ func TestSort(t *testing.T) {
 	ids := make([]ID, 0)
 	ids = append(ids, IDList...)
 	Sort(ids)
-	// sorted (ascending) should be IDs 2, 3, 0, 1
-	if got, want := ids, []ID{IDList[2], IDList[3], IDList[0], IDList[1]}; !reflect.DeepEqual(got, want) {
-		t.Fail()
+	// sorted (ascending) should be IDs 2, 3, 0, 5, 4, 1
+	if got, want := ids, []ID{IDList[2], IDList[3], IDList[0], IDList[5], IDList[4], IDList[1]}; !reflect.DeepEqual(got, want) {
+		t.Errorf("\ngot %v\nwant %v\n", got, want)
 	}
 }
 
