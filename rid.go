@@ -131,8 +131,7 @@ func (id ID) Encode(dst []byte) []byte {
 
 // encode id bytes as Base32 by unrolling for performance the stdlib base32 algorithm.
 func encode(dst, id []byte) {
-	// bounds checking; Go 1.19x simply moves the check; None are eliminated on
-	// charset variable indexes.
+	// bounds checking
 	// go tool compile -d=ssa/check_bce/debug=1 rid.go
 	_ = id[9]
 	_ = dst[15]
@@ -220,7 +219,7 @@ func (id *ID) UnmarshalText(text []byte) error {
 
 // decode a Base32 encoded ID by unrolling the stdlib Base32 algorithm.
 func decode(id *ID, src []byte) bool {
-	// bounds checking, in Go 1.19x eliminates only one
+	// bounds checking
 	// go tool compile -d=ssa/check_bce/debug=1 rid.go
 	_ = src[15]
 
