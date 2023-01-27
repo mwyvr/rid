@@ -3,8 +3,8 @@
 # rid
 
 Package `rid` provides a performant, k-sortable, goroutine safe unique ID
-generator suitable for single process applications or situations where
-inter-process ID generation coordination is not required.
+generator suitable for situations where inter-process ID generation 
+coordination is not required.
 
 An ID comprises a:
 
