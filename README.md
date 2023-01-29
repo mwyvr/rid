@@ -2,35 +2,44 @@
 
 # rid
 
-Package `rid` provides a performant, k-sortable, goroutine safe unique ID
-generator suitable for situations where inter-process ID generation 
+Package rid provides a performant, goroutine-safe generator of
+[k-sortable](https://en.wikipedia.org/wiki/K-sorted_sequence) 
+unique IDs suitable for use where inter-process ID generation 
 coordination is not required.
 
-An ID comprises a:
+An ID is a:
 
-  - 4-byte timestamp value representing seconds since the Unix epoch
-  - 6-byte random value; see fastrandUint64 [1]
+  - 4-byte timestamp value representing seconds since the Unix epoch, plus a
+  - 6-byte random value; see the [Random Source](#random-source) discussion.
 
-IDs encode as a 16-character URL-friendly representation like
-`dfp7qt0v2pwt0v2x`.
+Using a non-standard character set (fewer vowels), IDs Base-32
+encode as a 16-character URL-friendly representation like `dfp7qt0v2pwt0v2x`.
 
-Key features:
+Built-in (de)serialization simplifies interacting with SQL databases and JSON.
+`cmd/rid` provides the `rid` utility to generate or inspect IDs. Thanks to 
+fastrand[1], ID generation starts fast and remains so as cores are added.
+De-serialization has also been optimized. See [Package Benchmarks](#package-benchmarks).
 
-  - K-orderable in both binary and string representations
-  - At 10 bytes binary, 16 bytes Base32 encoded, it's short.
-  - Automatic (de)serialization for SQL databases and JSON.
-  - Thanks to fastrand [1], scalable performance as cores are added; ID
-  	generation is faster than it needs to be for most use cases.
-  - URL-friendly Base32 encoding using a custom character set to help avoid
-  	unintended rude words.
-  - a command line utility `rid` to generate or inspect IDs.
+Why `rid` as opposed to alternatives?
 
-Example:
+  - At 10 bytes binary, 16 bytes Base32 encoded, IDs are short, yet with 
+  48 bits of uniqueness *per second*, remain unique enough for many use cases.
+  - IDs have a truly random component rather than potentially guessable monotonic counter
+
+## Example:
 
 ```go
-	id := rid.New()
-	fmt.Printf("%s", id.String())
-	// Output: dfp7qt97menfv8ll
+id := rid.New()
+fmt.Printf("%s\n", id.String())
+// Output: dfp7qt97menfv8ll
+
+id2, err := rid.FromString("dfp7qt97menfv8ll")
+if err != nil {
+	fmt.Println(err)
+}
+fmt.Printf("%s %d %v\n", id2.Time(), id2.Random(), id2.Bytes())
+// Output: dgcgh7ke6xq9se3g
+// 2022-12-28 09:24:57 -0800 PST 43582827111027 [99 172 123 233 39 163 106 237 162 115]
 ```
 
 Acknowledgement: This package borrows heavily from rs/xid
@@ -38,17 +47,9 @@ Acknowledgement: This package borrows heavily from rs/xid
 high-performance ID generator which itself levers ideas from MongoDB
 (https://docs.mongodb.com/manual/reference/method/ObjectId/).
 
-## What's In The Box?
+## CLI
 
-`rid.ID` implements a number of common interfaces to make it convenient to use
-in applications interacting via JSON or a database:
-
-- database/sql: driver.Valuer, sql.Scanner
-- encoding: TextMarshaler, TextUnmarshaler
-- encoding/json: json.Marshaler, json.Unmarshaler
-- Stringer
-
-Package `rid` also provides the `rid` command line tool for id generation and inspection. 
+Package `rid` also provides the `rid` tool for id generation and inspection. 
 
     $ rid 
 	dfpb18y8dg90hc74
@@ -68,12 +69,19 @@ Package `rid` also provides the `rid` command line tool for id generation and in
 
 Since cryptographically-secure IDs are not an objective for this package, other
 approaches could be considered. For random number generation `rid` uses a Go
-runtime `fastrand64` [1].
+internal runtime `fastrand64` [1] which provides single and multi-core performance
+benefits.
 
 You may enjoy reading [Fast thread-safe randomness in Go](https://qqq.ninja/blog/post/fast-threadsafe-randomness-in-go/).
 
 [1] For more information on fastrand (wyrand) see: https://github.com/wangyi-fudan/wyhash
  and [Go's sources for runtime/stubs.go](https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go;bpv=1;bpt=1?q=fastrand&ss=go%2Fgo:src%2Fruntime%2F).
+ 
+Unique enough for your use case? Run [eval/uniqcheck/main.go](eval/uniqcheck/main.go) with
+various values, or, at the command line, produce 10,000,000 and use OS utilities to check:
+
+    rid -c 10000000 | sort | uniq -d
+    // None output
 
 ## Change Log
 
