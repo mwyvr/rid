@@ -1,37 +1,12 @@
 package main
 
-// package to determine if the approach used delivers unique IDs in single and
-// multi-process applications on a single machine. Runs ranging to 100 million
-// generations have been done on a 4-core (8cpu) Intel and 8-core (16cpu) machine,
-// with zero duplicates detected.
+// determine if the approach used delivers unique IDs in go applications
+// running a single go routine or utilizing multiple cores
 //
-// rid millisecond timestamp reduces collision chance eg assuming 10 ns ID generation:
+// In addition to this test, using stdout / sort / uniq, a run of 10 million:
 //
-// 		1 millisecond / 10 nanosecond per ID = 100,000 possible IDs per time tick
-// 		6 bytes of randomness = 281,474,976,710,656 permutations, per time tick
-//
-// Multi-machine/site apps:
-// 		rid runtime signature byte may introduce enough variability, ymmv
-//
-// Conclusion:
-//
-// Almost all applications will be spending much more time in business and storage layer
-// than the 4 - 50 nanoseconds it takes to produce an ID and thus the absolute chance
-// of a collision is zero.
-//
-// In addition to this test, using stdout / sort / uniq:
-//
-// 		rid -c 1000000000 > foo  			 # 1,000,000,000 ids, ctrl-c aborted at 227,322,217
-// 		sort foo > foosort 		  			 # takes some time on my laptop ;-)
-// 		uniq foosort -d > foonotunique # should be a zero byte file
-//
-// The above produces:
-// 		$ ls -ltr foo*
-// 		~ 5683055425 Dec  7 08:05 foo
-// 		~ 5683055425 Dec  7 08:12 foosort
-// 		~ 		     0 Dec  7 08:15 foonotunique
-
-// TODO - run other compared packages through the gauntlet.
+//  rid -c 10000000 | sort | uniq -d
+//  (no output)
 
 import (
 	"sync"
@@ -42,19 +17,19 @@ import (
 	"golang.org/x/text/message"
 )
 
-const rawLen = 10 // make large enough for the package being checked - xid, ksid are larger
+const rawLen = 10
 
 var (
-	genPerRoutine = 1000000 // 64 million (8m * 8) or (1m * 16) takes ~25 seconds
-	numRoutines   = 20
+	genPerRoutine = int(1 * 10e5)
+	numRoutines   = 16
 	dupes         = 0
-	exists        = check{lastTick: 0, keys: make(map[[rawLen]byte]bool)} // arrays can be map keys, not slices
+	exists        = check{lastTick: 0, keys: make(map[[rawLen]byte]bool)} // keys can be arrays, not slices
 	fmt           = message.NewPrinter(language.English)
 )
 
 type check struct {
 	keys      map[[rawLen]byte]bool
-	lastTick  int64 // millisecond for rid, ksuid, second for xid
+	lastTick  int64
 	totalKeys int
 	mu        sync.RWMutex
 }
@@ -65,11 +40,9 @@ func main() {
 	for i := 0; i < numRoutines; i++ {
 		wg.Add(1)
 		go func(i int) {
-			// fmt.Println("go routine", i)
 			defer wg.Done()
 			generate()
 		}(i)
-
 	}
 	wg.Wait()
 	fmt.Printf("Total keys: %d. Keys in last time tick: %d. Number of dupes: %d\n", exists.totalKeys, len(exists.keys), dupes)
@@ -79,11 +52,10 @@ func generate() {
 	var id [rawLen]byte
 	for i := 0; i < genPerRoutine; i++ {
 		tmp := rid.New()
-		// TODO - run other compared packages through the gauntlet.
 		copy(id[:], tmp[:])
-		tmpTimestamp := time.Now().Unix() // milliseconds will be 000 for pkgs using second resolution, works for this
+		tmpTimestamp := time.Now().Unix()
 		exists.mu.Lock()
-		// crude - we clear per new second
+		// clear per each new second
 		if exists.lastTick != tmpTimestamp {
 			exists.lastTick = tmpTimestamp
 			exists.keys = make(map[[rawLen]byte]bool)
@@ -93,34 +65,44 @@ func generate() {
 			exists.totalKeys += 1
 		} else {
 			dupes += 1
-			fmt.Printf("duplicate: %v\n", id)
+			exists.totalKeys += 1
+			fmt.Printf("Generated: %d, found duplicate: %v\n", exists.totalKeys, id)
 		}
 		exists.mu.Unlock()
 	}
 }
 
 // Runs
-
-// rid (time resolution is actually milliseconds):
-// $ time go run eval/uniqcheck/main.go
-// Total keys: 64,000,000. Keys in last time tick: 2,280. Number of dupes: 0
+// 16 go routines * 10e4
+// $ time go run main.go
+// Total keys: 1,600,000. Keys in last time tick: 702,456. Number of dupes: 0
 //
-// real	0m13.068s
-// user	0m20.299s
-// sys	0m0.986s
+// real	0m1.202s
+// user	0m2.643s
+// sys	0m0.245s
 
-// xid (note time resolution is actually seconds thus more keys in last tick):
-// $ time go run eval/uniqcheck/main.go
-// Total keys: 64,000,000. Keys in last time tick: 829,009. Number of dupes: 0
+// 16 * 10e5
+// $ time go run main.go
+// Total keys: 16,000,000. Keys in last time tick: 247,040. Number of dupes: 0
 //
-// real	0m18.838s
-// user	0m26.756s
-// sys	0m2.029s
+// real	0m11.541s
+// user	0m29.377s
+// sys	0m1.601s
 
-// ksuid (note time resolution is actually seconds thus more keys in last tick):
-// $ time go run eval/uniqcheck/main.go
-// Total keys: 64,000,000. Keys in last time tick: 478,533. Number of dupes: 0
+// 1 routine x 10e7:
+// $ time go run main.go
+// Total keys: 100,000,000. Keys in last time tick: 776,864. Number of dupes: 0
 //
-// real	0m50.437s
-// user	1m9.540s
-// sys	0m19.915s
+// real	0m29.339s
+// user	0m28.195s
+// sys	10m1.673s
+
+// 4 routines * 10e7:
+// $ time go run main.go
+// Generated: 149,958,508, found duplicate: [99 215 1 106 50 126 157 18 97 141]
+// Generated: 263,367,074, found duplicate: [99 215 1 175 97 18 247 211 221 213]
+// Total keys: 400,000,000. Keys in last time tick: 260,118. Number of dupes: 2
+//
+// real	4m3.685s
+// user	6m34.780s
+// sys	0m16.497s
