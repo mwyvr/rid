@@ -18,7 +18,6 @@ type pkg struct {
 	blen       int
 	elen       int
 	ksortable  bool
-	zeroconfig bool
 	sample     string
 	next       string
 	uniq       string
@@ -26,14 +25,12 @@ type pkg struct {
 }
 
 func main() {
-
 	packages := []pkg{
 		{
 			"[solutionroute/rid](https://github.com/solutionroute/rid)",
 			len(rid.New().Bytes()),
 			len(rid.New().String()),
 			true,
-			false,
 			rid.New().String(),
 			rid.New().String(),
 			"fastrand",
@@ -43,7 +40,6 @@ func main() {
 			"[rs/xid](https://github.com/rs/xid)",
 			len(xid.New().Bytes()),
 			len(xid.New().String()),
-			true,
 			true,
 			xid.New().String(),
 			xid.New().String(),
@@ -55,7 +51,6 @@ func main() {
 			len(ksuid.New().Bytes()),
 			len(ksuid.New().String()),
 			true,
-			true,
 			ksuid.New().String(),
 			ksuid.New().String(),
 			"random",
@@ -66,7 +61,6 @@ func main() {
 			len(uuid.New()),
 			len(uuid.New().String()),
 			false,
-			true,
 			uuid.New().String(),
 			uuid.New().String(),
 			"crypt/rand",
@@ -76,7 +70,6 @@ func main() {
 			"[oklog/ulid](https://github.com/oklog/ulid)",
 			len(newUlid()),
 			len(newUlid().String()),
-			true,
 			true,
 			newUlid().String(),
 			newUlid().String(),
@@ -88,7 +81,6 @@ func main() {
 			8 + 9, // only available as a string
 			len(betterguid.New()),
 			true,
-			true,
 			betterguid.New(),
 			betterguid.New(),
 			"counter",
@@ -96,11 +88,11 @@ func main() {
 		},
 	}
 
-	fmt.Printf("| Package                                                   |BLen|ELen| K-Sort| 0-Cfg | Encoded ID and Next | Method | Components |\n")
-	fmt.Printf("|-----------------------------------------------------------|----|----|-------|-------|---------------------|--------|------------|\n")
+	fmt.Printf("| Package                                                   |BLen|ELen| K-Sort| Encoded ID and Next | Method | Components |\n")
+	fmt.Printf("|-----------------------------------------------------------|----|----|-------|---------------------|--------|------------|\n")
 	for _, v := range packages {
-		fmt.Printf("| %-57s | %d | %d | %5v | %5v | `%s`<br>`%s` | %s | %s |\n",
-			v.name, v.blen, v.elen, v.ksortable, v.zeroconfig, v.sample, v.next, v.uniq, v.components)
+		fmt.Printf("| %-57s | %d | %d | %5v | `%s`<br>`%s` | %s | %s |\n",
+			v.name, v.blen, v.elen, v.ksortable, v.sample, v.next, v.uniq, v.components)
 	}
 }
 
