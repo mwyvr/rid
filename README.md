@@ -3,28 +3,31 @@
 # rid
 
 Package rid provides a performant, goroutine-safe generator of
-[k-sortable](https://en.wikipedia.org/wiki/K-sorted_sequence) 
-unique IDs suitable for use where inter-process ID generation 
-coordination is not required.
+[k-sortable](https://en.wikipedia.org/wiki/K-sorted_sequence) unique IDs
+suitable for use where inter-process ID generation coordination is not
+required.
 
 An ID is a:
 
   - 4-byte timestamp value representing seconds since the Unix epoch, plus a
   - 6-byte random value; see the [Random Source](#random-source) discussion.
 
-Using a non-standard character set (fewer vowels), IDs Base-32
-encode as a 16-character URL-friendly, case-insensitive, representation like `dfp7qt0v2pwt0v2x`.
+Using a non-standard character set (fewer vowels), IDs Base-32 encode as a
+16-character URL-friendly, case-insensitive, representation like
+`dfp7qt0v2pwt0v2x`.
 
 Built-in (de)serialization simplifies interacting with SQL databases and JSON.
-`cmd/rid` provides the `rid` utility to generate or inspect IDs. Thanks to 
+`cmd/rid` provides the `rid` utility to generate or inspect IDs. Thanks to
 fastrand[1], ID generation starts fast and remains so as cores are added.
-De-serialization has also been optimized. See [Package Benchmarks](#package-benchmarks).
+De-serialization has also been optimized. See [Package
+Benchmarks](#package-benchmarks).
 
 Why `rid` as opposed to [alternatives](#package-comparisons)?
 
-  - At 10 bytes binary, 16 bytes Base32 encoded, rid.IDs are short, yet with 
-  48 bits of uniqueness *per second*, remain unique enough for many use cases.
-  - IDs have a truly random component rather than potentially guessable monotonic counter.
+  - At 10 bytes binary, 16 bytes Base32 encoded, rid.IDs are short, yet with 48
+    bits of uniqueness *per second*, remain unique enough for many use cases.
+  - IDs have a truly random component rather than potentially guessable
+    monotonic counter.
 
 Acknowledgement: This package borrows heavily from rs/xid
 (https://github.com/rs/xid), a zero-configuration globally-unique
@@ -69,22 +72,25 @@ Package `rid` also provides the `rid` tool for id generation and inspection.
 
 Since cryptographically-secure IDs are not an objective for this package, other
 approaches could be considered. For random number generation `rid` uses a Go
-internal runtime `fastrand64` [1] which provides single and multi-core performance
-benefits.
+internal runtime `fastrand64` [1] which provides single and multi-core
+performance benefits.
 
 You may enjoy reading [Fast thread-safe randomness in Go](https://qqq.ninja/blog/post/fast-threadsafe-randomness-in-go/).
 
 [1] For more information on fastrand (wyrand) see: https://github.com/wangyi-fudan/wyhash
  and [Go's sources for runtime/stubs.go](https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go;bpv=1;bpt=1?q=fastrand&ss=go%2Fgo:src%2Fruntime%2F).
  
-To satify whether rid.IDs are unique enough for your use case, run [eval/uniqcheck/main.go](eval/uniqcheck/main.go) with
-various values for number of go routines and iterations, or, at the command line, produce 10,000,000 IDs and use OS utilities to check:
+To satify whether rid.IDs are unique enough for your use case, run
+[eval/uniqcheck/main.go](eval/uniqcheck/main.go) with various values for number
+of go routines and iterations, or, at the command line, produce 10,000,000 IDs
+and use OS utilities to check:
 
     rid -c 10000000 | sort | uniq -d
     // None output
 
 ## Change Log
 
+- 2023-01-23 Replaced stdlib Base32 with unrolled version for decoding performance.
 - 2022-12-28 The "10byte" branch was merged to master; the "15byte-historical"
   branch will be left dormant. No major changes are now expected to this
   package; updates will focus on rounding out test coverage, addressing bugs,
@@ -129,7 +135,7 @@ A benchmark suite for the above noted packages can be found in
 	BenchmarkRid            	31547193	        36.11 ns/op	       0 B/op	       0 allocs/op
 	BenchmarkRid-2          	60804381	        19.82 ns/op	       0 B/op	       0 allocs/op
 	BenchmarkRid-4          	86309307	        12.29 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkRid-8          	137731342	         8.703 ns/op	   0 B/op	       0 allocs/op
+	BenchmarkRid-8          	137731342	         8.703 ns/op	       0 B/op	       0 allocs/op
 	BenchmarkXid            	31119572	        38.60 ns/op	       0 B/op	       0 allocs/op
 	BenchmarkXid-2          	36497461	        32.85 ns/op	       0 B/op	       0 allocs/op
 	BenchmarkXid-4          	56109519	        26.42 ns/op	       0 B/op	       0 allocs/op
@@ -161,8 +167,8 @@ A benchmark suite for the above noted packages can be found in
 	BenchmarkRid              	22228062	        52.87 ns/op	       0 B/op	       0 allocs/op
 	BenchmarkRid-2            	44609712	        26.65 ns/op	       0 B/op	       0 allocs/op
 	BenchmarkRid-4            	86812888	        13.61 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkRid-8            	171851486	         6.911 ns/op	   0 B/op	       0 allocs/op
-	BenchmarkRid-16           	304566252	         3.950 ns/op	   0 B/op	       0 allocs/op
+	BenchmarkRid-8            	171851486	         6.911 ns/op	       0 B/op	       0 allocs/op
+	BenchmarkRid-16           	304566252	         3.950 ns/op	       0 B/op	       0 allocs/op
 	BenchmarkXid              	22468870	        51.56 ns/op	       0 B/op	       0 allocs/op
 	BenchmarkXid-2            	18829366	        99.73 ns/op	       0 B/op	       0 allocs/op
 	BenchmarkXid-4            	22890943	        52.22 ns/op	       0 B/op	       0 allocs/op
