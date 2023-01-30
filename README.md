@@ -24,8 +24,9 @@ Benchmarks](#package-benchmarks).
 
 Why `rid` as opposed to [alternatives](#package-comparisons)?
 
-  - At 10 bytes binary, 16 bytes Base32 encoded, rid.IDs are short, yet with 48
-    bits of uniqueness *per second*, remain unique enough for many use cases.
+  - At 10 bytes binary, 16 bytes Base32 encoded, rid.IDs are case-insensitive
+    and short, yet with 48 bits of uniqueness *per second*, are unique
+    enough for many use cases.
   - IDs have a truly random component rather than potentially guessable
     monotonic counter.
 
@@ -71,16 +72,15 @@ Package `rid` also provides the `rid` tool for id generation and inspection.
 ## Random Source
 
 Since cryptographically-secure IDs are not an objective for this package, other
-approaches could be considered. For random number generation `rid` uses a Go
-internal runtime `fastrand64` [1] which provides single and multi-core
-performance benefits.
+approaches could be considered. `rid` uses a Go internal runtime `fastrand64`
+[1] which provides single and multi-core performance benefits.
 
 You may enjoy reading [Fast thread-safe randomness in Go](https://qqq.ninja/blog/post/fast-threadsafe-randomness-in-go/).
 
 [1] For more information on fastrand (wyrand) see: https://github.com/wangyi-fudan/wyhash
  and [Go's sources for runtime/stubs.go](https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go;bpv=1;bpt=1?q=fastrand&ss=go%2Fgo:src%2Fruntime%2F).
  
-To satify whether rid.IDs are unique enough for your use case, run
+To satisfy whether rid.IDs are unique enough for your use case, run
 [eval/uniqcheck/main.go](eval/uniqcheck/main.go) with various values for number
 of go routines and iterations, or, at the command line, produce 10,000,000 IDs
 and use OS utilities to check:
