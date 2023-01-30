@@ -2,19 +2,19 @@
 
 # rid
 
-Package rid provides a performant, goroutine-safe generator of
+Package rid provides a performant, goroutine-safe generator of short
 [k-sortable](https://en.wikipedia.org/wiki/K-sorted_sequence) unique IDs
 suitable for use where inter-process ID generation coordination is not
 required.
+
+Using a non-standard character set (fewer vowels), IDs Base-32 encode as a
+16-character URL-friendly, case-insensitive, representation like
+`dfp7qt0v2pwt0v2x`.
 
 An ID is a:
 
   - 4-byte timestamp value representing seconds since the Unix epoch, plus a
   - 6-byte random value; see the [Random Source](#random-source) discussion.
-
-Using a non-standard character set (fewer vowels), IDs Base-32 encode as a
-16-character URL-friendly, case-insensitive, representation like
-`dfp7qt0v2pwt0v2x`.
 
 Built-in (de)serialization simplifies interacting with SQL databases and JSON.
 `cmd/rid` provides the `rid` utility to generate or inspect IDs. Thanks to
@@ -27,13 +27,13 @@ Why `rid` as opposed to [alternatives](#package-comparisons)?
   - At 10 bytes binary, 16 bytes Base32 encoded, rid.IDs are case-insensitive
     and short, yet with 48 bits of uniqueness *per second*, are unique
     enough for many use cases.
-  - IDs have a truly random component rather than potentially guessable
+  - IDs have a random component rather than potentially guessable
     monotonic counter.
 
-Acknowledgement: This package borrows heavily from rs/xid
+_**Acknowledgement**: This package borrows heavily from rs/xid
 (https://github.com/rs/xid), a zero-configuration globally-unique
 high-performance ID generator which itself levers ideas from MongoDB
-(https://docs.mongodb.com/manual/reference/method/ObjectId/).
+(https://docs.mongodb.com/manual/reference/method/ObjectId/)._
 
 ## Example:
 
