@@ -47,8 +47,7 @@ if err != nil {
 	fmt.Println(err)
 }
 fmt.Printf("%s %d %v\n", id2.Time(), id2.Random(), id2.Bytes())
-// Output: dgcgh7ke6xq9se3g
-// 2022-12-28 09:24:57 -0800 PST 43582827111027 [99 172 123 233 39 163 106 237 162 115]
+// Output: 2022-12-28 09:24:57 -0800 PST 43582827111027 [99 172 123 233 39 163 106 237 162 115]
 ```
 
 ## CLI
