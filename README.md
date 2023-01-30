@@ -13,18 +13,23 @@ An ID is a:
   - 6-byte random value; see the [Random Source](#random-source) discussion.
 
 Using a non-standard character set (fewer vowels), IDs Base-32
-encode as a 16-character URL-friendly representation like `dfp7qt0v2pwt0v2x`.
+encode as a 16-character URL-friendly, case-insensitive, representation like `dfp7qt0v2pwt0v2x`.
 
 Built-in (de)serialization simplifies interacting with SQL databases and JSON.
 `cmd/rid` provides the `rid` utility to generate or inspect IDs. Thanks to 
 fastrand[1], ID generation starts fast and remains so as cores are added.
 De-serialization has also been optimized. See [Package Benchmarks](#package-benchmarks).
 
-Why `rid` as opposed to alternatives?
+Why `rid` as opposed to [alternatives](#package-comparisons)?
 
-  - At 10 bytes binary, 16 bytes Base32 encoded, IDs are short, yet with 
+  - At 10 bytes binary, 16 bytes Base32 encoded, rid.IDs are short, yet with 
   48 bits of uniqueness *per second*, remain unique enough for many use cases.
-  - IDs have a truly random component rather than potentially guessable monotonic counter
+  - IDs have a truly random component rather than potentially guessable monotonic counter.
+
+Acknowledgement: This package borrows heavily from rs/xid
+(https://github.com/rs/xid), a zero-configuration globally-unique
+high-performance ID generator which itself levers ideas from MongoDB
+(https://docs.mongodb.com/manual/reference/method/ObjectId/).
 
 ## Example:
 
@@ -42,11 +47,6 @@ fmt.Printf("%s %d %v\n", id2.Time(), id2.Random(), id2.Bytes())
 // 2022-12-28 09:24:57 -0800 PST 43582827111027 [99 172 123 233 39 163 106 237 162 115]
 ```
 
-Acknowledgement: This package borrows heavily from rs/xid
-(https://github.com/rs/xid), a zero-configuration globally-unique
-high-performance ID generator which itself levers ideas from MongoDB
-(https://docs.mongodb.com/manual/reference/method/ObjectId/).
-
 ## CLI
 
 Package `rid` also provides the `rid` tool for id generation and inspection. 
@@ -60,10 +60,10 @@ Package `rid` also provides the `rid` tool for id generation and inspection.
 
     # produce 4 and inspect
 	$ rid `rid -c 4`
-	dfp9lmz9ksw87w48 ts:1672255955 rnd:256798116540552 2022-12-28 11:32:35 -0800 PST ID{0x63,0xac,0x99,0xd3,0xe9,0x8e,0x78,0x83,0xf0,0x88}
-	dfp9lmxefym2ht2f ts:1672255955 rnd:190729433933902 2022-12-28 11:32:35 -0800 PST ID{0x63,0xac,0x99,0xd3,0xad,0x77,0xa8,0x28,0x68,0x4e}
-	dfp9lmt5zjy7km9n ts:1672255955 rnd: 76951796109621 2022-12-28 11:32:35 -0800 PST ID{0x63,0xac,0x99,0xd3,0x45,0xfc,0xbc,0x78,0xd1,0x35}
-	dfp9lmxt5sms80m7 ts:1672255955 rnd:204708502569607 2022-12-28 11:32:35 -0800 PST ID{0x63,0xac,0x99,0xd3,0xba,0x2e,0x69,0x94,0x2,0x87}
+	dfp9lmz9ksw87w48 ts:1672255955 rnd:256798116540552 2022-12-28 11:32:35 -0800 PST ID{ 0x63, 0xac, 0x99, 0xd3, 0xe9, 0x8e, 0x78, 0x83, 0xf0, 0x88 }
+	dfp9lmxefym2ht2f ts:1672255955 rnd:190729433933902 2022-12-28 11:32:35 -0800 PST ID{ 0x63, 0xac, 0x99, 0xd3, 0xad, 0x77, 0xa8, 0x28, 0x68, 0x4e }
+	dfp9lmt5zjy7km9n ts:1672255955 rnd: 76951796109621 2022-12-28 11:32:35 -0800 PST ID{ 0x63, 0xac, 0x99, 0xd3, 0x45, 0xfc, 0xbc, 0x78, 0xd1, 0x35 }
+	dfp9lmxt5sms80m7 ts:1672255955 rnd:204708502569607 2022-12-28 11:32:35 -0800 PST ID{ 0x63, 0xac, 0x99, 0xd3, 0xba, 0x2e, 0x69, 0x94,  0x2, 0x87 }
 
 ## Random Source
 
@@ -77,8 +77,8 @@ You may enjoy reading [Fast thread-safe randomness in Go](https://qqq.ninja/blog
 [1] For more information on fastrand (wyrand) see: https://github.com/wangyi-fudan/wyhash
  and [Go's sources for runtime/stubs.go](https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go;bpv=1;bpt=1?q=fastrand&ss=go%2Fgo:src%2Fruntime%2F).
  
-Unique enough for your use case? Run [eval/uniqcheck/main.go](eval/uniqcheck/main.go) with
-various values, or, at the command line, produce 10,000,000 and use OS utilities to check:
+To satify whether rid.IDs are unique enough for your use case, run [eval/uniqcheck/main.go](eval/uniqcheck/main.go) with
+various values for number of go routines and iterations, or, at the command line, produce 10,000,000 IDs and use OS utilities to check:
 
     rid -c 10000000 | sort | uniq -d
     // None output
