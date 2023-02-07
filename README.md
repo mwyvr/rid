@@ -120,45 +120,43 @@ https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
 ## Package Benchmarks
 
 A benchmark suite for the above noted packages can be found in
-[eval/bench/bench_test.go](eval/bench/bench_test.go).
-
-All runs were done with scaling_governor set to `performance`:
+[eval/bench/bench_test.go](eval/bench/bench_test.go). All runs were done with scaling_governor set to `performance`:
 
     echo "performance" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 
-### Intel 4-core Dell Latitude 7420 laptop
+### Intel 4-core Dell Latitude 7420 laptop, wireless network connection
 
-	$ go test -cpu 1,2,4,8 -benchmem  -run=^$   -bench  ^.*$
-	goos: linux
-	goarch: amd64
-	pkg: github.com/solutionroute/rid/eval/bench
-	cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
-	BenchmarkRid            	31547193	        36.11 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkRid-2          	60804381	        19.82 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkRid-4          	86309307	        12.29 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkRid-8          	137731342	         8.703 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkXid            	31119572	        38.60 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkXid-2          	36497461	        32.85 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkXid-4          	56109519	        26.42 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkXid-8          	68092052	        16.69 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkKsuid          	 3722514	       319.1 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkKsuid-2        	 3244016	       375.4 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkKsuid-4        	 3035604	       431.1 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkKsuid-8        	 2623758	       459.3 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkGoogleUuid     	 3508125	       335.3 ns/op	      16 B/op	       1 allocs/op
-	BenchmarkGoogleUuid-2   	 5202723	       229.1 ns/op	      16 B/op	       1 allocs/op
-	BenchmarkGoogleUuid-4   	 7339621	       161.3 ns/op	      16 B/op	       1 allocs/op
-	BenchmarkGoogleUuid-8   	 8935005	       131.9 ns/op	      16 B/op	       1 allocs/op
-	BenchmarkUlid           	  146054	      7591 ns/op	    5440 B/op	       3 allocs/op
-	BenchmarkUlid-2         	  235464	      4821 ns/op	    5440 B/op	       3 allocs/op
-	BenchmarkUlid-4         	  369512	      3033 ns/op	    5440 B/op	       3 allocs/op
-	BenchmarkUlid-8         	  571048	      2125 ns/op	    5440 B/op	       3 allocs/op
-	BenchmarkBetterguid     	13744688	        81.70 ns/op	      24 B/op	       1 allocs/op
-	BenchmarkBetterguid-2   	11271102	        98.90 ns/op	      24 B/op	       1 allocs/op
-	BenchmarkBetterguid-4   	 8455604	       139.9 ns/op	      24 B/op	       1 allocs/op
-	BenchmarkBetterguid-8   	 6346668	       187.4 ns/op	      24 B/op	       1 allocs/op
+    $ go test -cpu 1,2,4,8 -benchmem -bench .
+    goos: linux
+    goarch: amd64
+    pkg: github.com/solutionroute/rid/eval/bench
+    cpu: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz
+    BenchmarkRid            	32703974	        35.83 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-2          	44541967	        27.02 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-4          	55563999	        30.31 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-8          	64349184	        16.27 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid            	31887848	        36.78 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-2          	36953316	        32.46 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-4          	53932981	        29.38 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-8          	63367816	        19.09 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid          	 3788637	       314.1 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-2        	 3364796	       412.0 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-4        	 2394138	       480.1 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-8        	 2451784	      1090 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkGoogleUuid     	  853476	      1269 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-2   	 1303863	       958.6 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-4   	 1762020	       859.2 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-8   	 1685292	       712.4 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkUlid           	  170221	      7047 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-2         	  305355	      3810 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-4         	  400182	      7390 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-8         	  705717	      1616 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkBetterguid     	14383843	       110.2 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-2   	 6422642	       220.9 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-4   	 3309652	       449.8 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-8   	 1719273	       788.7 ns/op	      24 B/op	       1 allocs/op
 
-### AMD 8-core desktop
+### AMD 8-core desktop, wired network connection
 
     $ go test -cpu 1,2,4,8,16 -benchmem -bench .
     goos: linux
