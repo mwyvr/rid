@@ -122,6 +122,10 @@ https://blog.kowalczyk.info/article/JyRZ/generating-good-unique-ids-in-go.html
 A benchmark suite for the above noted packages can be found in
 [eval/bench/bench_test.go](eval/bench/bench_test.go).
 
+All runs were done with scaling_governor set to `performance`:
+
+    echo "performance" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+
 ### Intel 4-core Dell Latitude 7420 laptop
 
 	$ go test -cpu 1,2,4,8 -benchmem  -run=^$   -bench  ^.*$
@@ -156,39 +160,38 @@ A benchmark suite for the above noted packages can be found in
 
 ### AMD 8-core desktop
 
-	$ go test -cpu 1,2,4,8,16 -benchmem  -run=^$   -bench  ^.*$
-	goos: linux
-	goarch: amd64
-	pkg: github.com/solutionroute/rid/eval/bench
-	cpu: AMD Ryzen 7 3800X 8-Core Processor
-	BenchmarkRid              	22228062	        52.87 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkRid-2            	44609712	        26.65 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkRid-4            	86812888	        13.61 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkRid-8            	171851486	         6.911 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkRid-16           	304566252	         3.950 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkXid              	22468870	        51.56 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkXid-2            	18829366	        99.73 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkXid-4            	22890943	        52.22 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkXid-8            	50826528	        32.83 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkXid-16           	69667238	        16.94 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkKsuid            	 3339842	       358.0 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkKsuid-2          	 1893224	       550.4 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkKsuid-4          	 1501238	       822.0 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkKsuid-8          	 1429920	       864.5 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkKsuid-16         	 1429411	       812.4 ns/op	       0 B/op	       0 allocs/op
-	BenchmarkGoogleUuid       	 3581971	       317.8 ns/op	      16 B/op	       1 allocs/op
-	BenchmarkGoogleUuid-2     	 5637682	       214.9 ns/op	      16 B/op	       1 allocs/op
-	BenchmarkGoogleUuid-4     	 9233425	       110.2 ns/op	      16 B/op	       1 allocs/op
-	BenchmarkGoogleUuid-8     	20468934	        58.41 ns/op	      16 B/op	       1 allocs/op
-	BenchmarkGoogleUuid-16    	29260754	        40.64 ns/op	      16 B/op	       1 allocs/op
-	BenchmarkUlid             	  147126	      7827 ns/op	    5440 B/op	       3 allocs/op
-	BenchmarkUlid-2           	  279079	      4340 ns/op	    5440 B/op	       3 allocs/op
-	BenchmarkUlid-4           	  456847	      2373 ns/op	    5440 B/op	       3 allocs/op
-	BenchmarkUlid-8           	  761228	      1446 ns/op	    5440 B/op	       3 allocs/op
-	BenchmarkUlid-16          	  827018	      1490 ns/op	    5440 B/op	       3 allocs/op
-	BenchmarkBetterguid       	14381742	        81.16 ns/op	      24 B/op	       1 allocs/op
-	BenchmarkBetterguid-2     	13150965	        89.88 ns/op	      24 B/op	       1 allocs/op
-	BenchmarkBetterguid-4     	 5237756	       238.2 ns/op	      24 B/op	       1 allocs/op
-	BenchmarkBetterguid-8     	 4209060	       283.9 ns/op	      24 B/op	       1 allocs/op
-	BenchmarkBetterguid-16    	 3385502	       359.8 ns/op	      24 B/op	       1 allocs/op
-
+    $ go test -cpu 1,2,4,8,16 -benchmem -bench .
+    goos: linux
+    goarch: amd64
+    pkg: github.com/solutionroute/rid/eval/bench
+    cpu: AMD Ryzen 7 3800X 8-Core Processor
+    BenchmarkRid              	21686443	        54.23 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-2            	42725253	        50.72 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-4            	43725117	        27.89 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-8            	62948719	        18.13 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkRid-16           	57023065	        20.55 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid              	21562539	        54.14 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-2            	36735472	       104.2 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-4            	20241066	        58.22 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-8            	37639353	        41.83 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkXid-16           	52570939	        20.97 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid            	 3251390	       363.4 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-2          	 3117286	       383.2 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-4          	 2995828	       408.0 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-8          	 2915271	       419.8 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkKsuid-16         	 2899548	       411.4 ns/op	       0 B/op	       0 allocs/op
+    BenchmarkGoogleUuid       	 3665914	       323.1 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-2     	 4898500	       237.3 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-4     	 9230820	       129.8 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-8     	17178853	        67.86 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkGoogleUuid-16    	25368355	        45.13 ns/op	      16 B/op	       1 allocs/op
+    BenchmarkUlid             	  147649	      7819 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-2           	  296636	      4351 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-4           	  498108	      2333 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-8           	  807469	      1422 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkUlid-16          	  820242	      1459 ns/op	    5440 B/op	       3 allocs/op
+    BenchmarkBetterguid       	13440858	        86.71 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-2     	13230124	        91.08 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-4     	 7871316	       143.6 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-8     	 7105915	       176.7 ns/op	      24 B/op	       1 allocs/op
+    BenchmarkBetterguid-16    	 5259114	       221.9 ns/op	      24 B/op	       1 allocs/op
