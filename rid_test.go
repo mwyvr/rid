@@ -518,46 +518,56 @@ func Test_fastrandUint64(t *testing.T) {
 }
 
 // Benchmarks
+// globals & func locals added to avoid compiler over-optimization and silly results
+var (
+	benchResultID     ID
+	benchResultString string
+)
+
 // Create new ID
 func BenchmarkNew(b *testing.B) {
+	var r ID
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_ = New()
+			r = New()
 		}
+		benchResultID = r
 	})
 }
 
 // common use case, generate an ID, encode as a string:
 func BenchmarkNewString(b *testing.B) {
+	var r string
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_ = New().String()
+			r = New().String()
 		}
+		benchResultString = r
 	})
 }
 
 // encoding performance only
 func BenchmarkString(b *testing.B) {
 	id := New()
+	var r string
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_ = id.String()
+			r = id.String()
 		}
+		benchResultString = r
 	})
 }
 
 // decoding performance only
 func BenchmarkFromString(b *testing.B) {
+	var r ID
 	// dfp7emzzzzy30ey2 ts:1672246995 rnd:281474912761794 2022-12-28 09:03:15 -0800 PST ID{0x63,0xac,0x76,0xd3,0xff,0xff,0xfc,0x30,0x37,0xc2}
 	str := "dfp7emzzzzy30ey2"
-	_, err := FromString(str)
-	if err != nil {
-		b.Error(err)
-	}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, _ = FromString(str)
+			r, _ = FromString(str)
 		}
+		benchResultID = r
 	})
 }
 
