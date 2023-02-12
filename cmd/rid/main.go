@@ -11,14 +11,24 @@ import (
 )
 
 func main() {
-
 	count := flag.Int("c", 1, "Generate n IDs")
+	flag.Usage = func() {
+		fs := flag.CommandLine
+		fcount := fs.Lookup("c")
+		fmt.Printf("Usage: rid\n\n")
+		fmt.Printf("Options:\n")
+		fmt.Printf("  rid dgm3w9sh9f5flv5s\t\tDecode the ID supplied\n")
+		fmt.Printf("  rid -%s N\t\t\t%s default:%s\n\n", fcount.Name, fcount.Usage, fcount.DefValue)
+		fmt.Printf("With no parameters, rid generates 1 random ID encoded as Base32.\n")
+		fmt.Printf("Generate and inspect 4 random IDs using Linux/Unix command substituion:\n")
+		fmt.Printf("  rid `rid -c 4`\n")
+	}
 	flag.Parse()
 	args := flag.Args()
 
 	if *count > 1 && len(args) > 0 {
 		fmt.Fprintf(flag.CommandLine.Output(),
-			"error: -c (generate N outputs) and args (inspect inputs) both specified; perform only one at a time.\n")
+			"rid: Error, cannot generate ID(s) and inspect at the same time. Use command substituion. \n")
 		flag.Usage()
 		os.Exit(1)
 	}
