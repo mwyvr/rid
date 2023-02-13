@@ -1,5 +1,7 @@
 package main
 
+// Produces a markdown formatted table for including in documentation
+
 import (
 	"fmt"
 	"math/rand"

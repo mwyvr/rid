@@ -13,7 +13,7 @@ import (
 	"github.com/solutionroute/rid"
 )
 
-// rid ids incorporate crypto/rand generated numbers
+// rid ids incorporate time + a 6-byte random value produced by the Go runtime fastrand64()
 var resultRID rid.ID
 
 func BenchmarkRid(b *testing.B) {
@@ -26,8 +26,8 @@ func BenchmarkRid(b *testing.B) {
 	})
 }
 
-// https://github.com/rs/xid
-// xid uses a random-initialized (once only) monotonically increasing counter
+// https://github.com/rs/xid xid ids incorporate time + machine ID + pid +
+// random-initialized (once only) monotonically increasing counter
 var resultXID xid.ID
 
 func BenchmarkXid(b *testing.B) {
@@ -42,7 +42,6 @@ func BenchmarkXid(b *testing.B) {
 
 // https://github.com/segmentio/ksuid
 // ksuid ids incorporate crypto/rand generated numbers
-
 var resultKSUID ksuid.KSUID
 
 func BenchmarkKsuid(b *testing.B) {

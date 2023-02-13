@@ -1,12 +1,13 @@
 package main
 
+// uniqcheck:
 // determine if the approach used delivers unique IDs in go applications
-// running a single go routine or utilizing multiple cores
+// running in more than one go routine.
 //
 // In addition to this test, using stdout / sort / uniq, a run of 10 million:
 //
 //  rid -c 10000000 | sort | uniq -d
-//  (no output)
+//  (no output, meaning no duplicates)
 
 import (
 	"sync"
@@ -71,38 +72,3 @@ func generate() {
 		exists.mu.Unlock()
 	}
 }
-
-// Runs
-// 16 go routines * 10e4
-// $ time go run main.go
-// Total keys: 1,600,000. Keys in last time tick: 702,456. Number of dupes: 0
-//
-// real	0m1.202s
-// user	0m2.643s
-// sys	0m0.245s
-
-// 16 * 10e5
-// $ time go run main.go
-// Total keys: 16,000,000. Keys in last time tick: 247,040. Number of dupes: 0
-//
-// real	0m11.541s
-// user	0m29.377s
-// sys	0m1.601s
-
-// 1 routine x 10e7:
-// $ time go run main.go
-// Total keys: 100,000,000. Keys in last time tick: 776,864. Number of dupes: 0
-//
-// real	0m29.339s
-// user	0m28.195s
-// sys	10m1.673s
-
-// 4 routines * 10e7:
-// $ time go run main.go
-// Generated: 149,958,508, found duplicate: [99 215 1 106 50 126 157 18 97 141]
-// Generated: 263,367,074, found duplicate: [99 215 1 175 97 18 247 211 221 213]
-// Total keys: 400,000,000. Keys in last time tick: 260,118. Number of dupes: 2
-//
-// real	4m3.685s
-// user	6m34.780s
-// sys	0m16.497s
