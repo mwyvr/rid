@@ -501,20 +501,28 @@ func TestSort(t *testing.T) {
 	}
 }
 
-func Test_fastrandUint64(t *testing.T) {
-	// On a test machine generating 100,000,000 numbers took 24s (4.167 million per second),
-	// with zero collisions. 24 seconds = 24,000 milliseconds; 100,000,000/24,000
-	// equals ~4,167 unique random generations per millisecond are required.
-	// Set at 1,000,000:
-	count := 1000000
-	exists := make(map[uint64]bool)
-	for i := 0; i < count; i++ {
-		r := fastrandUint64()
-		if exists[r] {
-			t.Errorf("Duplicate random number %d generated within %d attempts", r, count)
+func Test_fastrand48(t *testing.T) {
+	t.Run("check-dupes", func(t *testing.T) {
+		// count := 1000000
+		count := 10000000
+		exists := make(map[uint64]bool)
+		for i := 0; i < count; i++ {
+			r := fastrand48()
+			if exists[r] {
+				t.Errorf("Duplicate random number %d generated within %d attempts", r, count)
+			}
+			exists[r] = true
 		}
-		exists[r] = true
-	}
+	})
+	t.Run("check-bounds", func(t *testing.T) {
+		count := 10000000
+		for i := 0; i < count; i++ {
+			r := fastrand48()
+			if r > maxRandom {
+				t.Errorf("Random number %d exceeds maxRandom %d", r, maxRandom)
+			}
+		}
+	})
 }
 
 // Benchmarks
