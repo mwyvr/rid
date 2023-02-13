@@ -1,13 +1,22 @@
+// Package main seeks to determine if the approach used delivers sufficiently
+// unique IDs in go applications potentially running multiple goroutines.
+//
+// Considerations:
+//
+// - objective: keep IDs and their encoded representation short
+// - you can generate a lot of random numbers in 1 second
+// - is 48 bits of randomness per second enough
+// - using a faster, scalable, random generator raises the bar
+//
+// In addition to this test, a single-threaded test using stdout / sort / uniq,
+// a run of 10 million or more results in no duplicates on various test machines:
+//
+//	rid -c 10000000 | sort | uniq -d
+//	(no output, meaning no duplicates)
+//
+// Running this test results in output like:
+// Total keys: 40,000,000. Keys in last time tick: 1,825,240. Number of dupes: 0
 package main
-
-// uniqcheck:
-// determine if the approach used delivers unique IDs in go applications
-// running in more than one go routine.
-//
-// In addition to this test, using stdout / sort / uniq, a run of 10 million:
-//
-//  rid -c 10000000 | sort | uniq -d
-//  (no output, meaning no duplicates)
 
 import (
 	"sync"
@@ -21,15 +30,16 @@ import (
 const rawLen = 10
 
 var (
-	genPerRoutine = int(1 * 10e5)
-	numRoutines   = 16
+	genPerRoutine = int(5 * 10e5)
+	numRoutines   = 8
 	dupes         = 0
-	exists        = check{lastTick: 0, keys: make(map[[rawLen]byte]bool)} // keys can be arrays, not slices
-	fmt           = message.NewPrinter(language.English)
+	// since the underlying structure of ID is an array, not a slice, rid.ID can be a key
+	exists = check{lastTick: 0, keys: make(map[rid.ID]bool)}
+	fmt    = message.NewPrinter(language.English)
 )
 
 type check struct {
-	keys      map[[rawLen]byte]bool
+	keys      map[rid.ID]bool
 	lastTick  int64
 	totalKeys int
 	mu        sync.RWMutex
@@ -50,23 +60,22 @@ func main() {
 }
 
 func generate() {
-	var id [rawLen]byte
+	var id rid.ID
 	for i := 0; i < genPerRoutine; i++ {
-		tmp := rid.New()
-		copy(id[:], tmp[:])
+		id = rid.New()
 		tmpTimestamp := time.Now().Unix()
 		exists.mu.Lock()
-		// clear per each new second
 		if exists.lastTick != tmpTimestamp {
 			exists.lastTick = tmpTimestamp
-			exists.keys = make(map[[rawLen]byte]bool)
+			// reset each new second
+			exists.keys = make(map[rid.ID]bool)
 		}
 		if !exists.keys[id] {
 			exists.keys[id] = true
-			exists.totalKeys += 1
+			exists.totalKeys++
 		} else {
-			dupes += 1
-			exists.totalKeys += 1
+			dupes++
+			exists.totalKeys++
 			fmt.Printf("Generated: %d, found duplicate: %v\n", exists.totalKeys, id)
 		}
 		exists.mu.Unlock()
