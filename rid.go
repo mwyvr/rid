@@ -1,7 +1,7 @@
 /*
 Package rid provides a performant, k-sortable, scalable unique ID generator
-suitable for single process applications or situations where inter-process ID
-generation coordination is not required.
+suitable for single process applications or situations where inter-process /
+inter-machine ID generation coordination is not required.
 
 Binary IDs Base-32 encode as a 16-character URL-friendly representation like
 dfp7qt0v2pwt0v2x.
@@ -9,15 +9,16 @@ dfp7qt0v2pwt0v2x.
 The 10-byte binary representation of an ID is comprised of:
 
   - 4-byte timestamp value representing seconds since the Unix epoch
-  - 6-byte random value; see fastrandUint64 [1]
+  - 6-byte random value; see fastrand48 [1]
 
 Key features:
 
   - K-orderable in both binary and string representations
   - Encoded IDs are short (16 characters)
-  - Automatic (de)serialization for SQL dbs and JSON
-  - Scalable performance as cores are added; ID generation is way faster than it needs to be
-  - URL-friendly Base32 encoding using a custom character set to help avoid unintended rude words
+  - Automatic (de)serialization for SQL and JSON
+  - Scalable performance as cores increase; ID generation is fast and remains so
+  - URL-friendly Base32 encoding using a custom character set to help avoid
+    unintended rude words should humans be seeing the ids
 
 Example:
 
@@ -49,23 +50,24 @@ type ID [rawLen]byte
 
 const (
 	rawLen     = 10                                 // binary
-	encodedLen = 16                                 // base32 representation
+	encodedLen = 16                                 // base32
 	charset    = "0123456789bcdefghkjlmnpqrstvwxyz" // fewer vowels to avoid random rudeness
 )
 
 var (
 	// nilID represents the zero-value of an ID
-	// ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	nilID ID
 
 	// dec provides a decoding map
 	dec [256]byte
 
+	// ErrInvalidID represents errors in converting from invalid []byte or string
+	// representations
 	ErrInvalidID = errors.New("rid: invalid id")
 )
 
 func init() {
-	// initialize the decoding map; this is also used for sanity checking input
+	// initialize the decoding map, used also for sanity checking input
 	for i := 0; i < len(dec); i++ {
 		dec[i] = 0xFF
 	}
@@ -79,18 +81,15 @@ func New() ID {
 	return NewWithTime(time.Now())
 }
 
-// NewWithTime returns a new ID using the supplied Time.
-//
-// The time value component of an ID is a Unix timestamp with seconds
-// resolution. Note: In Go, timestamp values are identical regardless of the
-// Time value's location, i.e.: time.Now().Unix() == time.Now().UTC().Unix()
+// NewWithTime returns a new ID using the supplied Time. The time value
+// component of an ID is a Unix timestamp with seconds resolution.
 func NewWithTime(t time.Time) ID {
 	var id ID
 
-	// 4 bytes of time, representing seconds since Unix epoch
+	// 4 bytes of time
 	binary.BigEndian.PutUint32(id[:], uint32(t.Unix()))
-	// take an 8 byte random number and cap at max value for 6 bytes
-	r := fastrandUint64() * 0xffffffffffff >> 16 // equiv but slightly faster than fastrandUint64() % 0xffffffffffff
+	// 6 bytes of randomness
+	r := fastrand48()
 	id[4] = byte(r >> 40)
 	id[5] = byte(r >> 32)
 	id[6] = byte(r >> 24)
@@ -100,12 +99,12 @@ func NewWithTime(t time.Time) ID {
 	return id
 }
 
-// IsNil returns true if ID == nilID
+// IsNil returns true if ID == nilID.
 func (id ID) IsNil() bool {
 	return id == nilID
 }
 
-// IsZero is an alias of is IsNil
+// IsZero is an alias of is IsNil.
 func (id ID) IsZero() bool {
 	return id.IsNil()
 }
@@ -115,28 +114,27 @@ func NilID() ID {
 	return nilID
 }
 
-// String returns id as a customized Base32 encoded string.
+// String returns id as Base32 encoded string.
 func (id ID) String() string {
 	text := make([]byte, encodedLen)
 	encode(text, id[:])
 	return *(*string)(unsafe.Pointer(&text))
 }
 
-// Encode encodes the id as a customized Base32 encoding, writing 10 bytes to dst
-// and returning it.
+// Encode id writing 10 bytes to dst and returning it.
 func (id ID) Encode(dst []byte) []byte {
 	encode(dst, id[:])
 	return dst
 }
 
-// encode id bytes as Base32 by unrolling for performance the stdlib base32 algorithm.
+// encode id bytes as Base32,  unrolling the stdlib base32 algorithm for
+// performance. There is no padding as Base32 aligns on 5-byte boundaries.
 func encode(dst, id []byte) {
 	// bounds checking
 	// go tool compile -d=ssa/check_bce/debug=1 rid.go
 	_ = id[9]
 	_ = dst[15]
 
-	// No padding as Base32 aligns on 5-byte boundaries (ID is 10 bytes)
 	dst[15] = charset[id[9]&0x1F]
 	dst[14] = charset[(id[9]>>5)|(id[8]<<3)&0x1F]
 	dst[13] = charset[(id[8]>>2)&0x1F]
@@ -172,7 +170,7 @@ func (id ID) Time() time.Time {
 	return time.Unix(id.Timestamp(), 0)
 }
 
-// Random returns the random number component of the ID
+// Random returns the random number component of the ID.
 func (id ID) Random() uint64 {
 	b := id[4:]
 	// Big Endian
@@ -186,7 +184,7 @@ func FromString(str string) (ID, error) {
 	return *id, err
 }
 
-// FromBytes copies []bytes into an ID value
+// FromBytes copies []bytes into an ID value.
 func FromBytes(b []byte) (ID, error) {
 	var id ID
 	if len(b) != rawLen {
@@ -332,19 +330,23 @@ func Sort(ids []ID) {
 	sort.Sort(sorter(ids))
 }
 
-// [1] Random number generation: For performance and scalability, this package
-// uses an internal Go function `fastrand64`. See eval/uniqcheck/main.go for
-// a proof of utility.
+// [1] Random number generation: For performance and in particular scalability,
+// this package uses an internal runtime Go function `fastrand64`. See
+// eval/uniqcheck/main.go for a proof of utility.
 //
 // For more information on fastrand see the Go source at:
 // https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go?q=fastrand
-// which include the comments:
 //
-// 	Implement wyrand: https://github.com/wangyi-fudan/wyhash
-// 	Implement xorshift64+: 2 32-bit xorshift sequences added together.
-// 	Xorshift paper: https://www.jstatsoft.org/article/view/v008i14/xorshift.pdf
-// 	This generator passes the SmallCrush suite, part of TestU01 framework:
-// 	http://simul.iro.umontreal.ca/testu01/tu01.html
+// Link the runtime to a non exported name:
+//
+//go:linkname fastrand64 runtime.fastrand64
+func fastrand64() uint64
 
-//go:linkname fastrandUint64 runtime.fastrand64
-func fastrandUint64() uint64
+const maxRandom uint64 = 0xffffffffffff // 2^48
+
+// fastrand48 returns a random value capped at 48 bits (6 bytes) using the same
+// approach as the Go runtime fastrandn().
+func fastrand48() uint64 {
+	// See https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
+	return fastrand64() * maxRandom >> 16
+}
