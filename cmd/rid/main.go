@@ -21,7 +21,7 @@ func main() {
 		fmt.Printf("  rid dgm3w9sh9f5flv5s\t\tDecode the supplied Base32 ID\n")
 		fmt.Printf("  rid -%s N\t\t\t%s default: %s\n\n", fcount.Name, fcount.Usage, fcount.DefValue)
 		fmt.Printf("With no parameters, rid generates %s random ID encoded as Base32.\n", fcount.DefValue)
-		fmt.Printf("Generate and inspect 4 random IDs using Linux/Unix command substituion:\n")
+		fmt.Printf("Generate and inspect 4 random IDs using Linux/Unix command substitution:\n")
 		fmt.Printf("  rid `rid -c 4`\n")
 	}
 	flag.Parse()
@@ -29,7 +29,7 @@ func main() {
 
 	if count > 1 && len(args) > 0 {
 		fmt.Fprintf(flag.CommandLine.Output(),
-			"rid: Error, cannot generate ID(s) and inspect at the same time. Use command substituion. \n")
+			"rid: Error, cannot generate ID(s) and inspect at the same time.\n")
 		flag.Usage()
 		os.Exit(1)
 	}
