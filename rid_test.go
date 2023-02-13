@@ -501,17 +501,19 @@ func TestSort(t *testing.T) {
 	}
 }
 
-func Test_fastrand48(t *testing.T) {
+func TestFastrand48(t *testing.T) {
+	// see eval/uniqcheck/main.go for additional testing
 	t.Run("check-dupes", func(t *testing.T) {
-		// count := 1000000
-		count := 10000000
-		exists := make(map[uint64]bool)
+		var id [rawLen]byte
+		keys := make(map[[rawLen]byte]bool) // keys can be arrays, not slices
+		count := 5000000
 		for i := 0; i < count; i++ {
-			r := fastrand48()
-			if exists[r] {
-				t.Errorf("Duplicate random number %d generated within %d attempts", r, count)
+			r := New()
+			copy(id[:], r[:])
+			if keys[id] {
+				t.Errorf("Duplicate random number %d generated within %d attempts", id, count)
 			}
-			exists[r] = true
+			keys[id] = true
 		}
 	})
 	t.Run("check-bounds", func(t *testing.T) {
