@@ -503,17 +503,17 @@ func TestSort(t *testing.T) {
 	}
 }
 
-func TestFastrand48(t *testing.T) {
-	// see eval/uniqcheck/main.go for additional testing
+func TestFastrand48New(t *testing.T) {
 	t.Run("check-dupes", func(t *testing.T) {
-		var id [rawLen]byte
-		keys := make(map[[rawLen]byte]bool) // keys can be arrays, not slices
+		// see eval/uniqcheck/main.go for proof of utility testing in concurrent environments
+		var id ID
+		// since the underlying structure of ID is an array, not a slice, ID can be a key
+		keys := make(map[ID]bool)
 		count := 5000000
 		for i := 0; i < count; i++ {
-			r := New()
-			copy(id[:], r[:])
+			id = New()
 			if keys[id] {
-				t.Errorf("Duplicate random number %d generated within %d attempts", id, count)
+				t.Errorf("Duplicate random number %d generated within %d iterations", id, count)
 			}
 			keys[id] = true
 		}
@@ -530,8 +530,8 @@ func TestFastrand48(t *testing.T) {
 }
 
 // Benchmarks
-// globals & func locals added to avoid compiler over-optimization and silly results
 var (
+	// added to avoid compiler over-optimization and silly results
 	benchResultID     ID
 	benchResultString string
 )
