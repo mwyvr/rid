@@ -1,10 +1,12 @@
 /*
 Package rid provides a performant, k-sortable, scalable unique ID generator
-suitable for single process applications or situations where inter-process /
-inter-machine ID generation coordination is not required.
+suitable for applications where ID generation coordination between machines or
+other processes is not required. ID generation is goroutine safe and scales
+well with CPU cores. Providing unique non-sequential keys for embeddable
+databases like SQLIte or BoltDB or key-value stores are typical use-cases.
 
-Binary IDs Base-32 encode as a 16-character URL-friendly representation like
-dfp7qt0v2pwt0v2x.
+Binary IDs Base-32 encode as a 16-character URL and human-friendly
+representation like dfp7qt0v2pwt0v2x.
 
 The 10-byte binary representation of an ID is comprised of:
 
@@ -17,18 +19,20 @@ Key features:
   - Encoded IDs are short (16 characters)
   - Automatic (de)serialization for SQL and JSON
   - Scalable performance as cores increase; ID generation is fast and remains so
-  - URL-friendly Base32 encoding using a custom character set to help avoid
-    unintended rude words should humans be seeing the ids
+  - URL and human friendly Base32 encoding using a custom character set to
+    avoid unintended rude words if humans are to be exposed to IDs
 
-Example:
+Example usage:
 
 	id := rid.New()
 	fmt.Printf("%s", id.String())
 	// Output: dfp7qt97menfv8ll
+	id, err := id.FromString("dfp7qt97menfv8ll")
+	// ID{0x63,0xac,0x7b,0xe9,0x27,0xa3,0x6a,0xed,0xa2,0x73}, nil
 
-Acknowledgement: This package borrows heavily from rs/xid
-(https://github.com/rs/xid), a capable zero-configuration globally-unique ID
-package. See LICENSE.rs-xid.
+Acknowledgement: This source file is based on work in package github.com/rs/xid,
+a zero-configuration globally-unique ID generator. See LICENSE.rs-xid.
+The same API has been maintained.
 */
 package rid
 
@@ -79,8 +83,10 @@ func New() ID {
 	return NewWithTime(time.Now())
 }
 
-// NewWithTime returns a new ID using the supplied Time. The time value
-// component of an ID is a Unix timestamp with seconds resolution.
+// NewWithTime returns a new ID using the supplied time.
+//
+// The time value component of an ID is a Unix timestamp with seconds
+// resolution.
 func NewWithTime(t time.Time) ID {
 	var id ID
 
@@ -119,16 +125,16 @@ func (id ID) String() string {
 	return *(*string)(unsafe.Pointer(&text))
 }
 
-// Encode id writing 10 bytes to dst and returning it.
+// Encode id, writing 16 bytes to dst and returning it.
 func (id ID) Encode(dst []byte) []byte {
 	encode(dst, id[:])
 	return dst
 }
 
-// encode id bytes as Base32,  unrolling the stdlib base32 algorithm for
+// encode bytes as Base32, unrolling the stdlib base32 algorithm for
 // performance. There is no padding as Base32 aligns on 5-byte boundaries.
 func encode(dst, id []byte) {
-	// bounds checking
+	// minor bounds checking compiler optimization
 	// go tool compile -d=ssa/check_bce/debug=1 rid.go
 	_ = id[9]
 	_ = dst[15]
@@ -163,19 +169,19 @@ func (id ID) Timestamp() int64 {
 	return int64(uint64(b[0])<<24 | uint64(b[1])<<16 | uint64(b[2])<<8 | uint64(b[3]))
 }
 
-// Time returns the ID's timestamp as a Time value
+// Time returns the ID's timestamp as a Time value.
 func (id ID) Time() time.Time {
 	return time.Unix(id.Timestamp(), 0)
 }
 
-// Random returns the random number component of the ID.
+// Random returns the random component of the ID as an unsigned integer.
 func (id ID) Random() uint64 {
 	b := id[4:]
 	// Big Endian
 	return uint64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
 }
 
-// FromString decodes a Base32 encoded ID, returning an ID.
+// FromString decodes a Base32 encoded string to return an ID.
 func FromString(str string) (ID, error) {
 	id := &ID{}
 	err := id.UnmarshalText([]byte(str))
@@ -213,9 +219,9 @@ func (id *ID) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// decode a Base32 encoded ID by unrolling the stdlib Base32 algorithm.
+// decode a Base32 encoded string by unrolling the stdlib Base32 algorithm.
 func decode(id *ID, src []byte) bool {
-	// bounds checking
+	// bounds checking compiler optimization
 	// go tool compile -d=ssa/check_bce/debug=1 rid.go
 	_ = src[15]
 
@@ -233,7 +239,7 @@ func decode(id *ID, src []byte) bool {
 	return true
 }
 
-// MarshalText implements encoding.TextMarshaler
+// MarshalText implements encoding.TextMarshaler.
 // https://golang.org/pkg/encoding/#TextMarshaler
 func (id ID) MarshalText() ([]byte, error) {
 	text := make([]byte, encodedLen)
@@ -241,7 +247,7 @@ func (id ID) MarshalText() ([]byte, error) {
 	return text, nil
 }
 
-// Value implements package sql's driver.Valuer
+// Value implements package sql's driver.Valuer.
 // https://golang.org/pkg/database/sql/driver/#Valuer
 func (id ID) Value() (driver.Value, error) {
 	if id.IsNil() {
@@ -251,7 +257,7 @@ func (id ID) Value() (driver.Value, error) {
 	return string(b), err
 }
 
-// Scan implements the sql.Scanner interface
+// Scan implements the sql.Scanner interface.
 // https://golang.org/pkg/database/sql/#Scanner
 func (id *ID) Scan(value interface{}) (err error) {
 	switch val := value.(type) {
@@ -267,7 +273,7 @@ func (id *ID) Scan(value interface{}) (err error) {
 	}
 }
 
-// MarshalJSON implements the json.Marshaler interface
+// MarshalJSON implements the json.Marshaler interface.
 // https://golang.org/pkg/encoding/json/#Marshaler
 func (id ID) MarshalJSON() ([]byte, error) {
 	// endless loop if merely return json.Marshal(id)
@@ -280,7 +286,7 @@ func (id ID) MarshalJSON() ([]byte, error) {
 	return text, nil
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface
+// UnmarshalJSON implements the json.Unmarshaler interface.
 // https://golang.org/pkg/encoding/json/#Unmarshaler
 func (id *ID) UnmarshalJSON(b []byte) error {
 	str := string(b)
@@ -295,11 +301,13 @@ func (id *ID) UnmarshalJSON(b []byte) error {
 	return id.UnmarshalText(b[1 : len(b)-1])
 }
 
-// Compare makes IDs k-sortable, returning an integer comparing two IDs,
-// comparing only the first 7 bytes:
+// Compare makes IDs k-sortable, returning an integer comparing only the first
+// 4 bytes of two IDs.
 //
-//   - 4-byte timestamp
-//   - 6-byte random value
+// Recall that an ID is comprized of a:
+//
+// - 4-byte timestamp
+// - 6-byte random value
 //
 // Otherwise, it behaves just like `bytes.Compare(b1[:], b2[:])`.
 //
@@ -329,21 +337,22 @@ func Sort(ids []ID) {
 }
 
 // [1] Random number generation: For performance and in particular scalability,
-// this package uses an internal runtime Go function `fastrand64`. See
-// eval/uniqcheck/main.go for a proof of utility.
+// this package uses an internal runtime Go function fastrand64.
+//
+// For proof of utility in concurrent situations see eval/uniqcheck/main.go.
 //
 // For more information on fastrand see the Go source at:
 // https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go?q=fastrand
-//
-// Link the runtime to a non exported name:
+
+// Link the runtime to a non-exported rid package name:
 //
 //go:linkname fastrand64 runtime.fastrand64
 func fastrand64() uint64
 
 const maxRandom uint64 = 0xffffffffffff // 2^48
 
-// fastrand48 returns a random value capped at 48 bits (6 bytes) using the same
-// approach as the Go runtime fastrandn().
+// fastrand48 returns from a 64 bit source a random value capped at 48 bits (6
+// bytes) using the same approach as the Go runtime fastrandn().
 func fastrand48() uint64 {
 	// See https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
 	return fastrand64() * maxRandom >> 16
