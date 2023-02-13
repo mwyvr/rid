@@ -1,3 +1,5 @@
+// Acknowledgement: This source file is based on work in package github.com/rs/xid,
+// a zero-configuration globally-unique ID generator. See LICENSE.rs-xid.
 package rid
 
 import (
