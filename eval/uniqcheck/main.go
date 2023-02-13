@@ -19,6 +19,7 @@
 package main
 
 import (
+	"flag"
 	"sync"
 	"time"
 
@@ -27,12 +28,8 @@ import (
 	"golang.org/x/text/message"
 )
 
-const rawLen = 10
-
 var (
-	genPerRoutine = int(5 * 10e5)
-	numRoutines   = 8
-	dupes         = 0
+	dupes = 0
 	// since the underlying structure of ID is an array, not a slice, rid.ID can be a key
 	exists = check{lastTick: 0, keys: make(map[rid.ID]bool)}
 	fmt    = message.NewPrinter(language.English)
@@ -47,21 +44,28 @@ type check struct {
 
 func main() {
 	var wg sync.WaitGroup
+	var numRoutines, count int
+
+	flag.IntVar(&numRoutines, "goroutines", 4, "Number of goroutines")
+	flag.IntVar(&count, "count", 1000000, "Generate count IDs per goroutine")
+	flag.Parse()
+	fmt.Printf("uniqcheck - run with -h to see available options.\n\n")
+	fmt.Printf("Generating %d IDs per %d goroutines:\n", count, numRoutines)
 
 	for i := 0; i < numRoutines; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			generate()
+			generate(count)
 		}(i)
 	}
 	wg.Wait()
 	fmt.Printf("Total keys: %d. Keys in last time tick: %d. Number of dupes: %d\n", exists.totalKeys, len(exists.keys), dupes)
 }
 
-func generate() {
+func generate(count int) {
 	var id rid.ID
-	for i := 0; i < genPerRoutine; i++ {
+	for i := 0; i < count; i++ {
 		id = rid.New()
 		tmpTimestamp := time.Now().Unix()
 		exists.mu.Lock()
