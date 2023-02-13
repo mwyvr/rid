@@ -28,9 +28,7 @@ Example:
 
 Acknowledgement: This package borrows heavily from rs/xid
 (https://github.com/rs/xid), a capable zero-configuration globally-unique ID
-package which itself levers ideas from MongoDB
-(https://docs.mongodb.com/manual/reference/method/ObjectId/). Use rs/xid if you
-need to scale your app beyond one process, one machine.
+package. See LICENSE.rs-xid.
 */
 package rid
 
@@ -61,8 +59,8 @@ var (
 	// dec provides a decoding map
 	dec [256]byte
 
-	// ErrInvalidID represents errors in converting from invalid []byte or string
-	// representations
+	// ErrInvalidID represents errors in converting from invalid
+	// []byte or string representations
 	ErrInvalidID = errors.New("rid: invalid id")
 )
 
