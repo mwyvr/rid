@@ -1,6 +1,6 @@
+// Package main produces for documentation a markdown formatted table
+// illustrating key differences between a number of unique ID packages.
 package main
-
-// Produces a markdown formatted table for including in documentation
 
 import (
 	"fmt"
