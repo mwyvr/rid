@@ -1,10 +1,19 @@
-on: [push, pull_request]
+on:
+  push:
+    branches: '**'
+    paths-ignore:
+      - 'eval/**'
+  pull_request:
+    branches: '**'
+    paths-ignore:
+      - 'eval/**'
+
 name: Test
 jobs:
   test:
     strategy:
       matrix:
-        go-version: [1.19.x]
+        go-version: [1.19.x, 1.20.x]
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
