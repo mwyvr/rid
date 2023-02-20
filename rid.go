@@ -54,6 +54,7 @@ const (
 	rawLen     = 10                                 // binary
 	encodedLen = 16                                 // base32
 	charset    = "0123456789bcdefghkjlmnpqrstvwxyz" // fewer vowels to avoid random rudeness
+	maxByte    = 0xFF                               // used as a sentinel value in charmap
 )
 
 var (
@@ -63,16 +64,17 @@ var (
 	// dec provides a decoding map
 	dec [256]byte
 
-	// ErrInvalidID represents errors in converting from invalid
-	// []byte or string representations
+	// ErrInvalidID represents errors returned when converting from invalid
+	// []byte, string or json representations
 	ErrInvalidID = errors.New("rid: invalid id")
 )
 
 func init() {
 	// initialize the decoding map, used also for sanity checking input
 	for i := 0; i < len(dec); i++ {
-		dec[i] = 0xFF
+		dec[i] = maxByte
 	}
+
 	for i := 0; i < len(charset); i++ {
 		dec[charset[i]] = byte(i)
 	}
@@ -86,7 +88,7 @@ func New() ID {
 // NewWithTime returns a new ID using the supplied time.
 //
 // The time value component of an ID is a Unix timestamp with seconds
-// resolution.
+// resolution; Go timestamp values reflect UTC and are not location aware.
 func NewWithTime(t time.Time) ID {
 	var id ID
 
@@ -100,6 +102,7 @@ func NewWithTime(t time.Time) ID {
 	id[7] = byte(r >> 16)
 	id[8] = byte(r >> 8)
 	id[9] = byte(r)
+
 	return id
 }
 
@@ -122,6 +125,7 @@ func NilID() ID {
 func (id ID) String() string {
 	text := make([]byte, encodedLen)
 	encode(text, id[:])
+
 	return *(*string)(unsafe.Pointer(&text))
 }
 
@@ -174,27 +178,32 @@ func (id ID) Time() time.Time {
 	return time.Unix(id.Timestamp(), 0)
 }
 
-// Random returns the random component of the ID as an unsigned integer.
+// Random returns the random component of the ID.
 func (id ID) Random() uint64 {
 	b := id[4:]
 	// Big Endian
-	return uint64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
+	return uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5])
 }
 
-// FromString decodes a Base32 encoded string to return an ID.
+// FromString decodes a Base32-encoded string to return an ID.
 func FromString(str string) (ID, error) {
 	id := &ID{}
 	err := id.UnmarshalText([]byte(str))
+
 	return *id, err
 }
 
-// FromBytes copies []bytes into an ID value.
+// FromBytes copies []bytes into an ID value. For validity, only a length-check
+// is possible and performed.
 func FromBytes(b []byte) (ID, error) {
 	var id ID
+
 	if len(b) != rawLen {
 		return nilID, ErrInvalidID
 	}
+
 	copy(id[:], b)
+
 	return id, nil
 }
 
@@ -208,14 +217,16 @@ func (id *ID) UnmarshalText(text []byte) error {
 	}
 	// characters not in the decoding map will return an error
 	for _, c := range text {
-		if dec[c] == 0xFF {
+		if dec[c] == maxByte {
 			return ErrInvalidID
 		}
 	}
+
 	if !decode(id, text) {
 		*id = nilID
 		return ErrInvalidID
 	}
+
 	return nil
 }
 
@@ -236,6 +247,7 @@ func decode(id *ID, src []byte) bool {
 	id[2] = dec[src[3]]<<4 | dec[src[4]]>>1
 	id[1] = dec[src[1]]<<6 | dec[src[2]]<<1 | dec[src[3]]>>4
 	id[0] = dec[src[0]]<<3 | dec[src[1]]>>2
+
 	return true
 }
 
@@ -244,6 +256,7 @@ func decode(id *ID, src []byte) bool {
 func (id ID) MarshalText() ([]byte, error) {
 	text := make([]byte, encodedLen)
 	encode(text, id[:])
+
 	return text, nil
 }
 
@@ -253,7 +266,9 @@ func (id ID) Value() (driver.Value, error) {
 	if id.IsNil() {
 		return nil, nil
 	}
+
 	b, err := id.MarshalText()
+
 	return string(b), err
 }
 
@@ -280,9 +295,11 @@ func (id ID) MarshalJSON() ([]byte, error) {
 	if id == nilID {
 		return []byte("null"), nil
 	}
-	text := make([]byte, encodedLen+2)
+
+	text := make([]byte, encodedLen+2) // 2 = len of ""
 	encode(text[1:encodedLen+1], id[:])
 	text[0], text[encodedLen+1] = '"', '"'
+
 	return text, nil
 }
 
@@ -298,6 +315,7 @@ func (id *ID) UnmarshalJSON(b []byte) error {
 	if len(b) < 2 {
 		return ErrInvalidID
 	}
+
 	return id.UnmarshalText(b[1 : len(b)-1])
 }
 
