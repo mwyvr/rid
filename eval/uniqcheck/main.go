@@ -43,11 +43,14 @@ type check struct {
 }
 
 func main() {
-	var wg sync.WaitGroup
-	var numRoutines, count int
+	var (
+		wg          sync.WaitGroup
+		numRoutines = 4
+		count       = 1000000
+	)
 
-	flag.IntVar(&numRoutines, "goroutines", 4, "Number of goroutines")
-	flag.IntVar(&count, "count", 1000000, "Generate count IDs per goroutine")
+	flag.IntVar(&numRoutines, "goroutines", numRoutines, "Number of goroutines")
+	flag.IntVar(&count, "count", count, "Generate count IDs per goroutine")
 	flag.Parse()
 	fmt.Printf("uniqcheck - run with -h to see available options.\n\n")
 	fmt.Printf("Generating %d IDs per %d goroutines:\n", count, numRoutines)

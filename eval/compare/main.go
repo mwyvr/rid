@@ -92,6 +92,7 @@ func main() {
 
 	fmt.Printf("| Package                                                   |BLen|ELen| K-Sort| Encoded ID and Next | Method | Components |\n")
 	fmt.Printf("|-----------------------------------------------------------|----|----|-------|---------------------|--------|------------|\n")
+
 	for _, v := range packages {
 		fmt.Printf("| %-57s | %d | %d | %5v | `%s`<br>`%s` | %s | %s |\n",
 			v.name, v.blen, v.elen, v.ksortable, v.sample, v.next, v.uniq, v.components)

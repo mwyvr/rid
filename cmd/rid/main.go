@@ -16,6 +16,7 @@ func main() {
 	flag.Usage = func() {
 		fs := flag.CommandLine
 		fcount := fs.Lookup("c")
+
 		fmt.Printf("Usage: rid\n\n")
 		fmt.Printf("Options:\n")
 		fmt.Printf("  rid dgm3w9sh9f5flv5s\t\tDecode the supplied Base32 ID\n")
@@ -42,6 +43,7 @@ func main() {
 				fmt.Printf("[%s] %s\n", arg, err)
 				continue
 			}
+
 			fmt.Printf("%s ts:%d rnd:%15d %s ID{%s }\n", arg,
 				id.Timestamp(), id.Random(), id.Time(), asHex(id.Bytes()))
 		}
@@ -58,5 +60,6 @@ func asHex(b []byte) string {
 	for _, v := range b {
 		s = append(s, fmt.Sprintf(" %#4x", v))
 	}
+
 	return strings.Join(s, ",")
 }
