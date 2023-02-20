@@ -284,12 +284,12 @@ func TestFromBytes_Invariant(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Compare(got[:], want[:]) != 0 {
+	if !bytes.Equal(got[:], want[:]) {
 		t.Error("FromBytes(id.Bytes()) != id")
 	}
 	// invalid
 	got, err = FromBytes([]byte{0x1, 0x2})
-	if bytes.Compare(got[:], nilID[:]) != 0 {
+	if !bytes.Equal(got[:], nilID[:]) {
 		t.Error("FromBytes([]byte{0x1, 0x2}) - invalid - != nilID")
 	}
 	if err == nil {
@@ -324,7 +324,7 @@ func TestIDJSONUnmarshaling(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
-	if got := *v.ID; bytes.Compare(got[:], want[:]) != 0 {
+	if got := *v.ID; !bytes.Equal(got[:], want[:]) {
 		t.Errorf("json.Unmarshal() = %v, want %v", got, want)
 	}
 	// should not fail
@@ -379,14 +379,15 @@ func TestIDDriverScan(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
-	if bytes.Compare(got[:], want[:]) != 0 {
+	if !bytes.Equal(got[:], want[:]) {
 		t.Errorf("Scan() = %v, want %v", got, want)
 	}
 }
 
 func TestIDDriverScanError(t *testing.T) {
 	id := ID{}
-	if got, want := id.Scan(0), errors.New("rid: scanning unsupported type: int"); !reflect.DeepEqual(got, want) {
+
+	if got, want := id.Scan(0), errors.New("rid: scanning unsupported type: int"); got.Error() != want.Error() {
 		t.Errorf("Scan() err=%v, want %v", got, want)
 	}
 	if got, want := id.Scan("0"), ErrInvalidID; got != want {
@@ -406,7 +407,7 @@ func TestIDDriverScanByteFromDatabase(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
-	if bytes.Compare(got[:], want[:]) != 0 {
+	if !bytes.Equal(got[:], want[:]) {
 		t.Errorf("Scan() = %v, want %v", got, want)
 	}
 }
