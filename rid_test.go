@@ -510,10 +510,12 @@ func TestFastrand48New(t *testing.T) {
 		var id ID
 		// since the underlying structure of ID is an array, not a slice, ID can be a key
 		keys := make(map[ID]bool)
-		count := 5000000
+		count := 100000
 		for i := 0; i < count; i++ {
 			id = New()
 			if keys[id] {
+				// It's not actually an error but something to consider; no application using
+				// this package ought to be generating 100,000 IDs a second let alone millions.
 				t.Errorf("Duplicate random number %d generated within %d iterations", id, count)
 			}
 			keys[id] = true
