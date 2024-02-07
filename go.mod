@@ -1,4 +1,4 @@
-module github.com/solutionroute/rid
+module github.com/mwyvr/rid
 
 go 1.19
 

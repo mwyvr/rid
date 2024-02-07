@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/solutionroute/rid"
+	"github.com/mwyvr/rid"
 )
 
 func main() {

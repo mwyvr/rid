@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/solutionroute/rid"
+	"github.com/mwyvr/rid"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )

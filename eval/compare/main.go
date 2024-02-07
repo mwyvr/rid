@@ -9,10 +9,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kjk/betterguid"
+	"github.com/mwyvr/rid"
 	"github.com/oklog/ulid"
 	"github.com/rs/xid"
 	"github.com/segmentio/ksuid"
-	"github.com/solutionroute/rid"
 )
 
 type pkg struct {
