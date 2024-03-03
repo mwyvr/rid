@@ -11,7 +11,8 @@ representation like dfp7qt0v2pwt0v2x.
 The 10-byte binary representation of an ID is comprised of:
 
   - 4-byte timestamp value representing seconds since the Unix epoch
-  - 6-byte random value; see fastrand48 [1]
+  - 6-byte random value; as of release v1.1.6 this package uses math/rand/v2
+    introduced with Go 1.22
 
 Key features:
 
@@ -39,12 +40,11 @@ package rid
 import (
 	"bytes"
 	"database/sql/driver"
-	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"sort"
 	"time"
-	"unsafe"
 )
 
 // ID represents a unique identifier
@@ -55,6 +55,7 @@ const (
 	encodedLen = 16                                 // base32
 	charset    = "0123456789bcdefghkjlmnpqrstvwxyz" // fewer vowels to avoid random rudeness
 	maxByte    = 0xFF                               // used as a sentinel value in charmap
+	maxRandom  = 0xFFFFFFFFFFFF                     // 6 bytes allows for 0 - 281,474,976,710,655
 )
 
 var (
@@ -92,10 +93,13 @@ func New() ID {
 func NewWithTime(t time.Time) ID {
 	var id ID
 
-	// 4 bytes of time
-	binary.BigEndian.PutUint32(id[:], uint32(t.Unix()))
-	// 6 bytes of randomness
-	r := fastrand48()
+	_ = id[9]             // bounds check hint to compiler; see golang.org/issue/14808
+	s := uint32(t.Unix()) // 4 bytes of time, seconds resolution
+	id[0] = byte(s >> 24)
+	id[1] = byte(s >> 16)
+	id[2] = byte(s >> 8)
+	id[3] = byte(s)
+	r := rand.Uint64N(maxRandom) // 6 bytes of pseudo-randomness from stdlib math/rand/v2
 	id[4] = byte(r >> 40)
 	id[5] = byte(r >> 32)
 	id[6] = byte(r >> 24)
@@ -121,12 +125,11 @@ func NilID() ID {
 	return nilID
 }
 
-// String returns id as Base32 encoded string.
+// String returns id as Base32 encoded string using a Crockford character set.
 func (id ID) String() string {
 	text := make([]byte, encodedLen)
 	encode(text, id[:])
-
-	return *(*string)(unsafe.Pointer(&text))
+	return string(text)
 }
 
 // Encode id, writing 16 bytes to dst and returning it.
@@ -138,9 +141,7 @@ func (id ID) Encode(dst []byte) []byte {
 // encode bytes as Base32, unrolling the stdlib base32 algorithm for
 // performance. There is no padding as Base32 aligns on 5-byte boundaries.
 func encode(dst, id []byte) {
-	// minor bounds checking compiler optimization
-	// go tool compile -d=ssa/check_bce/debug=1 rid.go
-	_ = id[9]
+	_ = id[9] // bounds checks
 	_ = dst[15]
 
 	dst[15] = charset[id[9]&0x1F]
@@ -232,9 +233,7 @@ func (id *ID) UnmarshalText(text []byte) error {
 
 // decode a Base32 encoded string by unrolling the stdlib Base32 algorithm.
 func decode(id *ID, src []byte) bool {
-	// bounds checking compiler optimization
-	// go tool compile -d=ssa/check_bce/debug=1 rid.go
-	_ = src[15]
+	_ = src[15] // bounds check
 
 	// this is ~4 to 6x faster than stdlib Base32 decoding
 	id[9] = dec[src[14]]<<5 | dec[src[15]]
@@ -352,26 +351,4 @@ func (s sorter) Swap(i, j int) {
 // Sort sorts an array of IDs in place.
 func Sort(ids []ID) {
 	sort.Sort(sorter(ids))
-}
-
-// [1] Random number generation: For performance and in particular scalability,
-// this package uses an internal runtime Go function fastrand64.
-//
-// For proof of utility in concurrent situations see eval/uniqcheck/main.go.
-//
-// For more information on fastrand see the Go source at:
-// https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go?q=fastrand
-
-// Link the runtime to a non-exported rid package name:
-//
-//go:linkname fastrand64 runtime.fastrand64
-func fastrand64() uint64
-
-const maxRandom uint64 = 0xffffffffffff // 2^48
-
-// fastrand48 returns from a 64 bit source a random value capped at 48 bits (6
-// bytes) using the same approach as the Go runtime fastrandn().
-func fastrand48() uint64 {
-	// See https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
-	return fastrand64() * maxRandom >> 16
 }

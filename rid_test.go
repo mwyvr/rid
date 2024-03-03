@@ -521,15 +521,6 @@ func TestFastrand48New(t *testing.T) {
 			keys[id] = true
 		}
 	})
-	t.Run("check-bounds", func(t *testing.T) {
-		count := 10000000
-		for i := 0; i < count; i++ {
-			r := fastrand48()
-			if r > maxRandom {
-				t.Errorf("Random number %d exceeds maxRandom %d", r, maxRandom)
-			}
-		}
-	})
 }
 
 // Benchmarks
