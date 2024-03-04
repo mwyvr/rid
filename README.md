@@ -1,4 +1,4 @@
-[![godoc](http://img.shields.io/badge/godev-reference-blue.svg?style=flat)](https://pkg.go.dev/github.com/mwyvr/rid?tab=doc)[![Test](https://github.com/mwyvr/rid/actions/workflows/test.yaml/badge.svg)](https://github.com/mwyvr/rid/actions/workflows/test.yaml)[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)![Coverage](https://img.shields.io/badge/coverage-92.6%25-brightgreen)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/mwyvr/rid)[![godoc](http://img.shields.io/badge/godev-reference-blue.svg?style=flat)](https://pkg.go.dev/github.com/mwyvr/rid?tab=doc)[![Test](https://github.com/mwyvr/rid/actions/workflows/test.yaml/badge.svg)](https://github.com/mwyvr/rid/actions/workflows/test.yaml)[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)![Coverage](https://img.shields.io/badge/coverage-92.6%25-brightgreen)
 
 # rid
 
@@ -18,9 +18,9 @@ An ID is a:
 
 Built-in (de)serialization simplifies interacting with SQL databases and JSON.
 `cmd/rid` provides the `rid` utility to generate or inspect IDs. Thanks to
-fastrand[1], ID generation starts fast and remains so as cores are added.
-De-serialization has also been optimized. See [Package
-Benchmarks](#package-benchmarks).
+fastrand introduced in Go 1.19 and made the default `math/rand` source in Go
+1.20, ID generation starts fast and scales as cores are added. De-serialization
+has also been optimized. See [Package Benchmarks](#package-benchmarks).
 
 Why `rid` as opposed to [alternatives](#package-comparisons)?
 
