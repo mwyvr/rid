@@ -129,40 +129,40 @@ A benchmark suite for the above noted packages can be found in
     echo "performance" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 
 ```
-$ go test -cpu 1,2,4,8,16 -bench .
+$ go test -cpu 1,2,4,8,16 -test.benchmem -bench .
 goos: linux
 goarch: amd64
 pkg: github.com/mwyvr/rid/eval/bench
 cpu: AMD Ryzen 7 3800X 8-Core Processor             
-BenchmarkRid              	19799767	       59.62 ns/op
-BenchmarkRid-2            	23044785	       51.33 ns/op
-BenchmarkRid-4            	43576563	       27.78 ns/op
-BenchmarkRid-8            	60655580	       18.60 ns/op
-BenchmarkRid-16           	57910780	       20.46 ns/op
-BenchmarkXid              	22208196	       52.97 ns/op
-BenchmarkXid-2            	36343159	      100.2 ns/op
-BenchmarkXid-4            	20049046	       56.42 ns/op
-BenchmarkXid-8            	27806431	       43.19 ns/op
-BenchmarkXid-16           	56182581	       20.39 ns/op
-BenchmarkKsuid            	2127823	      557.2 ns/op
-BenchmarkKsuid-2          	1943469	      617.8 ns/op
-BenchmarkKsuid-4          	2003335	      591.3 ns/op
-BenchmarkKsuid-8          	1965288	      625.2 ns/op
-BenchmarkKsuid-16         	1970457	      612.0 ns/op
-BenchmarkGoogleUuid       	2211279	      539.6 ns/op
-BenchmarkGoogleUuid-2     	3703702	      326.3 ns/op
-BenchmarkGoogleUuid-4     	6998353	      182.9 ns/op
-BenchmarkGoogleUuid-8     	12879537	       94.07 ns/op
-BenchmarkGoogleUuid-16    	20498462	       60.23 ns/op
-BenchmarkUlid             	 147532	     7795 ns/op
-BenchmarkUlid-2           	 265328	     4460 ns/op
-BenchmarkUlid-4           	 496263	     2434 ns/op
-BenchmarkUlid-8           	 724950	     1606 ns/op
-BenchmarkUlid-16          	 743781	     1667 ns/op
-BenchmarkBetterguid       	13010038	       89.31 ns/op
-BenchmarkBetterguid-2     	11938580	       93.20 ns/op
-BenchmarkBetterguid-4     	7529553	      148.0 ns/op
-BenchmarkBetterguid-8     	6638394	      179.2 ns/op
-BenchmarkBetterguid-16    	4955013	      244.2 ns/op
+BenchmarkRid              	19711147	       59.91 ns/op	      0 B/op	      0 allocs/op
+BenchmarkRid-2            	39606068	       51.31 ns/op	      0 B/op	      0 allocs/op
+BenchmarkRid-4            	43810882	       27.77 ns/op	      0 B/op	      0 allocs/op
+BenchmarkRid-8            	61076350	       18.73 ns/op	      0 B/op	      0 allocs/op
+BenchmarkRid-16           	57871148	       20.63 ns/op	      0 B/op	      0 allocs/op
+BenchmarkXid              	21577448	       54.15 ns/op	      0 B/op	      0 allocs/op
+BenchmarkXid-2            	10594070	      102.8 ns/op	      0 B/op	      0 allocs/op
+BenchmarkXid-4            	20304996	       59.79 ns/op	      0 B/op	      0 allocs/op
+BenchmarkXid-8            	43836136	       43.06 ns/op	      0 B/op	      0 allocs/op
+BenchmarkXid-16           	56255559	       20.52 ns/op	      0 B/op	      0 allocs/op
+BenchmarkKsuid            	2107322	      567.5 ns/op	      0 B/op	      0 allocs/op
+BenchmarkKsuid-2          	1905232	      624.7 ns/op	      0 B/op	      0 allocs/op
+BenchmarkKsuid-4          	1957316	      615.3 ns/op	      0 B/op	      0 allocs/op
+BenchmarkKsuid-8          	1955217	      628.7 ns/op	      0 B/op	      0 allocs/op
+BenchmarkKsuid-16         	1947925	      618.1 ns/op	      0 B/op	      0 allocs/op
+BenchmarkGoogleUuid       	2193394	      539.0 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuid-2     	3521733	      337.1 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuid-4     	6542208	      183.6 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuid-8     	12606606	       94.81 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuid-16    	20132751	       60.96 ns/op	     16 B/op	      1 allocs/op
+BenchmarkUlid             	 146452	     7808 ns/op	   5440 B/op	      3 allocs/op
+BenchmarkUlid-2           	 284343	     4487 ns/op	   5440 B/op	      3 allocs/op
+BenchmarkUlid-4           	 502579	     2397 ns/op	   5440 B/op	      3 allocs/op
+BenchmarkUlid-8           	 766941	     1581 ns/op	   5440 B/op	      3 allocs/op
+BenchmarkUlid-16          	 735955	     1661 ns/op	   5440 B/op	      3 allocs/op
+BenchmarkBetterguid       	12960338	       88.80 ns/op	     24 B/op	      1 allocs/op
+BenchmarkBetterguid-2     	12495933	       93.65 ns/op	     24 B/op	      1 allocs/op
+BenchmarkBetterguid-4     	7678500	      150.6 ns/op	     24 B/op	      1 allocs/op
+BenchmarkBetterguid-8     	6990478	      175.5 ns/op	     24 B/op	      1 allocs/op
+BenchmarkBetterguid-16    	5106249	      244.2 ns/op	     24 B/op	      1 allocs/op
 PASS
 ```
