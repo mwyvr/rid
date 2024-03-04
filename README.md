@@ -71,13 +71,15 @@ Package `rid` also provides the `rid` tool for id generation and inspection.
 ## Random Source
 
 Since cryptographically-secure IDs are not an objective for this package, other
-approaches could be considered. `rid` uses a Go internal runtime `fastrand64`
-[1] which provides single and multi-core performance benefits.
+approaches could be considered. With Go 1.19, `rid` utilized an internal runtime
+`fastrand64` which provided single and multi-core performance benefits. Go
+1.20 exposed `fastrand64` via the stdlib. As of rid v1.1.6, the package depends
+on  Go 1.22 math/rand/v2 which provides Uint64N().
 
-You may enjoy reading [Fast thread-safe randomness in Go](https://qqq.ninja/blog/post/fast-threadsafe-randomness-in-go/).
+You may also enjoy reading:
 
-[1] For more information on fastrand (wyrand) see: https://github.com/wangyi-fudan/wyhash
- and [Go's sources for runtime/stubs.go](https://cs.opensource.google/go/go/+/master:src/runtime/stubs.go;bpv=1;bpt=1?q=fastrand&ss=go%2Fgo:src%2Fruntime%2F).
+- [Fast thread-safe randomness in Go](https://qqq.ninja/blog/post/fast-threadsafe-randomness-in-go/).
+- For more information on fastrand (wyrand) see: https://github.com/wangyi-fudan/wyhash
  
 To satisfy whether rid.IDs are unique enough for your use case, run
 [eval/uniqcheck/main.go](eval/uniqcheck/main.go) with various values for number
@@ -89,6 +91,7 @@ and use OS utilities to check:
 
 ## Change Log
 
+- 2023-03-02 v1.1.6: Package depends on math/rand/v2 and now requires Go 1.22+.
 - 2023-01-23 Replaced stdlib Base32 with unrolled version for decoding performance.
 - 2022-12-28 The "10byte" branch was merged to master; the "15byte-historical"
   branch will be left dormant. No major changes are now expected to this
@@ -124,43 +127,41 @@ A benchmark suite for the above noted packages can be found in
 
     echo "performance" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 
-### AMD 8-core desktop, wired network connection
-
-
 ```
-$ go test -cpu 1,2,4,16,32 -benchmem -bench .
+$ go test -cpu 1,2,4,8,16 -bench .
 goos: linux
 goarch: amd64
 pkg: github.com/mwyvr/rid/eval/bench
-cpu: Intel(R) Core(TM) i9-14900K
-BenchmarkRid              	47201202	        25.48 ns/op	       0 B/op	       0 allocs/op
-BenchmarkRid-2            	78091510	        15.68 ns/op	       0 B/op	       0 allocs/op
-BenchmarkRid-4            	77706714	        16.21 ns/op	       0 B/op	       0 allocs/op
-BenchmarkRid-16           	69059413	        17.31 ns/op	       0 B/op	       0 allocs/op
-BenchmarkRid-32           	76592799	        13.62 ns/op	       0 B/op	       0 allocs/op
-BenchmarkXid              	41666000	        27.56 ns/op	       0 B/op	       0 allocs/op
-BenchmarkXid-2            	39971817	        27.33 ns/op	       0 B/op	       0 allocs/op
-BenchmarkXid-4            	37697936	        31.55 ns/op	       0 B/op	       0 allocs/op
-BenchmarkXid-16           	36870097	        37.83 ns/op	       0 B/op	       0 allocs/op
-BenchmarkXid-32           	47349218	        21.31 ns/op	       0 B/op	       0 allocs/op
-BenchmarkKsuid            	 4847752	       240.4 ns/op	       0 B/op	       0 allocs/op
-BenchmarkKsuid-2          	 4465123	       269.7 ns/op	       0 B/op	       0 allocs/op
-BenchmarkKsuid-4          	 4368691	       274.4 ns/op	       0 B/op	       0 allocs/op
-BenchmarkKsuid-16         	 4267578	       279.7 ns/op	       0 B/op	       0 allocs/op
-BenchmarkKsuid-32         	 4209820	       279.6 ns/op	       0 B/op	       0 allocs/op
-BenchmarkGoogleUuid       	 5501108	       212.9 ns/op	      16 B/op	       1 allocs/op
-BenchmarkGoogleUuid-2     	 8988285	       133.3 ns/op	      16 B/op	       1 allocs/op
-BenchmarkGoogleUuid-4     	16990833	        70.54 ns/op	      16 B/op	       1 allocs/op
-BenchmarkGoogleUuid-16    	28899004	        39.21 ns/op	      16 B/op	       1 allocs/op
-BenchmarkGoogleUuid-32    	39186010	        31.08 ns/op	      16 B/op	       1 allocs/op
-BenchmarkUlid             	  202795	      5711 ns/op	    5440 B/op	       3 allocs/op
-BenchmarkUlid-2           	  363986	      3064 ns/op	    5440 B/op	       3 allocs/op
-BenchmarkUlid-4           	  674776	      1714 ns/op	    5440 B/op	       3 allocs/op
-BenchmarkUlid-16          	  931116	      1122 ns/op	    5440 B/op	       3 allocs/op
-BenchmarkUlid-32          	  916348	      1203 ns/op	    5440 B/op	       3 allocs/op
-BenchmarkBetterguid       	24594817	        46.88 ns/op	      24 B/op	       1 allocs/op
-BenchmarkBetterguid-2     	22549742	        51.16 ns/op	      24 B/op	       1 allocs/op
-BenchmarkBetterguid-4     	18231304	        64.38 ns/op	      24 B/op	       1 allocs/op
-BenchmarkBetterguid-16    	10490190	       107.5 ns/op	      24 B/op	       1 allocs/op
-BenchmarkBetterguid-32    	 8507245	       139.2 ns/op	      24 B/op	       1 allocs/op
+cpu: AMD Ryzen 7 3800X 8-Core Processor             
+BenchmarkRid              	19799767	       59.62 ns/op
+BenchmarkRid-2            	23044785	       51.33 ns/op
+BenchmarkRid-4            	43576563	       27.78 ns/op
+BenchmarkRid-8            	60655580	       18.60 ns/op
+BenchmarkRid-16           	57910780	       20.46 ns/op
+BenchmarkXid              	22208196	       52.97 ns/op
+BenchmarkXid-2            	36343159	      100.2 ns/op
+BenchmarkXid-4            	20049046	       56.42 ns/op
+BenchmarkXid-8            	27806431	       43.19 ns/op
+BenchmarkXid-16           	56182581	       20.39 ns/op
+BenchmarkKsuid            	2127823	      557.2 ns/op
+BenchmarkKsuid-2          	1943469	      617.8 ns/op
+BenchmarkKsuid-4          	2003335	      591.3 ns/op
+BenchmarkKsuid-8          	1965288	      625.2 ns/op
+BenchmarkKsuid-16         	1970457	      612.0 ns/op
+BenchmarkGoogleUuid       	2211279	      539.6 ns/op
+BenchmarkGoogleUuid-2     	3703702	      326.3 ns/op
+BenchmarkGoogleUuid-4     	6998353	      182.9 ns/op
+BenchmarkGoogleUuid-8     	12879537	       94.07 ns/op
+BenchmarkGoogleUuid-16    	20498462	       60.23 ns/op
+BenchmarkUlid             	 147532	     7795 ns/op
+BenchmarkUlid-2           	 265328	     4460 ns/op
+BenchmarkUlid-4           	 496263	     2434 ns/op
+BenchmarkUlid-8           	 724950	     1606 ns/op
+BenchmarkUlid-16          	 743781	     1667 ns/op
+BenchmarkBetterguid       	13010038	       89.31 ns/op
+BenchmarkBetterguid-2     	11938580	       93.20 ns/op
+BenchmarkBetterguid-4     	7529553	      148.0 ns/op
+BenchmarkBetterguid-8     	6638394	      179.2 ns/op
+BenchmarkBetterguid-16    	4955013	      244.2 ns/op
+PASS
 ```
