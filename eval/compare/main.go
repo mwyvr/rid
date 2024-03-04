@@ -35,7 +35,7 @@ func main() {
 			true,
 			rid.New().String(),
 			rid.New().String(),
-			"fastrand",
+			"math/rand/v2",
 			"4 byte ts(sec) : 6 byte random",
 		},
 		{
@@ -55,7 +55,7 @@ func main() {
 			true,
 			ksuid.New().String(),
 			ksuid.New().String(),
-			"random",
+			"math/rand",
 			"4 byte ts(sec) : 16 byte random",
 		},
 		{
