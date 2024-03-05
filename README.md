@@ -126,40 +126,47 @@ A benchmark suite for the above-noted packages can be found in
     echo "performance" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 
 ```
-$ go test -cpu 1,2,4,8,16 -test.benchmem -bench .
+$ go test -cpu 1,2,4,8,16,32 -test.benchmem -bench .
 goos: linux
 goarch: amd64
 pkg: github.com/mwyvr/rid/eval/bench
-cpu: AMD Ryzen 7 3800X 8-Core Processor             
-BenchmarkRid              	19711147	       59.91 ns/op	      0 B/op	      0 allocs/op
-BenchmarkRid-2            	39606068	       51.31 ns/op	      0 B/op	      0 allocs/op
-BenchmarkRid-4            	43810882	       27.77 ns/op	      0 B/op	      0 allocs/op
-BenchmarkRid-8            	61076350	       18.73 ns/op	      0 B/op	      0 allocs/op
-BenchmarkRid-16           	57871148	       20.63 ns/op	      0 B/op	      0 allocs/op
-BenchmarkXid              	21577448	       54.15 ns/op	      0 B/op	      0 allocs/op
-BenchmarkXid-2            	10594070	      102.8 ns/op	      0 B/op	      0 allocs/op
-BenchmarkXid-4            	20304996	       59.79 ns/op	      0 B/op	      0 allocs/op
-BenchmarkXid-8            	43836136	       43.06 ns/op	      0 B/op	      0 allocs/op
-BenchmarkXid-16           	56255559	       20.52 ns/op	      0 B/op	      0 allocs/op
-BenchmarkKsuid            	2107322	      567.5 ns/op	      0 B/op	      0 allocs/op
-BenchmarkKsuid-2          	1905232	      624.7 ns/op	      0 B/op	      0 allocs/op
-BenchmarkKsuid-4          	1957316	      615.3 ns/op	      0 B/op	      0 allocs/op
-BenchmarkKsuid-8          	1955217	      628.7 ns/op	      0 B/op	      0 allocs/op
-BenchmarkKsuid-16         	1947925	      618.1 ns/op	      0 B/op	      0 allocs/op
-BenchmarkGoogleUuid       	2193394	      539.0 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuid-2     	3521733	      337.1 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuid-4     	6542208	      183.6 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuid-8     	12606606	       94.81 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuid-16    	20132751	       60.96 ns/op	     16 B/op	      1 allocs/op
-BenchmarkUlid             	 146452	     7808 ns/op	   5440 B/op	      3 allocs/op
-BenchmarkUlid-2           	 284343	     4487 ns/op	   5440 B/op	      3 allocs/op
-BenchmarkUlid-4           	 502579	     2397 ns/op	   5440 B/op	      3 allocs/op
-BenchmarkUlid-8           	 766941	     1581 ns/op	   5440 B/op	      3 allocs/op
-BenchmarkUlid-16          	 735955	     1661 ns/op	   5440 B/op	      3 allocs/op
-BenchmarkBetterguid       	12960338	       88.80 ns/op	     24 B/op	      1 allocs/op
-BenchmarkBetterguid-2     	12495933	       93.65 ns/op	     24 B/op	      1 allocs/op
-BenchmarkBetterguid-4     	7678500	      150.6 ns/op	     24 B/op	      1 allocs/op
-BenchmarkBetterguid-8     	6990478	      175.5 ns/op	     24 B/op	      1 allocs/op
-BenchmarkBetterguid-16    	5106249	      244.2 ns/op	     24 B/op	      1 allocs/op
+cpu: Intel(R) Core(TM) i9-14900K
+BenchmarkRid              	39116605	        28.59 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRid-2            	70493946	        16.31 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRid-4            	82231498	        14.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRid-8            	75729330	        14.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRid-16           	59416164	        19.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRid-32           	68666065	        18.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkXid              	44036608	        27.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkXid-2            	39810664	        27.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkXid-4            	36596661	        30.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkXid-8            	36267940	        32.22 ns/op	       0 B/op	       0 allocs/op
+BenchmarkXid-16           	35589727	        31.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkXid-32           	56330694	        26.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkKsuid            	 5444830	       220.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkKsuid-2          	 4578231	       249.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkKsuid-4          	 4704010	       254.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkKsuid-8          	 4546252	       251.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkKsuid-16         	 4491115	       259.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkKsuid-32         	 4682730	       265.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkGoogleUuid       	 6017610	       198.3 ns/op	      16 B/op	       1 allocs/op
+BenchmarkGoogleUuid-2     	 9588854	       117.8 ns/op	      16 B/op	       1 allocs/op
+BenchmarkGoogleUuid-4     	17966739	        67.01 ns/op	      16 B/op	       1 allocs/op
+BenchmarkGoogleUuid-8     	26756277	        38.35 ns/op	      16 B/op	       1 allocs/op
+BenchmarkGoogleUuid-16    	37318750	        37.57 ns/op	      16 B/op	       1 allocs/op
+BenchmarkGoogleUuid-32    	39958574	        29.55 ns/op	      16 B/op	       1 allocs/op
+BenchmarkUlid             	  201711	      5970 ns/op	    5440 B/op	       3 allocs/op
+BenchmarkUlid-2           	  367596	      3084 ns/op	    5440 B/op	       3 allocs/op
+BenchmarkUlid-4           	  636337	      1732 ns/op	    5440 B/op	       3 allocs/op
+BenchmarkUlid-8           	 1000000	      1084 ns/op	    5440 B/op	       3 allocs/op
+BenchmarkUlid-16          	 1000000	      1116 ns/op	    5440 B/op	       3 allocs/op
+BenchmarkUlid-32          	 1000000	      1140 ns/op	    5440 B/op	       3 allocs/op
+BenchmarkBetterguid       	22956550	        50.49 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBetterguid-2     	21297140	        51.48 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBetterguid-4     	15610149	        67.59 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBetterguid-8     	14513452	        80.38 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBetterguid-16    	11680210	       105.1 ns/op	      24 B/op	       1 allocs/op
+BenchmarkBetterguid-32    	 9156219	       133.4 ns/op	      24 B/op	       1 allocs/op
 PASS
+ok  	github.com/mwyvr/rid/eval/bench	47.927s
 ```
