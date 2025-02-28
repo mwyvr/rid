@@ -82,7 +82,7 @@ func main() {
 			"[google/uuid](https://github.com/google/uuid)",
 			len(newUUIDV7()),
 			len(newUUIDV7().String()),
-			false,
+			true,
 			newUUIDV7().String(),
 			newUUIDV7().String(),
 			newUUIDV7().String(),
