@@ -91,7 +91,7 @@ and use OS utilities to check:
 
 ## Change Log
 
-- 2025-02-28 Updated benchmarks, included UUID V7 as well as more output for visual comparison.
+- 2025-02-28 Updated benchmarks, included google/uuid V7 as well as more output for visual comparison.
 - 2023-03-02 v1.1.6: Package depends on math/rand/v2 and now requires Go 1.22+.
 - 2023-01-23 Replaced the stdlib Base32 encoding/decoding with an unrolled version for decoding performance.
 - 2022-12-28 The "10byte" branch was merged to master; the "15byte-historical" branch will be left dormant.
@@ -108,7 +108,7 @@ Contributions are welcome.
 | [rs/xid](https://github.com/rs/xid)                       | 12 | 20 |  true | `cv13eg5q9fafhigle550`<br>`cv13eg5q9fafhigle55g`<br>`cv13eg5q9fafhigle560`<br>`cv13eg5q9fafhigle56g`  | counter | 4 byte ts(sec) : 2 byte mach ID : 2 byte pid : 3 byte monotonic counter |
 | [segmentio/ksuid](https://github.com/segmentio/ksuid)     | 20 | 27 |  true | `2tgl0f9wgEOOphdVlVRlU21RUJ2`<br>`2tgl0d9ZVFNDRMvlvJ1UNW5MkO5`<br>`2tgl0gGaE7OJHvRoqNvUXVmztxG`<br>`2tgl0d310frXcqu7ppDvIfkna6f`  | math/rand | 4 byte ts(sec) : 16 byte random |
 | [google/uuid](https://github.com/google/uuid)             | 16 | 36 | false | `340a0264-d35a-4c3c-b68c-755778c36050`<br>`16efa807-d9c0-4613-9c4e-d192e0404bc4`<br>`379c0c45-b1f0-4a21-ae3e-43bc590a6c96`<br>`df20e8b8-f4e7-45f1-91f0-b9d5d4874ff7`  | crypt/rand | v4: 16 bytes random with version & variant embedded |
-| [google/uuid](https://github.com/google/uuid)             | 16 | 36 | false | `01954ea7-d25c-71fb-97d7-81556c5b5728`<br>`01954ea7-d25c-71fc-970b-c617b4a260b4`<br>`01954ea7-d25c-71fd-9a80-a4951289adfe`<br>`01954ea7-d25c-71fe-8dd2-933a4a2a5574`  | crypt/rand | v7: 16 bytes : 6 bytes time, random with version & variant embedded |
+| [google/uuid](https://github.com/google/uuid)V7           | 16 | 36 |  true | `01954ea7-d25c-71fb-97d7-81556c5b5728`<br>`01954ea7-d25c-71fc-970b-c617b4a260b4`<br>`01954ea7-d25c-71fd-9a80-a4951289adfe`<br>`01954ea7-d25c-71fe-8dd2-933a4a2a5574`  | crypt/rand | v7: 16 bytes : 6 bytes time, random with version & variant embedded |b
 | [oklog/ulid](https://github.com/oklog/ulid)               | 16 | 26 |  true | `01JN7AFMJWJN7B3W6FCQW3BNDP`<br>`01JN7AFMJWDDAF6K2FDGJR7ZX2`<br>`01JN7AFMJW2NS2YCGD16EZ4GHY`<br>`01JN7AFMJWA04FB0EE3Q6GKNP3`  | crypt/rand | 6 byte ts(ms) : 10 byte counter random init per ts(ms) |
 | [kjk/betterguid](https://github.com/kjk/betterguid)       | 17 | 20 |  true | `-OKDdx8RLoXfnXo8EfYU`<br>`-OKDdx8RLoXfnXo8EfYV`<br>`-OKDdx8RLoXfnXo8EfYW`<br>`-OKDdx8RLoXfnXo8EfYX`  | counter | 8 byte ts(ms) : 9 byte counter random init per ts(ms) |
 
@@ -127,9 +127,6 @@ A benchmark suite for the above-noted packages can be found in
 scaling_governor set to `performance`:
 
     echo "performance" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
-
-As time marches on, the standard lib UUID package has improved performance
-markedly and now also includes a k-sortable V7 variant.
 
 ```
 ❯ go test -cpu 1,2,4,8,16,32 -test.benchmem -bench .
