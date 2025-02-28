@@ -1,6 +1,7 @@
 package bench
 
 import (
+	"log"
 	"math/rand"
 	"testing"
 	"time"
@@ -66,6 +67,23 @@ func BenchmarkGoogleUuid(b *testing.B) {
 			r = guuid.New()
 		}
 		resultUUID = r
+	})
+}
+
+// uuid V7 ids are k-sortable
+var resultUUIDV7 guuid.UUID
+
+func BenchmarkGoogleUuidV7(b *testing.B) {
+	var r guuid.UUID
+	var err error
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			r, err = guuid.NewV7()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		resultUUIDV7 = r
 	})
 }
 

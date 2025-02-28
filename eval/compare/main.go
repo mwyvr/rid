@@ -22,6 +22,8 @@ type pkg struct {
 	ksortable  bool
 	sample     string
 	next       string
+	next2      string
+	next3      string
 	uniq       string
 	components string
 }
@@ -35,6 +37,8 @@ func main() {
 			true,
 			rid.New().String(),
 			rid.New().String(),
+			rid.New().String(),
+			rid.New().String(),
 			"math/rand/v2",
 			"4 byte ts(sec) : 6 byte random",
 		},
@@ -43,6 +47,8 @@ func main() {
 			len(xid.New().Bytes()),
 			len(xid.New().String()),
 			true,
+			xid.New().String(),
+			xid.New().String(),
 			xid.New().String(),
 			xid.New().String(),
 			"counter",
@@ -55,6 +61,8 @@ func main() {
 			true,
 			ksuid.New().String(),
 			ksuid.New().String(),
+			ksuid.New().String(),
+			ksuid.New().String(),
 			"math/rand",
 			"4 byte ts(sec) : 16 byte random",
 		},
@@ -65,14 +73,30 @@ func main() {
 			false,
 			uuid.New().String(),
 			uuid.New().String(),
+			uuid.New().String(),
+			uuid.New().String(),
 			"crypt/rand",
 			"v4: 16 bytes random with version & variant embedded",
+		},
+		{
+			"[google/uuid](https://github.com/google/uuid)",
+			len(newUUIDV7()),
+			len(newUUIDV7().String()),
+			false,
+			newUUIDV7().String(),
+			newUUIDV7().String(),
+			newUUIDV7().String(),
+			newUUIDV7().String(),
+			"crypt/rand",
+			"v7: 16 bytes : 6 bytes time, random with version & variant embedded",
 		},
 		{
 			"[oklog/ulid](https://github.com/oklog/ulid)",
 			len(newUlid()),
 			len(newUlid().String()),
 			true,
+			newUlid().String(),
+			newUlid().String(),
 			newUlid().String(),
 			newUlid().String(),
 			"crypt/rand",
@@ -85,6 +109,8 @@ func main() {
 			true,
 			betterguid.New(),
 			betterguid.New(),
+			betterguid.New(),
+			betterguid.New(),
 			"counter",
 			"8 byte ts(ms) : 9 byte counter random init per ts(ms)",
 		},
@@ -94,8 +120,8 @@ func main() {
 	fmt.Printf("|-----------------------------------------------------------|----|----|-------|---------------------|--------|------------|\n")
 
 	for _, v := range packages {
-		fmt.Printf("| %-57s | %d | %d | %5v | `%s`<br>`%s` | %s | %s |\n",
-			v.name, v.blen, v.elen, v.ksortable, v.sample, v.next, v.uniq, v.components)
+		fmt.Printf("| %-57s | %d | %d | %5v | `%s`<br>`%s`<br>`%s`<br>`%s`  | %s | %s |\n",
+			v.name, v.blen, v.elen, v.ksortable, v.sample, v.next, v.next2, v.next3, v.uniq, v.components)
 	}
 }
 
@@ -104,4 +130,12 @@ func newUlid() ulid.ULID {
 	t := time.Now().UTC()
 	entropy := rand.New(rand.NewSource(t.UnixNano()))
 	return ulid.MustNew(ulid.Timestamp(t), entropy)
+}
+
+func newUUIDV7() uuid.UUID {
+	r, err := uuid.NewV7()
+	if err != nil {
+		panic(err)
+	}
+	return r
 }
