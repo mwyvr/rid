@@ -1,6 +1,6 @@
 module github.com/mwyvr/rid
 
-// required for math/rand/v2
-go 1.22
+go 1.24
 
-// if running anything under eval/* run `go mod tidy` to pull in dependencies.
+// Package rid has no dependencies outside of the Go standard library.
+// If running anything under eval/* run `go mod tidy` to pull in dependencies.

@@ -39,7 +39,7 @@ func main() {
 			rid.New().String(),
 			rid.New().String(),
 			rid.New().String(),
-			"math/rand/v2",
+			"crypto/rand",
 			"4 byte ts(sec) : 6 byte random",
 		},
 		{
@@ -88,7 +88,7 @@ func main() {
 			newUUIDV7().String(),
 			newUUIDV7().String(),
 			"crypt/rand",
-			"v7: 16 bytes : 6 bytes time, random with version & variant embedded",
+			"v7: 16 bytes : 8 bytes time+sequence, random with version & variant embedded",
 		},
 		{
 			"[oklog/ulid](https://github.com/oklog/ulid)",

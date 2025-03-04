@@ -1,9 +1,10 @@
 /*
-Package rid provides a performant, k-sortable, scalable unique ID generator
-suitable for applications where ID generation coordination between machines or
-other processes is not required. ID generation is goroutine safe and scales
-well with CPU cores. Providing unique non-sequential keys for embeddable
-databases like SQLIte or BoltDB or key-value stores are typical use-cases.
+Package rid provides a performant, k-sortable-ish (first 4 bytes/to the
+second, only), scalable unique ID generator suitable for applications where ID
+generation coordination between machines or other processes is not required. ID
+generation is goroutine safe and scales well with CPU cores. Providing unique
+non-sequential keys for embeddable databases like SQLIte or BoltDB or key-value
+stores are typical use-cases.
 
 Binary IDs Base-32 encode as a 16-character URL and human-friendly
 representation like dfp7qt0v2pwt0v2x.
@@ -11,8 +12,8 @@ representation like dfp7qt0v2pwt0v2x.
 The 10-byte binary representation of an ID is comprised of:
 
   - 4-byte timestamp value representing seconds since the Unix epoch
-  - 6-byte random value; as of release v1.1.6 this package uses math/rand/v2
-    introduced with Go 1.22
+  - 6-byte random value; as of release v1.2.0 this package uses crypto/rand and
+    requires Go 1.24.
 
 Key features:
 
@@ -39,10 +40,10 @@ package rid
 
 import (
 	"bytes"
+	"crypto/rand"
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"math/rand/v2"
 	"sort"
 	"time"
 )
@@ -55,7 +56,6 @@ const (
 	encodedLen = 16                                 // base32
 	charset    = "0123456789bcdefghkjlmnpqrstvwxyz" // fewer vowels to avoid random rudeness
 	maxByte    = 0xFF                               // used as a sentinel value in charmap
-	maxRandom  = 0xFFFFFFFFFFFF                     // 6 bytes allows for 0 - 281,474,976,710,655
 )
 
 var (
@@ -72,11 +72,10 @@ var (
 
 func init() {
 	// initialize the decoding map, used also for sanity checking input
-	for i := 0; i < len(dec); i++ {
+	for i := range len(dec) {
 		dec[i] = maxByte
 	}
-
-	for i := 0; i < len(charset); i++ {
+	for i := range len(charset) {
 		dec[charset[i]] = byte(i)
 	}
 }
@@ -99,13 +98,7 @@ func NewWithTime(t time.Time) ID {
 	id[1] = byte(s >> 16)
 	id[2] = byte(s >> 8)
 	id[3] = byte(s)
-	r := rand.Uint64N(maxRandom) // 6 bytes of pseudo-randomness from stdlib math/rand/v2
-	id[4] = byte(r >> 40)
-	id[5] = byte(r >> 32)
-	id[6] = byte(r >> 24)
-	id[7] = byte(r >> 16)
-	id[8] = byte(r >> 8)
-	id[9] = byte(r)
+	rand.Read(id[4:])
 
 	return id
 }
@@ -318,8 +311,8 @@ func (id *ID) UnmarshalJSON(b []byte) error {
 	return id.UnmarshalText(b[1 : len(b)-1])
 }
 
-// Compare makes IDs k-sortable, returning an integer comparing only the first
-// 4 bytes of two IDs.
+// Compare makes IDs k-sortable(ish), returning an integer comparing only the
+// first 4 bytes of two IDs.
 //
 // Recall that an ID is comprized of a:
 //

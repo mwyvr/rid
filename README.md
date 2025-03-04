@@ -68,18 +68,7 @@ Package `rid` also provides the `rid` tool for id generation and inspection.
 	dfp9lmt5zjy7km9n ts:1672255955 rnd: 76951796109621 2022-12-28 11:32:35 -0800 PST ID{ 0x63, 0xac, 0x99, 0xd3, 0x45, 0xfc, 0xbc, 0x78, 0xd1, 0x35 }
 	dfp9lmxt5sms80m7 ts:1672255955 rnd:204708502569607 2022-12-28 11:32:35 -0800 PST ID{ 0x63, 0xac, 0x99, 0xd3, 0xba, 0x2e, 0x69, 0x94,  0x2, 0x87 }
 
-## Random Source
-
-Since cryptographically secure IDs are not an objective for this package, other
-approaches could be considered. With Go 1.19, `rid` utilized an internal runtime
-`fastrand64`, providing single and multi-core performance benefits. Go
-1.20 exposed `fastrand64` via the stdlib. As of rid v1.1.6, the package depends
-on  Go 1.22 math/rand/v2, which provides Uint64N().
-
-You may also enjoy reading:
-
-- [Fast thread-safe randomness in Go](https://qqq.ninja/blog/post/fast-threadsafe-randomness-in-go/).
-- For more information on fastrand (wyrand) see: https://github.com/wangyi-fudan/wyhash
+## Uniqueness
  
 To satisfy whether rid.IDs are unique enough for your use case, run
 [eval/uniqcheck/main.go](eval/uniqcheck/main.go) with various values for number
@@ -91,7 +80,8 @@ and use OS utilities to check:
 
 ## Change Log
 
-- 2025-02-28 Updated benchmarks, included google/uuid V7 as well as more output for visual comparison.
+- 2025-03-03 head: Now utilizing crypto/rand; performance remains acceptable. Require Go 1.24+.
+- 2025-02-28 head: Updated benchmarks, included google/uuid V7 as well as more output for visual comparison.
 - 2023-03-02 v1.1.6: Package depends on math/rand/v2 and now requires Go 1.22+.
 - 2023-01-23 Replaced the stdlib Base32 encoding/decoding with an unrolled version for decoding performance.
 - 2022-12-28 The "10byte" branch was merged to master; the "15byte-historical" branch will be left dormant.
@@ -101,6 +91,16 @@ and use OS utilities to check:
 Contributions are welcome.
 
 ## Package Comparisons
+
+| Package                                                   |BLen|ELen| K-Sort| Encoded ID and Next | Method | Components |
+|-----------------------------------------------------------|----|----|-------|---------------------|--------|------------|
+| [solutionroute/rid](https://github.com/solutionroute/rid) | 10 | 16 |  true | `dz369n6d6377s87d`<br>`dz369n0xkc5yy0qk`<br>`dz369n1f66fp20wq`<br>`dz369n7c9wtgp944`  | crypt/rand | 4 byte ts(sec) : 6 byte random |
+| [rs/xid](https://github.com/rs/xid)                       | 12 | 20 |  true | `cv369l5q9fa4kd8oi9a0`<br>`cv369l5q9fa4kd8oi9ag`<br>`cv369l5q9fa4kd8oi9b0`<br>`cv369l5q9fa4kd8oi9bg`  | counter | 4 byte ts(sec) : 2 byte mach ID : 2 byte pid : 3 byte monotonic counter |
+| [segmentio/ksuid](https://github.com/segmentio/ksuid)     | 20 | 27 |  true | `2tphzpKfP9Tj0r14XtsXw48vvGU`<br>`2tphzrH8yIhsWyMIRpSMKjLI36k`<br>`2tphzvMCgAaNd7mpYtkAUzwahdx`<br>`2tphztFxf0sFFm6fXU10v5X9J3v`  | math/rand | 4 byte ts(sec) : 16 byte random |
+| [google/uuid](https://github.com/google/uuid)             | 16 | 36 | false | `cb978d85-a710-488b-bebd-8dbaf55db670`<br>`98128f69-2190-4e73-8631-25cc56e9eb00`<br>`1a662558-e3bb-4bfb-a775-a39da8177f01`<br>`f9e320c4-86b9-4055-b387-160a8456a049`  | crypt/rand | v4: 16 bytes random with version & variant embedded |
+| [google/uuid](https://github.com/google/uuid)V7           | 16 | 36 |  true | `01955ef9-df51-7d46-9d2b-f01195e3fa80`<br>`01955ef9-df51-7d47-9282-15a86d461159`<br>`01955ef9-df51-7d48-bfc8-147557df171a`<br>`01955ef9-df51-7d49-8cc2-5637be115e7b`  | crypt/rand | v7: 16 bytes : 8 bytes time+sequence, random with version & variant embedded |
+| [oklog/ulid](https://github.com/oklog/ulid)               | 16 | 26 |  true | `01JNFFKQTH2VD414Z3C1HRX676`<br>`01JNFFKQTHH1SBBT2NG0XC0XJH`<br>`01JNFFKQTHD1MYD3RXVTVGS8P3`<br>`01JNFFKQTHRK8M66FP3DGY31C3`  | crypt/rand | 6 byte ts(ms) : 10 byte counter random init per ts(ms) |
+| [kjk/betterguid](https://github.com/kjk/betterguid)       | 17 | 20 |  true | `-OKTySxG2zFlWEvK7zUy`<br>`-OKTySxG2zFlWEvK7zUz`<br>`-OKTySxG2zFlWEvK7zV-`<br>`-OKTySxG2zFlWEvK7zV0`  | counter | 8 byte ts(ms) : 9 byte counter random init per ts(ms) |
 
 | Package                                                   |BLen|ELen| K-Sort| Encoded ID and Next | Method | Components |
 |-----------------------------------------------------------|----|----|-------|---------------------|--------|------------|
@@ -134,48 +134,48 @@ goos: linux
 goarch: amd64
 pkg: github.com/mwyvr/rid/eval/bench
 cpu: Intel(R) Core(TM) i9-14900K
-BenchmarkRid                	39960291	       28.56 ns/op	      0 B/op	      0 allocs/op
-BenchmarkRid-2              	61764354	       17.06 ns/op	      0 B/op	      0 allocs/op
-BenchmarkRid-4              	72510123	       15.91 ns/op	      0 B/op	      0 allocs/op
-BenchmarkRid-8              	79692819	       16.34 ns/op	      0 B/op	      0 allocs/op
-BenchmarkRid-16             	73295601	       16.23 ns/op	      0 B/op	      0 allocs/op
-BenchmarkRid-32             	63039949	       18.71 ns/op	      0 B/op	      0 allocs/op
-BenchmarkXid                	39694987	       28.52 ns/op	      0 B/op	      0 allocs/op
-BenchmarkXid-2              	43097637	       30.71 ns/op	      0 B/op	      0 allocs/op
-BenchmarkXid-4              	38336136	       29.78 ns/op	      0 B/op	      0 allocs/op
-BenchmarkXid-8              	39350234	       32.75 ns/op	      0 B/op	      0 allocs/op
-BenchmarkXid-16             	37378668	       32.24 ns/op	      0 B/op	      0 allocs/op
-BenchmarkXid-32             	56590159	       25.01 ns/op	      0 B/op	      0 allocs/op
-BenchmarkKsuid              	15437100	       74.51 ns/op	      0 B/op	      0 allocs/op
-BenchmarkKsuid-2            	14042089	       85.06 ns/op	      0 B/op	      0 allocs/op
-BenchmarkKsuid-4            	12009482	      100.9 ns/op	      0 B/op	      0 allocs/op
-BenchmarkKsuid-8            	10257565	      115.3 ns/op	      0 B/op	      0 allocs/op
-BenchmarkKsuid-16           	8078698	      145.5 ns/op	      0 B/op	      0 allocs/op
-BenchmarkKsuid-32           	6864120	      178.6 ns/op	      0 B/op	      0 allocs/op
-BenchmarkGoogleUuid         	23861782	       47.90 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuid-2       	30093328	       40.09 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuid-4       	33486692	       34.16 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuid-8       	35469447	       33.11 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuid-16      	38858294	       34.83 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuid-32      	43096678	       24.32 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuidV7       	13547710	       84.46 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuidV7-2     	13897028	       85.90 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuidV7-4     	12457784	       95.71 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuidV7-8     	11561634	      102.6 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuidV7-16    	9996668	      123.7 ns/op	     16 B/op	      1 allocs/op
-BenchmarkGoogleUuidV7-32    	8339232	      148.1 ns/op	     16 B/op	      1 allocs/op
-BenchmarkUlid               	 202383	     5698 ns/op	   5440 B/op	      3 allocs/op
-BenchmarkUlid-2             	 380223	     3056 ns/op	   5440 B/op	      3 allocs/op
-BenchmarkUlid-4             	 664038	     1755 ns/op	   5440 B/op	      3 allocs/op
-BenchmarkUlid-8             	1000000	     1093 ns/op	   5440 B/op	      3 allocs/op
-BenchmarkUlid-16            	 921928	     1222 ns/op	   5440 B/op	      3 allocs/op
-BenchmarkUlid-32            	 884583	     1301 ns/op	   5440 B/op	      3 allocs/op
-BenchmarkBetterguid         	24322806	       47.91 ns/op	     24 B/op	      1 allocs/op
-BenchmarkBetterguid-2       	23548165	       50.37 ns/op	     24 B/op	      1 allocs/op
-BenchmarkBetterguid-4       	17903082	       66.54 ns/op	     24 B/op	      1 allocs/op
-BenchmarkBetterguid-8       	14911167	       78.60 ns/op	     24 B/op	      1 allocs/op
-BenchmarkBetterguid-16      	11537070	      106.2 ns/op	     24 B/op	      1 allocs/op
-BenchmarkBetterguid-32      	9142687	      133.8 ns/op	     24 B/op	      1 allocs/op
+BenchmarkRid                	25817522	       42.16 ns/op	      0 B/op	      0 allocs/op
+BenchmarkRid-2              	32066263	       32.23 ns/op	      0 B/op	      0 allocs/op
+BenchmarkRid-4              	36123939	       31.55 ns/op	      0 B/op	      0 allocs/op
+BenchmarkRid-8              	36245113	       32.63 ns/op	      0 B/op	      0 allocs/op
+BenchmarkRid-16             	36280018	       32.84 ns/op	      0 B/op	      0 allocs/op
+BenchmarkRid-32             	55567880	       22.81 ns/op	      0 B/op	      0 allocs/op
+BenchmarkXid                	39963730	       28.66 ns/op	      0 B/op	      0 allocs/op
+BenchmarkXid-2              	38590256	       29.45 ns/op	      0 B/op	      0 allocs/op
+BenchmarkXid-4              	37522834	       31.74 ns/op	      0 B/op	      0 allocs/op
+BenchmarkXid-8              	39866997	       32.51 ns/op	      0 B/op	      0 allocs/op
+BenchmarkXid-16             	43631900	       32.68 ns/op	      0 B/op	      0 allocs/op
+BenchmarkXid-32             	49602223	       22.44 ns/op	      0 B/op	      0 allocs/op
+BenchmarkKsuid              	16018834	       74.81 ns/op	      0 B/op	      0 allocs/op
+BenchmarkKsuid-2            	14673158	       81.78 ns/op	      0 B/op	      0 allocs/op
+BenchmarkKsuid-4            	11699431	      104.5 ns/op	      0 B/op	      0 allocs/op
+BenchmarkKsuid-8            	10058565	      117.8 ns/op	      0 B/op	      0 allocs/op
+BenchmarkKsuid-16           	8374312	      146.6 ns/op	      0 B/op	      0 allocs/op
+BenchmarkKsuid-32           	7095456	      171.0 ns/op	      0 B/op	      0 allocs/op
+BenchmarkGoogleUuid         	23303894	       48.78 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuid-2       	29063116	       39.37 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuid-4       	34529593	       33.95 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuid-8       	36596574	       33.07 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuid-16      	46557832	       33.95 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuid-32      	46031656	       25.79 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuidV7       	14000478	       84.06 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuidV7-2     	13783161	       88.46 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuidV7-4     	10600320	      113.3 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuidV7-8     	9574357	      127.0 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuidV7-16    	8125311	      151.0 ns/op	     16 B/op	      1 allocs/op
+BenchmarkGoogleUuidV7-32    	7138972	      173.9 ns/op	     16 B/op	      1 allocs/op
+BenchmarkUlid               	 200292	     5709 ns/op	   5440 B/op	      3 allocs/op
+BenchmarkUlid-2             	 381554	     3104 ns/op	   5440 B/op	      3 allocs/op
+BenchmarkUlid-4             	 700375	     1752 ns/op	   5440 B/op	      3 allocs/op
+BenchmarkUlid-8             	1000000	     1084 ns/op	   5440 B/op	      3 allocs/op
+BenchmarkUlid-16            	 974892	     1223 ns/op	   5440 B/op	      3 allocs/op
+BenchmarkUlid-32            	 900584	     1313 ns/op	   5440 B/op	      3 allocs/op
+BenchmarkBetterguid         	25144016	       46.35 ns/op	     24 B/op	      1 allocs/op
+BenchmarkBetterguid-2       	24168476	       49.03 ns/op	     24 B/op	      1 allocs/op
+BenchmarkBetterguid-4       	18565868	       65.24 ns/op	     24 B/op	      1 allocs/op
+BenchmarkBetterguid-8       	14666895	       79.84 ns/op	     24 B/op	      1 allocs/op
+BenchmarkBetterguid-16      	11732860	      109.2 ns/op	     24 B/op	      1 allocs/op
+BenchmarkBetterguid-32      	9067160	      132.9 ns/op	     24 B/op	      1 allocs/op
 PASS
-ok  	github.com/mwyvr/rid/eval/bench	54.417s
+ok  	github.com/mwyvr/rid/eval/bench	53.126s
 ```
