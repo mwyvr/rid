@@ -1,5 +1,4 @@
 // Acknowledgement: This source file is based on work in package github.com/rs/xid,
-// a zero-configuration globally-unique ID generator. See LICENSE.rs-xid.
 package rid
 
 import (
@@ -16,59 +15,66 @@ type idParts struct {
 	id      ID
 	encoded string
 	ts      int64
+	seq     int64
 	random  uint64
 }
 
-var IDs = []idParts{
+var CHECKIDS = []idParts{
 	// sorted (ascending) should be IDs 2, 3, 0, 5, 4, 1
 	{
-		// dfp7emzzzzy30ey2 ts:1672246995 rnd:281474912761794 2022-12-28 09:03:15 -0800 PST ID{0x63,0xac,0x76,0xd3,0xff,0xff,0xfc,0x30,0x37,0xc2}
-		ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2},
-		"dfp7emzzzzy30ey2",
-		1672246995,
-		281474912761794,
+		// 03f6nlxczw000000 ts:946684799999 seq:   0 rnd:    0 1999-12-31 23:59:59.999 +0000 UTC ID{  0x0, 0xdc, 0x6a, 0xcf, 0xab, 0xff,  0x0,  0x0,  0x0,  0x0 }
+		ID{0x0, 0xdc, 0x6a, 0xcf, 0xab, 0xff, 0x0, 0x0, 0x0, 0x0},
+		"03f6nlxczw000000",
+		946684799999,
+		0,
+		0,
 	},
 	{
-		// zzzzzzzzzzzzzzzz ts:4294967295 rnd:281474976710655 2106-02-06 22:28:15 -0800 PST ID{0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff}
+		// zzzzzzzzzzzzzzzz ts:281474976710655 seq:65535 rnd:65535 10889-08-02 05:31:50.655 +0000 UTC ID{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
 		ID{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 		"zzzzzzzzzzzzzzzz",
-		4294967295,
 		281474976710655,
+		65535,
+		65535,
 	},
 	{
-		// 0000000000000000 ts:0 rnd:              0 1969-12-31 16:00:00 -0800 PST ID{0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0}
+		// 0000000000000000 ts:0 seq:   0 rnd:    0 1970-01-01 00:00:00 +0000 UTC ID{  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0 }
 		ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		"0000000000000000",
 		0,
 		0,
-	},
-	{
-		// dfp7em00001p0t5j ts:1672246992 rnd:       56649906 2022-12-28 09:03:12 -0800 PST ID{0x63,0xac,0x76,0xd0,0x0,0x0,0x3,0x60,0x68,0xb2}
-		ID{0x63, 0xac, 0x76, 0xd0, 0x0, 0x0, 0x3, 0x60, 0x68, 0xb2},
-		"dfp7em00001p0t5j",
-		1672246992,
-		56649906,
-	},
-	{
-		// dgb58zr000000000 ts:1674859647 rnd:              0 2023-01-27 14:47:27 -0800 PST ID{0x63,0xd4,0x54,0x7f,0x0,0x0,0x0,0x0,0x0,0x0}
-		ID{0x63, 0xd4, 0x54, 0x7f, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
-		"dgb58zr000000000",
-		1674859647,
 		0,
 	},
 	{
-		// dgb53lewel4ndk94 ts:1674858957 rnd:207175420364068 2023-01-27 14:35:57 -0800 PST ID{0x63,0xd4,0x51,0xcd,0xbc,0x6c,0xc9,0x56,0x45,0x24}
-		ID{0x63, 0xd4, 0x51, 0xcd, 0xbc, 0x6c, 0xc9, 0x56, 0x45, 0x24},
-		"dgb53lewel4ndk94",
-		1674858957,
-		207175420364068,
+		// 02k4he6ej8000t4f ts:696996122002 seq:   0 rnd:26766 1992-02-02 02:02:02.002 +0000 UTC ID{  0x0, 0xa2, 0x48, 0x34, 0xcd, 0x92,  0x0,  0x0, 0x68, 0x8e }
+		ID{0x0, 0xa2, 0x48, 0x34, 0xcd, 0x92, 0x0, 0x0, 0x68, 0x8e},
+		"02k4he6ej8000t4f",
+		696996122002,
+		0,
+		26766,
+	},
+	{
+		// 06bpjb8pz0000000 ts:1741226055416 seq:   0 rnd:    0 2025-03-05 17:54:15.416 -0800 PST ID{  0x1, 0x95, 0x69, 0x29, 0x16, 0xf8,  0x0,  0x0,  0x0,  0x0 }
+		ID{0x1, 0x95, 0x69, 0x29, 0x16, 0xf8, 0x0, 0x0, 0x0, 0x0},
+		"06bpjb8pz0000000",
+		1741226055416,
+		0,
+		0,
+	},
+	{
+		// 05z169vrs40006zf ts:1640998861001 seq:   0 rnd: 7150 2022-01-01 01:01:01.001 +0000 UTC ID{  0x1, 0x7e, 0x13, 0x27, 0x78, 0xc9,  0x0,  0x0, 0x1b, 0xee }
+		ID{0x1, 0x7e, 0x13, 0x27, 0x78, 0xc9, 0x0, 0x0, 0x1b, 0xee},
+		"05z169vrs40006zf",
+		1640998861001,
+		0,
+		7150,
 	},
 }
 
 func TestIDPartsExtraction(t *testing.T) {
-	for i, v := range IDs {
+	for i, v := range CHECKIDS {
 		t.Run(fmt.Sprintf("Test%d", i), func(t *testing.T) {
-			if got, want := v.id.Time(), time.Unix(v.ts, 0); got != want {
+			if got, want := v.id.Time(), time.UnixMilli(v.ts).UTC(); got != want {
 				t.Errorf("Time() = %v, want %v", got, want)
 			}
 			if got, want := v.id.Timestamp(), v.ts; got != want {
@@ -84,12 +90,12 @@ func TestIDPartsExtraction(t *testing.T) {
 func TestNew(t *testing.T) {
 	// Generate N ids, see if all unique
 	// Parallel generation test is in ./cmd/eval/uniqcheck/main.go
-	numIDS := 1000
-	ids := make([]ID, numIDS)
-	for i := 0; i < numIDS; i++ {
+	count := 10000
+	ids := make([]ID, count)
+	for i := range count {
 		ids[i] = New()
 	}
-	for i := 1; i < numIDS; i++ {
+	for i := 1; i < count; i++ {
 		prevID := ids[i-1]
 		id := ids[i]
 		// Test for uniqueness among all other generated ids
@@ -110,8 +116,30 @@ func TestNew(t *testing.T) {
 	}
 }
 
+// ensure sequencing produces unique ts+seq combos
+func TestSequence(t *testing.T) {
+	var lastTS, lastSeq int64
+	// Generate 1,000,000 new IDs on the fly (about 70 ms depending on hardware)
+	check := []ID{}
+	for range 1000000 {
+		check = append(check, New())
+	}
+	for _, id := range check {
+		if lastTS != id.Timestamp() {
+			lastTS = id.Timestamp()
+			lastSeq = id.Sequence()
+			continue
+		}
+		if id.Timestamp() == lastTS && id.Sequence() <= lastSeq {
+			t.Errorf("sequence not unique for next ID ts: %d seq: %d last: %d", id.Timestamp(), id.Sequence(), lastTS)
+		} else {
+			lastSeq = id.Sequence()
+		}
+	}
+}
+
 func TestIDString(t *testing.T) {
-	for _, v := range IDs {
+	for _, v := range CHECKIDS {
 		if got, want := v.encoded, v.id.String(); got != want {
 			t.Errorf("String() = %v, want %v", got, want)
 		}
@@ -127,12 +155,12 @@ func TestIDEncode(t *testing.T) {
 }
 
 func TestFromString(t *testing.T) {
-	// dfp7emzzzzy30ey2 ts:1672246995 rnd:281474912761794 2022-12-28 09:03:15 -0800 PST ID{0x63,0xac,0x76,0xd3,0xff,0xff,0xfc,0x30,0x37,0xc2}
-	got, err := FromString("dfp7emzzzzy30ey2")
+	// 06bprdfln4x281hd ts:1741276959657 seq:14884 rnd: 1548 2025-03-06 16:02:39.657 +0000 UTC ID{  0x1, 0x95, 0x6c, 0x31, 0xd3, 0xa9, 0x3a, 0x24,  0x6,  0xc }
+	got, err := FromString("06bprdfln4x281hd")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
+	want := ID{0x1, 0x95, 0x6c, 0x31, 0xd3, 0xa9, 0x3a, 0x24, 0x6, 0xc}
 	if got != want {
 		t.Errorf("FromString() = %v, want %v", got, want)
 	}
@@ -203,10 +231,10 @@ func TestID_UnmarshalText(t *testing.T) {
 			true,
 		},
 		{
-			// dfp7emzzzzy30ey2 ts:1672246995 rnd:281474912761794 2022-12-28 09:03:15 -0800 PST ID{0x63,0xac,0x76,0xd3,0xff,0xff,0xfc,0x30,0x37,0xc2}
+			// 06bprg666xzm7hpg ts:1741277677111 seq:32579 rnd:49871 2025-03-06 16:14:37.111 +0000 UTC ID{  0x1, 0x95, 0x6c, 0x3c, 0xc6, 0x37, 0x7f, 0x43, 0xc2, 0xcf }
 			"valid id",
-			"dfp7emzzzzy30ey2",
-			&ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2},
+			"06bprg666xzm7hpg",
+			&ID{0x1, 0x95, 0x6c, 0x3c, 0xc6, 0x37, 0x7f, 0x43, 0xc2, 0xcf},
 			false,
 		},
 	}
@@ -303,27 +331,27 @@ type jsonType struct {
 }
 
 func TestIDJSONMarshaling(t *testing.T) {
-	// dfp7emzzzzy30ey2 ts:1672246995 rnd:281474912761794 2022-12-28 09:03:15 -0800 PST ID{0x63,0xac,0x76,0xd3,0xff,0xff,0xfc,0x30,0x37,0xc2}
-	id := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
-	v := jsonType{ID: &id, Str: "test"}
+	// 06bprg666xzm7hpg ts:1741277677111 seq:32579 rnd:49871 2025-03-06 16:14:37.111 +0000 UTC ID{  0x1, 0x95, 0x6c, 0x3c, 0xc6, 0x37, 0x7f, 0x43, 0xc2, 0xcf }
+	id := ID{0x1, 0x95, 0x6c, 0x3c, 0xc6, 0x37, 0x7f, 0x43, 0xc2, 0xcf}
+	v := jsonType{ID: &id, Str: "valid"}
 	data, err := json.Marshal(&v)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := string(data), `{"ID":"dfp7emzzzzy30ey2","Str":"test"}`; got != want {
+	if got, want := string(data), `{"ID":"06bprg666xzm7hpg","Str":"valid"}`; got != want {
 		t.Errorf("json.Marshal() = %v, want %v", got, want)
 	}
 }
 
 func TestIDJSONUnmarshaling(t *testing.T) {
-	// dfp7emzzzzy30ey2 ts:1672246995 rnd:281474912761794 2022-12-28 09:03:15 -0800 PST ID{0x63,0xac,0x76,0xd3,0xff,0xff,0xfc,0x30,0x37,0xc2}
-	data := []byte(`{"ID":"dfp7emzzzzy30ey2","Str":"test"}`)
+	// 06bprg666xzm7hpg ts:1741277677111 seq:32579 rnd:49871 2025-03-06 16:14:37.111 +0000 UTC ID{  0x1, 0x95, 0x6c, 0x3c, 0xc6, 0x37, 0x7f, 0x43, 0xc2, 0xcf }
+	data := []byte(`{"ID":"06bprg666xzm7hpg","Str":"valid"}`)
 	v := jsonType{}
 	err := json.Unmarshal(data, &v)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
+	want := ID{0x1, 0x95, 0x6c, 0x3c, 0xc6, 0x37, 0x7f, 0x43, 0xc2, 0xcf}
 	if got := *v.ID; !bytes.Equal(got[:], want[:]) {
 		t.Errorf("json.Unmarshal() = %v, want %v", got, want)
 	}
@@ -338,12 +366,12 @@ func TestIDJSONUnmarshalingError(t *testing.T) {
 	v := jsonType{}
 	// callers are responsible for forcing lower case input for Base32
 	// otherwise valid id:
-	err := json.Unmarshal([]byte(`{"ID":"DFP8T54NN0JZ37HW"}`), &v)
+	err := json.Unmarshal([]byte(`{"ID":"06BPRG666XZM7HPG"}`), &v)
 	if err != ErrInvalidID {
 		t.Errorf("json.Unmarshal() err=%v, want %v", err, ErrInvalidID)
 	}
 	// too short
-	err = json.Unmarshal([]byte(`{"ID":"dfp8t54nn0jz37h"}`), &v)
+	err = json.Unmarshal([]byte(`{"ID":"06bprg666xzm"}`), &v)
 	if err != ErrInvalidID {
 		t.Errorf("json.Unmarshal() err=%v, want %v", err, ErrInvalidID)
 	}
@@ -360,25 +388,25 @@ func TestIDJSONUnmarshalingError(t *testing.T) {
 }
 
 func TestIDDriverValue(t *testing.T) {
-	// dfp7emzzzzy30ey2 ts:1672246995 rnd:281474912761794 2022-12-28 09:03:15 -0800 PST ID{0x63,0xac,0x76,0xd3,0xff,0xff,0xfc,0x30,0x37,0xc2}
-	id := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
+	// 06bprg666xzm7hpg ts:1741277677111 seq:32579 rnd:49871 2025-03-06 16:14:37.111 +0000 UTC ID{  0x1, 0x95, 0x6c, 0x3c, 0xc6, 0x37, 0x7f, 0x43, 0xc2, 0xcf }
+	id := ID{0x1, 0x95, 0x6c, 0x3c, 0xc6, 0x37, 0x7f, 0x43, 0xc2, 0xcf}
 	got, err := id.Value()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := "dfp7emzzzzy30ey2"; got != want {
+	if want := "06bprg666xzm7hpg"; got != want {
 		t.Errorf("Value() = %v, want %v", got, want)
 	}
 }
 
 func TestIDDriverScan(t *testing.T) {
-	// dfp7emzzzzy30ey2 ts:1672246995 rnd:281474912761794 2022-12-28 09:03:15 -0800 PST ID{0x63,0xac,0x76,0xd3,0xff,0xff,0xfc,0x30,0x37,0xc2}
+	// 06bprg666xzm7hpg ts:1741277677111 seq:32579 rnd:49871 2025-03-06 16:14:37.111 +0000 UTC ID{  0x1, 0x95, 0x6c, 0x3c, 0xc6, 0x37, 0x7f, 0x43, 0xc2, 0xcf }
 	got := ID{}
-	err := got.Scan("dfp7emzzzzy30ey2")
+	err := got.Scan("06bprg666xzm7hpg")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
+	want := ID{0x1, 0x95, 0x6c, 0x3c, 0xc6, 0x37, 0x7f, 0x43, 0xc2, 0xcf}
 	if !bytes.Equal(got[:], want[:]) {
 		t.Errorf("Scan() = %v, want %v", got, want)
 	}
@@ -399,14 +427,14 @@ func TestIDDriverScanError(t *testing.T) {
 }
 
 func TestIDDriverScanByteFromDatabase(t *testing.T) {
-	// dfp7emzzzzy30ey2 ts:1672246995 rnd:281474912761794 2022-12-28 09:03:15 -0800 PST ID{0x63,0xac,0x76,0xd3,0xff,0xff,0xfc,0x30,0x37,0xc2}
+	// 06bprg666xzm7hpg ts:1741277677111 seq:32579 rnd:49871 2025-03-06 16:14:37.111 +0000 UTC ID{  0x1, 0x95, 0x6c, 0x3c, 0xc6, 0x37, 0x7f, 0x43, 0xc2, 0xcf }
 	got := ID{}
-	bs := []byte("dfp7emzzzzy30ey2")
+	bs := []byte("06bprg666xzm7hpg")
 	err := got.Scan(bs)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := ID{0x63, 0xac, 0x76, 0xd3, 0xff, 0xff, 0xfc, 0x30, 0x37, 0xc2}
+	want := ID{0x1, 0x95, 0x6c, 0x3c, 0xc6, 0x37, 0x7f, 0x43, 0xc2, 0xcf}
 	if !bytes.Equal(got[:], want[:]) {
 		t.Errorf("Scan() = %v, want %v", got, want)
 	}
@@ -436,11 +464,11 @@ func TestCompare(t *testing.T) {
 		right    ID
 		expected int
 	}{
-		{IDs[1].id, IDs[0].id, 1},
-		{ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, IDs[2].id, 0},
-		{IDs[0].id, IDs[0].id, 0},
-		{IDs[2].id, IDs[1].id, -1},
-		{IDs[5].id, IDs[4].id, -1},
+		{CHECKIDS[1].id, CHECKIDS[0].id, 1},
+		{ID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, CHECKIDS[2].id, 0},
+		{CHECKIDS[0].id, CHECKIDS[0].id, 0},
+		{CHECKIDS[2].id, CHECKIDS[1].id, -1},
+		{CHECKIDS[5].id, CHECKIDS[4].id, -1},
 	}
 	for _, p := range pairs {
 		if p.expected != p.left.Compare(p.right) {
@@ -452,7 +480,7 @@ func TestCompare(t *testing.T) {
 	}
 }
 
-var IDList = []ID{IDs[0].id, IDs[1].id, IDs[2].id, IDs[3].id, IDs[4].id, IDs[5].id}
+var IDList = []ID{CHECKIDS[0].id, CHECKIDS[1].id, CHECKIDS[2].id, CHECKIDS[3].id, CHECKIDS[4].id, CHECKIDS[5].id}
 
 func TestSorter_Len(t *testing.T) {
 	if got, want := sorter([]ID{}).Len(), 0; got != want {
@@ -567,8 +595,7 @@ func BenchmarkString(b *testing.B) {
 // decoding performance only
 func BenchmarkFromString(b *testing.B) {
 	var r ID
-	// dfp7emzzzzy30ey2 ts:1672246995 rnd:281474912761794 2022-12-28 09:03:15 -0800 PST ID{0x63,0xac,0x76,0xd3,0xff,0xff,0xfc,0x30,0x37,0xc2}
-	str := "dfp7emzzzzy30ey2"
+	str := "06bprlcm7q4z16vh"
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			r, _ = FromString(str)
@@ -583,23 +610,17 @@ func ExampleNew() {
 	fmt.Printf(`ID:
     String()  %s
     Timestamp() %d
+    Sequence() %d
     Random()  %d 
     Time()    %v
-    Bytes()   %3v\n`, id.String(), id.Timestamp(), id.Random(), id.Time().UTC(), id.Bytes())
-}
-
-func ExampleNewWithTime() {
-	id := NewWithTime(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC))
-	fmt.Printf(`ID: Timestamp() %d Time() %v`, id.Timestamp(), id.Time().UTC())
-	// Output: ID: Timestamp() 1577836800 Time() 2020-01-01 00:00:00 +0000 UTC
+    Bytes()   %3v\n`, id.String(), id.Timestamp(), id.Sequence(), id.Random(), id.Time().UTC(), id.Bytes())
 }
 
 func ExampleFromString() {
-	// dfp7emzzzzy30ey2 ts:1672246995 rnd:281474912761794 2022-12-28 09:03:15 -0800 PST ID{0x63,0xac,0x76,0xd3,0xff,0xff,0xfc,0x30,0x37,0xc2}
-	id, err := FromString("dfp7emzzzzy30ey2")
+	id, err := FromString("03f6nlxczw0018fz")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(id.Timestamp(), id.Random())
-	// Output: 1672246995 281474912761794
+	// Output: 946684799999 41439
 }

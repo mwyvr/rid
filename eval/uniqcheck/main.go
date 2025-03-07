@@ -70,7 +70,7 @@ func generate(count int) {
 	var id rid.ID
 	for i := 0; i < count; i++ {
 		id = rid.New()
-		tmpTimestamp := time.Now().Unix()
+		tmpTimestamp := time.Now().UnixMilli()
 		exists.mu.Lock()
 		if exists.lastTick != tmpTimestamp {
 			exists.lastTick = tmpTimestamp

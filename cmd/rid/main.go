@@ -19,7 +19,7 @@ func main() {
 
 		fmt.Printf("Usage: rid\n\n")
 		fmt.Printf("Options:\n")
-		fmt.Printf("  rid dgm3w9sh9f5flv5s\t\tDecode the supplied Base32 ID\n")
+		fmt.Printf("  rid 06bpk9h5kd17xd7z\t\tDecode the supplied Base32 ID\n")
 		fmt.Printf("  rid -%s N\t\t\t%s default: %s\n\n", fcount.Name, fcount.Usage, fcount.DefValue)
 		fmt.Printf("With no parameters, rid generates %s random ID encoded as Base32.\n", fcount.DefValue)
 		fmt.Printf("Generate and inspect 4 random IDs using Linux/Unix command substitution:\n")
@@ -44,8 +44,8 @@ func main() {
 				continue
 			}
 
-			fmt.Printf("%s ts:%d rnd:%15d %s ID{%s }\n", arg,
-				id.Timestamp(), id.Random(), id.Time(), asHex(id.Bytes()))
+			fmt.Printf("%s ts:%d seq:%4d rnd:%5d %s ID{%s }\n", arg,
+				id.Timestamp(), id.Sequence(), id.Random(), id.Time(), asHex(id.Bytes()))
 		}
 	} else {
 		// generate one or -c N ids

@@ -1,26 +1,25 @@
 /*
-Package rid provides a performant, k-sortable-ish (first 4 bytes/to the
-second, only), scalable unique ID generator suitable for applications where ID
-generation coordination between machines or other processes is not required. ID
-generation is goroutine safe and scales well with CPU cores. Providing unique
-non-sequential keys for embeddable databases like SQLIte or BoltDB or key-value
-stores are typical use-cases.
-
-Binary IDs Base-32 encode as a 16-character URL and human-friendly
-representation like dfp7qt0v2pwt0v2x.
+Package rid provides a performant goroutine-safe ID generator producing unique,
+k-sortable, short, url-safe IDs suitable where ID generation coordination across
+the globe is not a requirement.
 
 The 10-byte binary representation of an ID is comprised of:
 
-  - 4-byte timestamp value representing seconds since the Unix epoch
-  - 6-byte random value; as of release v1.2.0 this package uses crypto/rand and
-    requires Go 1.24.
+  - 6-byte timestamp value representing milliseconds since the Unix epoch.
+  - 2-byte ordered sequence
+  - 2-bytes of random data;  random value; as of release v1.2.0 this package
+    uses crypto/rand and requires Go 1.24+.
 
-Key features:
+The millisecond << 12 plus sequence value are guaranteed to
+be greater than the previous call(s) to New().
+
+IDs encode (base32) as 16 character human and url-friendly strings.
+
+Key ID features:
 
   - K-orderable in both binary and string representations
-  - Encoded IDs are short (16 characters)
   - Automatic (de)serialization for SQL and JSON
-  - Scalable performance as cores increase; ID generation is fast and remains so
+  - Encoded IDs are short (16 characters)
   - URL and human friendly Base32 encoding using a custom character set to
     avoid unintended rude words if humans are to be exposed to IDs
 
@@ -28,13 +27,13 @@ Example usage:
 
 	id := rid.New()
 	fmt.Printf("%s", id.String())
-	// Output: dfp7qt97menfv8ll
-	id, err := id.FromString("dfp7qt97menfv8ll")
-	// ID{0x63,0xac,0x7b,0xe9,0x27,0xa3,0x6a,0xed,0xa2,0x73}, nil
+	// Output: 06bpw16hfm62jt9h
+	id, err := id.FromString("06bpw16hfm62jt9h")
+	// ID{  0x1, 0x95, 0x6e,  0x4, 0xd0, 0x75,  0xc, 0x29, 0x69, 0x30 }, nil
 
-Acknowledgement: This source file is based on work in package github.com/rs/xid,
-a zero-configuration globally-unique ID generator. See LICENSE.rs-xid.
-The same API has been maintained.
+Acknowledgement: While the ID payload differs greatly, the API and much of
+this package is based on on package github.com/rs/xid, a zero-configuration
+globally-unique ID generator.
 */
 package rid
 
@@ -45,6 +44,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -81,25 +81,23 @@ func init() {
 }
 
 // New returns a new ID using the current time.
+// The time component of an ID is a Unix timestamp in milliseconds resolution;
 func New() ID {
-	return NewWithTime(time.Now())
-}
-
-// NewWithTime returns a new ID using the supplied time.
-//
-// The time value component of an ID is a Unix timestamp with seconds
-// resolution; Go timestamp values reflect UTC and are not location aware.
-func NewWithTime(t time.Time) ID {
 	var id ID
 
-	_ = id[9]             // bounds check hint to compiler; see golang.org/issue/14808
-	s := uint32(t.Unix()) // 4 bytes of time, seconds resolution
-	id[0] = byte(s >> 24)
-	id[1] = byte(s >> 16)
-	id[2] = byte(s >> 8)
-	id[3] = byte(s)
-	rand.Read(id[4:])
-
+	t, s := getTS() // (timestamp+sequence) are guaranteed to be unique for each call
+	// time
+	id[0] = byte(t >> 40)
+	id[1] = byte(t >> 32)
+	id[2] = byte(t >> 24)
+	id[3] = byte(t >> 16)
+	id[4] = byte(t >> 8)
+	id[5] = byte(t)
+	// sequence
+	id[6] = byte(s >> 8)
+	id[7] = byte(s)
+	// two bytes of randomness
+	rand.Read(id[8:])
 	return id
 }
 
@@ -134,8 +132,6 @@ func (id ID) Encode(dst []byte) []byte {
 // encode bytes as Base32, unrolling the stdlib base32 algorithm for
 // performance. There is no padding as Base32 aligns on 5-byte boundaries.
 func encode(dst, id []byte) {
-	_ = id[9] // bounds checks
-	_ = dst[15]
 
 	dst[15] = charset[id[9]&0x1F]
 	dst[14] = charset[(id[9]>>5)|(id[8]<<3)&0x1F]
@@ -160,23 +156,31 @@ func (id ID) Bytes() []byte {
 	return id[:]
 }
 
-// Timestamp returns the ID's timestamp component as seconds since the Unix epoch.
+// Timestamp returns the ID's timestamp component as milliseconds since the
+// Unix epoch.
 func (id ID) Timestamp() int64 {
-	b := id[0:4]
+	b := id[0:6]
 	// Big Endian
-	return int64(uint64(b[0])<<24 | uint64(b[1])<<16 | uint64(b[2])<<8 | uint64(b[3]))
+	return int64(uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5]))
+}
+
+// Sequence returns the ID sequence.
+func (id ID) Sequence() int64 {
+	b := id[6:8]
+	// Big Endian
+	return int64(uint64(b[0])<<8 | uint64(b[1]))
 }
 
 // Time returns the ID's timestamp as a Time value.
 func (id ID) Time() time.Time {
-	return time.Unix(id.Timestamp(), 0)
+	return time.UnixMilli(id.Timestamp()).UTC()
 }
 
 // Random returns the random component of the ID.
 func (id ID) Random() uint64 {
-	b := id[4:]
+	b := id[8:]
 	// Big Endian
-	return uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 | uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5])
+	return uint64(b[0])<<8 | uint64(b[1])
 }
 
 // FromString decodes a Base32-encoded string to return an ID.
@@ -226,10 +230,12 @@ func (id *ID) UnmarshalText(text []byte) error {
 
 // decode a Base32 encoded string by unrolling the stdlib Base32 algorithm.
 func decode(id *ID, src []byte) bool {
-	_ = src[15] // bounds check
-
 	// this is ~4 to 6x faster than stdlib Base32 decoding
 	id[9] = dec[src[14]]<<5 | dec[src[15]]
+	// check the last byte
+	if charset[id[9]&0x1F] != src[15] {
+		return false
+	}
 	id[8] = dec[src[12]]<<7 | dec[src[13]]<<2 | dec[src[14]]>>3
 	id[7] = dec[src[11]]<<4 | dec[src[12]]>>1
 	id[6] = dec[src[9]]<<6 | dec[src[10]]<<1 | dec[src[11]]>>4
@@ -239,7 +245,6 @@ func decode(id *ID, src []byte) bool {
 	id[2] = dec[src[3]]<<4 | dec[src[4]]>>1
 	id[1] = dec[src[1]]<<6 | dec[src[2]]<<1 | dec[src[3]]>>4
 	id[0] = dec[src[0]]<<3 | dec[src[1]]>>2
-
 	return true
 }
 
@@ -266,7 +271,7 @@ func (id ID) Value() (driver.Value, error) {
 
 // Scan implements the sql.Scanner interface.
 // https://golang.org/pkg/database/sql/#Scanner
-func (id *ID) Scan(value interface{}) (err error) {
+func (id *ID) Scan(value any) (err error) {
 	switch val := value.(type) {
 	case string:
 		return id.UnmarshalText([]byte(val))
@@ -311,20 +316,21 @@ func (id *ID) UnmarshalJSON(b []byte) error {
 	return id.UnmarshalText(b[1 : len(b)-1])
 }
 
-// Compare makes IDs k-sortable(ish), returning an integer comparing only the
-// first 4 bytes of two IDs.
+// Compare makes IDs k-sortable, returning an integer comparing only the
+// first 6 bytes of two IDs.
 //
 // Recall that an ID is comprized of a:
 //
-// - 4-byte timestamp
-// - 6-byte random value
+// - 6-byte timestamp
+// - 2-byte sequence
+// - 2-byte random value
 //
 // Otherwise, it behaves just like `bytes.Compare(b1[:], b2[:])`.
 //
 // The result will be 0 if two IDs are identical, -1 if current id is less than
 // the other one, and 1 if current id is greater than the other.
 func (id ID) Compare(other ID) int {
-	return bytes.Compare(id[:5], other[:5])
+	return bytes.Compare(id[:8], other[:8])
 }
 
 type sorter []ID
@@ -344,4 +350,43 @@ func (s sorter) Swap(i, j int) {
 // Sort sorts an array of IDs in place.
 func Sort(ids []ID) {
 	sort.Sort(sorter(ids))
+}
+
+// getTS is borrowed directly from getV7Time:
+// https://github.com/google/uuid/blob/2d3c2a9cc518326daf99a383f07c4d3c44317e4d/version7.go#L88
+
+var (
+	// lastTime is the last time we returned stored as:
+	//
+	//	52 bits of time in milliseconds since epoch
+	//	12 bits of (fractional nanoseconds) >> 8
+	lastTime int64
+	timeMu   sync.Mutex
+	timeNow  = time.Now // for testing
+)
+
+const nanoPerMilli = 1000000
+
+// getTS using the supplied time func, returns the time in milliseconds and
+// nanoseconds / 256.
+//
+// The returned (milli << 12 + seq) is guaranteed to be greater than
+// (milli << 12 + seq) returned by any previous call to getTS.
+func getTS() (milli, seq int64) {
+	timeMu.Lock()
+	defer timeMu.Unlock()
+
+	nano := timeNow().UnixNano()
+	// fmt.Printf("%v\n", tf())
+	milli = nano / nanoPerMilli
+	// Sequence number is between 0 and 3906 (nanoPerMilli>>8)
+	seq = (nano - milli*nanoPerMilli) >> 8
+	now := milli<<12 + seq
+	if now <= lastTime {
+		now = lastTime + 1
+		milli = now >> 12
+		seq = now & 0xfff
+	}
+	lastTime = now
+	return milli, seq
 }
