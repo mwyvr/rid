@@ -227,9 +227,12 @@ func (id *ID) UnmarshalText(text []byte) error {
 // decode a Base32 encoded string by unrolling the stdlib Base32 algorithm.
 func decode(id *ID, src []byte) bool {
 	_ = src[15] // bounds check
-
 	// this is ~4 to 6x faster than stdlib Base32 decoding
 	id[9] = dec[src[14]]<<5 | dec[src[15]]
+	// check the last byte
+	if charset[id[9]&0x1F] != src[15] {
+		return false
+	}
 	id[8] = dec[src[12]]<<7 | dec[src[13]]<<2 | dec[src[14]]>>3
 	id[7] = dec[src[11]]<<4 | dec[src[12]]>>1
 	id[6] = dec[src[9]]<<6 | dec[src[10]]<<1 | dec[src[11]]>>4
