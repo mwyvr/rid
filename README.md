@@ -2,8 +2,10 @@
 
 # rid
 
+This package is archived; please see my breaking-change fork [github.com/mwyvr/kid](https://github.com/mwyvr/kid) for what I believe is an improvement.
+
 Package rid provides a performant, goroutine-safe generator of short
-[k-sortable](https://en.wikipedia.org/wiki/K-sorted_sequence) unique IDs
+[k-sortable](https://en.wikipedia.org/wiki/K-sorted_sequence)(ish) unique IDs
 suitable for use where inter-process ID generation coordination is not
 required.
 
